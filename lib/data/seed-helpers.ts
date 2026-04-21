@@ -95,10 +95,12 @@ function buildAttributeRecord(seed: AttributeSeed) {
 }
 
 function createEntity(input: EntitySeedInput, seed: AttributeSeed): GameEntity {
-  return {
+  const attributes = Object.freeze(buildAttributeRecord(seed)) as GameEntity["attributes"];
+
+  return Object.freeze({
     ...input,
-    attributes: buildAttributeRecord(seed),
-  };
+    attributes,
+  }) as GameEntity;
 }
 
 export function createCharacter(

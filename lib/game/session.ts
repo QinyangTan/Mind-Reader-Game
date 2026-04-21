@@ -2,15 +2,47 @@ import { entityById, getEntitiesForCategory } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import { difficultyConfig } from "@/lib/game/game-config";
 import { selectNextQuestion } from "@/lib/game/question-selection";
-import { getTopCandidateId, rankCandidates, shouldAttemptGuess } from "@/lib/game/scoring";
+import {
+  getTopCandidateId,
+  rankCandidates,
+  shouldAttemptGuess,
+  strongestNarrowingQuestion,
+} from "@/lib/game/scoring";
 import type {
+  GameEntity,
   GameResult,
   GuessMyMindSession,
   NormalizedAnswer,
   ReadMyMindSession,
   SetupSelection,
+  StrongestNarrowingQuestion,
   SystemAnsweredQuestion,
 } from "@/types/game";
+
+function resolveExtraEntity(extraEntities: GameEntity[], id: string) {
+  return entityById.get(id) ?? extraEntities.find((entity) => entity.id === id);
+}
+
+function combineCategoryPool(
+  seeded: readonly GameEntity[],
+  extraEntities: GameEntity[],
+  category: GameEntity["category"],
+) {
+  if (extraEntities.length === 0) {
+    return seeded;
+  }
+
+  const seenIds = new Set(seeded.map((entity) => entity.id));
+  const dedupedExtras = extraEntities.filter(
+    (entity) => entity.category === category && !seenIds.has(entity.id),
+  );
+
+  if (dedupedExtras.length === 0) {
+    return seeded;
+  }
+
+  return [...seeded, ...dedupedExtras];
+}
 
 function createId() {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -32,10 +64,19 @@ function createResult(
   } satisfies GameResult;
 }
 
-export function createReadMyMindSession(selection: Omit<SetupSelection, "mode">): ReadMyMindSession {
+export function createReadMyMindSession(
+  selection: Omit<SetupSelection, "mode">,
+  extraEntities: GameEntity[] = [],
+): ReadMyMindSession {
   const config = difficultyConfig[selection.difficulty].readMyMind;
-  const rankings = rankCandidates(selection.category, [], []);
-  const firstQuestion = selectNextQuestion(selection.category, [], rankings);
+  const rankings = rankCandidates(selection.category, [], [], extraEntities);
+  const firstQuestion = selectNextQuestion(
+    selection.category,
+    [],
+    rankings,
+    extraEntities,
+    config.maxQuestions,
+  );
 
   return {
     ...selection,
@@ -51,8 +92,12 @@ export function createReadMyMindSession(selection: Omit<SetupSelection, "mode">)
   };
 }
 
-export function createGuessMyMindSession(selection: Omit<SetupSelection, "mode">): GuessMyMindSession {
-  const pool = getEntitiesForCategory(selection.category);
+export function createGuessMyMindSession(
+  selection: Omit<SetupSelection, "mode">,
+  extraEntities: GameEntity[] = [],
+): GuessMyMindSession {
+  const seeded = getEntitiesForCategory(selection.category);
+  const pool = combineCategoryPool(seeded, extraEntities, selection.category);
   const randomIndex = Math.floor(Math.random() * pool.length);
   const secretEntity = pool[randomIndex];
 
@@ -68,7 +113,50 @@ export function createGuessMyMindSession(selection: Omit<SetupSelection, "mode">
   };
 }
 
-function createReadEscapeResult(session: ReadMyMindSession, guessesUsed: number) {
+/**
+ * Resolver closure used to look up entities from a candidate id across the
+ * seeded bank + any learned entities that were in play this round. Needed
+ * by the narrowing computation, which reads attribute values off the top
+ * rankings.
+ */
+function buildEntityResolver(extraEntities: GameEntity[]) {
+  if (extraEntities.length === 0) {
+    return (id: string) => entityById.get(id);
+  }
+  const extras = new Map(extraEntities.map((entity) => [entity.id, entity] as const));
+  return (id: string) => entityById.get(id) ?? extras.get(id);
+}
+
+function computeRmmNarrowing(
+  session: ReadMyMindSession,
+  extraEntities: GameEntity[],
+): StrongestNarrowingQuestion | undefined {
+  const resolve = buildEntityResolver(extraEntities);
+  const best = strongestNarrowingQuestion(session.asked, session.rankings, resolve);
+
+  if (!best) {
+    return undefined;
+  }
+
+  const question = questionById.get(best.questionId);
+  if (!question) {
+    return undefined;
+  }
+
+  return {
+    questionLabel: question.label,
+    questionPrompt: question.question,
+    answer: best.answer,
+  };
+}
+
+function createReadEscapeResult(
+  session: ReadMyMindSession,
+  guessesUsed: number,
+  extraEntities: GameEntity[] = [],
+) {
+  const strongestQuestion = computeRmmNarrowing(session, extraEntities);
+
   return createResult(session, {
     winner: "player",
     title: "Thought Pattern Escaped",
@@ -76,15 +164,20 @@ function createReadEscapeResult(session: ReadMyMindSession, guessesUsed: number)
     questionsUsed: session.asked.length,
     guessesUsed,
     teachable: true,
+    ...(strongestQuestion ? { strongestQuestion } : {}),
   });
 }
 
-export function applyReadMyMindAnswer(session: ReadMyMindSession, answer: NormalizedAnswer) {
+export function applyReadMyMindAnswer(
+  session: ReadMyMindSession,
+  answer: NormalizedAnswer,
+  extraEntities: GameEntity[] = [],
+) {
   const activeQuestion = session.currentQuestionId ? questionById.get(session.currentQuestionId) : null;
 
   if (!activeQuestion) {
     return {
-      result: createReadEscapeResult(session, session.guessAttemptsUsed),
+      result: createReadEscapeResult(session, session.guessAttemptsUsed, extraEntities),
     };
   }
 
@@ -99,7 +192,7 @@ export function applyReadMyMindAnswer(session: ReadMyMindSession, answer: Normal
     },
   ];
 
-  const rankings = rankCandidates(session.category, asked, session.rejectedGuessIds);
+  const rankings = rankCandidates(session.category, asked, session.rejectedGuessIds, extraEntities);
   const remainingQuestions = session.config.maxQuestions - asked.length;
   const forcedGuessId = getTopCandidateId(rankings, session.rejectedGuessIds);
 
@@ -113,6 +206,7 @@ export function applyReadMyMindAnswer(session: ReadMyMindSession, answer: Normal
             rankings,
           },
           session.guessAttemptsUsed,
+          extraEntities,
         ),
       };
     }
@@ -144,6 +238,8 @@ export function applyReadMyMindAnswer(session: ReadMyMindSession, answer: Normal
     session.category,
     asked.map((entry) => entry.questionId),
     rankings,
+    extraEntities,
+    remainingQuestions,
   );
 
   if (!nextQuestion) {
@@ -156,6 +252,7 @@ export function applyReadMyMindAnswer(session: ReadMyMindSession, answer: Normal
             rankings,
           },
           session.guessAttemptsUsed,
+          extraEntities,
         ),
       };
     }
@@ -182,17 +279,23 @@ export function applyReadMyMindAnswer(session: ReadMyMindSession, answer: Normal
   };
 }
 
-export function resolveReadMyMindGuess(session: ReadMyMindSession, guessedCorrectly: boolean) {
+export function resolveReadMyMindGuess(
+  session: ReadMyMindSession,
+  guessedCorrectly: boolean,
+  extraEntities: GameEntity[] = [],
+) {
   const guessId = session.queuedGuessId;
-  const guessedEntity = guessId ? entityById.get(guessId) : undefined;
+  const guessedEntity = guessId ? resolveExtraEntity(extraEntities, guessId) : undefined;
 
   if (!guessId || !guessedEntity) {
     return {
-      result: createReadEscapeResult(session, session.guessAttemptsUsed),
+      result: createReadEscapeResult(session, session.guessAttemptsUsed, extraEntities),
     };
   }
 
   if (guessedCorrectly) {
+    const strongestQuestion = computeRmmNarrowing(session, extraEntities);
+
     return {
       result: createResult(session, {
         winner: "system",
@@ -203,6 +306,7 @@ export function resolveReadMyMindGuess(session: ReadMyMindSession, guessedCorrec
         revealedEntityId: guessedEntity.id,
         revealedEntityName: guessedEntity.name,
         teachable: false,
+        ...(strongestQuestion ? { strongestQuestion } : {}),
       }),
     };
   }
@@ -212,18 +316,22 @@ export function resolveReadMyMindGuess(session: ReadMyMindSession, guessedCorrec
 
   if (guessAttemptsUsed >= session.config.maxGuesses) {
     return {
-      result: createReadEscapeResult(session, guessAttemptsUsed),
+      result: createReadEscapeResult(session, guessAttemptsUsed, extraEntities),
     };
   }
 
-  const rankings = rankCandidates(session.category, session.asked, rejectedGuessIds);
+  const rankings = rankCandidates(session.category, session.asked, rejectedGuessIds, extraEntities);
   const remainingQuestions = session.config.maxQuestions - session.asked.length;
   const fallbackGuessId = getTopCandidateId(rankings, rejectedGuessIds);
 
   if (remainingQuestions <= 0) {
     if (!fallbackGuessId) {
       return {
-        result: createReadEscapeResult(session, guessAttemptsUsed),
+        result: createReadEscapeResult(
+          { ...session, rankings },
+          guessAttemptsUsed,
+          extraEntities,
+        ),
       };
     }
 
@@ -243,12 +351,18 @@ export function resolveReadMyMindGuess(session: ReadMyMindSession, guessedCorrec
     session.category,
     session.asked.map((entry) => entry.questionId),
     rankings,
+    extraEntities,
+    remainingQuestions,
   );
 
   if (!nextQuestion) {
     if (!fallbackGuessId) {
       return {
-        result: createReadEscapeResult(session, guessAttemptsUsed),
+        result: createReadEscapeResult(
+          { ...session, rankings },
+          guessAttemptsUsed,
+          extraEntities,
+        ),
       };
     }
 
@@ -276,7 +390,11 @@ export function resolveReadMyMindGuess(session: ReadMyMindSession, guessedCorrec
   };
 }
 
-export function askGuessMyMindQuestion(session: GuessMyMindSession, questionId: string) {
+export function askGuessMyMindQuestion(
+  session: GuessMyMindSession,
+  questionId: string,
+  extraEntities: GameEntity[] = [],
+) {
   if (session.asked.length >= session.config.maxQuestions) {
     return session;
   }
@@ -285,7 +403,7 @@ export function askGuessMyMindQuestion(session: GuessMyMindSession, questionId: 
     return session;
   }
 
-  const secretEntity = entityById.get(session.secretEntityId);
+  const secretEntity = resolveExtraEntity(extraEntities, session.secretEntityId);
   const question = questionById.get(questionId);
 
   if (!secretEntity || !question) {
@@ -308,8 +426,12 @@ export function askGuessMyMindQuestion(session: GuessMyMindSession, questionId: 
   };
 }
 
-export function submitGuessMyMindGuess(session: GuessMyMindSession, guessedEntityId: string) {
-  const secretEntity = entityById.get(session.secretEntityId);
+export function submitGuessMyMindGuess(
+  session: GuessMyMindSession,
+  guessedEntityId: string,
+  extraEntities: GameEntity[] = [],
+) {
+  const secretEntity = resolveExtraEntity(extraEntities, session.secretEntityId);
 
   if (!secretEntity) {
     return {

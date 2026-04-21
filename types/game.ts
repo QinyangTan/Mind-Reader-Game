@@ -197,6 +197,12 @@ export interface GuessMyMindSession extends SetupSelection {
 
 export type GameWinner = "system" | "player";
 
+export interface StrongestNarrowingQuestion {
+  questionLabel: string;
+  questionPrompt: string;
+  answer: NormalizedAnswer;
+}
+
 export interface GameResult extends SetupSelection {
   id: string;
   winner: GameWinner;
@@ -208,10 +214,12 @@ export interface GameResult extends SetupSelection {
   revealedEntityId?: string;
   revealedEntityName?: string;
   teachable: boolean;
+  strongestQuestion?: StrongestNarrowingQuestion;
 }
 
 export interface StoredSettings extends SetupSelection {
   soundEnabled: boolean;
+  useTeachCases: boolean;
 }
 
 export interface GameStats {
@@ -225,6 +233,18 @@ export interface GameStats {
   lastPlayedAt: string | null;
   byMode: Record<GameMode, number>;
   byCategory: Record<EntityCategory, number>;
+
+  // Phase 3: expanded lifetime telemetry. All fields are cumulative counters;
+  // derived metrics (rates, averages) are computed on read in `storage.ts`.
+  winsByMode: Record<GameMode, number>;
+  winsByCategory: Record<EntityCategory, number>;
+  byDifficulty: Record<Difficulty, number>;
+  winsByDifficulty: Record<Difficulty, number>;
+  questionsByMode: Record<GameMode, number>;
+  systemGuessAttempts: number;
+  systemGuessHits: number;
+  playerGuessAttempts: number;
+  playerGuessHits: number;
 }
 
 export interface HistoryEntry {
@@ -238,6 +258,7 @@ export interface HistoryEntry {
   questionsUsed: number;
   guessesUsed: number;
   revealedEntityName?: string;
+  strongestQuestion?: StrongestNarrowingQuestion;
 }
 
 export interface TeachCase {
@@ -248,12 +269,25 @@ export interface TeachCase {
   entityName: string;
   note: string;
   answers: AnsweredQuestion[];
+  extraAttributes?: Partial<Record<AttributeKey, NormalizedAnswer>>;
 }
 
 export interface PersistedVault {
+  version: 2;
+  settings: StoredSettings;
+  stats: GameStats;
+  history: HistoryEntry[];
+}
+
+export interface LegacyPersistedVaultV1 {
   version: 1;
   settings: StoredSettings;
   stats: GameStats;
   history: HistoryEntry[];
   teachCases: TeachCase[];
+}
+
+export interface LearnedEntityStore {
+  version: 1;
+  entries: TeachCase[];
 }

@@ -1,6 +1,6 @@
 import type { QuestionDefinition } from "@/types/game";
 
-export const allQuestions: QuestionDefinition[] = [
+const questionSeeds: QuestionDefinition[] = [
   {
     id: "fiction-human",
     label: "Human",
@@ -291,4 +291,20 @@ export const allQuestions: QuestionDefinition[] = [
   },
 ];
 
-export const questionById = new Map(allQuestions.map((question) => [question.id, question]));
+export const allQuestions: readonly QuestionDefinition[] = Object.freeze(
+  questionSeeds.map((question) => Object.freeze({ ...question })),
+);
+
+function freezeQuestionMap(map: Map<string, QuestionDefinition>): ReadonlyMap<string, QuestionDefinition> {
+  const block = () => {
+    throw new Error("Seeded questions are immutable");
+  };
+  map.set = block as Map<string, QuestionDefinition>["set"];
+  map.delete = block as Map<string, QuestionDefinition>["delete"];
+  map.clear = block as Map<string, QuestionDefinition>["clear"];
+  return map;
+}
+
+export const questionById: ReadonlyMap<string, QuestionDefinition> = freezeQuestionMap(
+  new Map(allQuestions.map((question) => [question.id, question])),
+);

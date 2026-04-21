@@ -4,15 +4,17 @@ import { useDeferredValue, useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 
 import { getEntitiesForCategory } from "@/lib/data/entities";
+import { isTeachEntityId } from "@/lib/game/teach";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils/cn";
-import type { EntityCategory } from "@/types/game";
+import type { EntityCategory, GameEntity } from "@/types/game";
 
 interface EntityPickerProps {
   category: EntityCategory;
   selectedId?: string | null;
   excludedIds?: string[];
   onSelect: (entityId: string) => void;
+  extraEntities?: GameEntity[];
 }
 
 export function EntityPicker({
@@ -20,13 +22,20 @@ export function EntityPicker({
   selectedId = null,
   excludedIds = [],
   onSelect,
+  extraEntities = [],
 }: EntityPickerProps) {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const blocked = new Set(excludedIds);
   const query = deferredSearch.trim().toLowerCase();
 
-  const results = getEntitiesForCategory(category)
+  const seeded = getEntitiesForCategory(category);
+  const seededIds = new Set(seeded.map((entity) => entity.id));
+  const extras = extraEntities.filter(
+    (entity) => entity.category === category && !seededIds.has(entity.id),
+  );
+
+  const results = [...seeded, ...extras]
     .filter((entity) => !blocked.has(entity.id))
     .filter((entity) => {
       if (!query) {
@@ -82,6 +91,11 @@ export function EntityPicker({
                 <p className="truncate font-medium text-slate-100">
                   <span className="mr-2">{entity.imageEmoji}</span>
                   {entity.name}
+                  {isTeachEntityId(entity.id) ? (
+                    <span className="ml-2 rounded-full border border-emerald-200/30 bg-emerald-300/10 px-2 py-0.5 text-[0.6rem] uppercase tracking-[0.22em] text-emerald-100">
+                      Teach
+                    </span>
+                  ) : null}
                 </p>
                 <p className="truncate text-xs text-slate-400">{entity.shortDescription}</p>
               </div>

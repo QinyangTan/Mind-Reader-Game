@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, BrainCircuit, Crosshair, Sparkles } from "lucide-react";
+import { ArrowRight, BrainCircuit, Crosshair, Library, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { MindChamberPanel } from "@/components/game/mind-chamber-panel";
@@ -14,9 +14,10 @@ interface PlaySetupProps {
   onChange: (patch: Partial<StoredSettings>) => void;
   onStart: () => void;
   isPending: boolean;
+  teachCaseCount: number;
 }
 
-export function PlaySetup({ settings, onChange, onStart, isPending }: PlaySetupProps) {
+export function PlaySetup({ settings, onChange, onStart, isPending, teachCaseCount }: PlaySetupProps) {
   const selectedMode = modeMeta[settings.mode];
   const selectedCategory = categoryMeta[settings.category];
   const selectedDifficulty = difficultyConfig[settings.difficulty];
@@ -109,6 +110,61 @@ export function PlaySetup({ settings, onChange, onStart, isPending }: PlaySetupP
             })}
           </div>
         </MindChamberPanel>
+
+        {settings.mode === "read-my-mind" ? (
+          <MindChamberPanel
+            eyebrow="Memory vault"
+            title="Use past teach cases"
+            tone="emerald"
+          >
+            <button
+              type="button"
+              onClick={() => onChange({ useTeachCases: !settings.useTeachCases })}
+              aria-pressed={settings.useTeachCases}
+              className={cn(
+                "flex w-full items-start gap-4 rounded-[1.8rem] border px-5 py-5 text-left transition duration-300",
+                settings.useTeachCases
+                  ? "border-emerald-200/35 bg-emerald-300/10 shadow-[0_0_0_1px_rgba(110,231,183,0.18)]"
+                  : "border-white/10 bg-white/4 hover:border-white/16 hover:bg-white/8",
+              )}
+            >
+              <div
+                className={cn(
+                  "rounded-full border p-3",
+                  settings.useTeachCases
+                    ? "border-emerald-200/30 bg-emerald-300/12 text-emerald-100"
+                    : "border-white/10 bg-white/6 text-slate-300",
+                )}
+              >
+                <Library className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-white">
+                    {settings.useTeachCases ? "Enabled" : "Disabled"}
+                  </h3>
+                  <span
+                    className={cn(
+                      "text-xs uppercase tracking-[0.22em]",
+                      settings.useTeachCases ? "text-emerald-200" : "text-slate-500",
+                    )}
+                  >
+                    {teachCaseCount} stored
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-300">
+                  Include entities you taught the chamber in past Read-My-Mind escapes. They enter the candidate pool
+                  only for this category, ranked alongside the seeded library.
+                </p>
+                {teachCaseCount === 0 ? (
+                  <p className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">
+                    No teach cases yet in this category. Lose a round and tap &ldquo;Store in memory&rdquo; to build one.
+                  </p>
+                ) : null}
+              </div>
+            </button>
+          </MindChamberPanel>
+        ) : null}
 
         <MindChamberPanel eyebrow="Pressure profile" title="Difficulty" tone="violet">
           <div className="grid gap-3 md:grid-cols-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookHeart, BrainCircuit } from "lucide-react";
 
@@ -23,6 +23,12 @@ import {
   submitGuessMyMindGuess,
 } from "@/lib/game/session";
 import {
+  defaultLearnedStore,
+  loadLearnedEntities,
+  prependLearnedEntity,
+  saveLearnedEntities,
+} from "@/lib/game/learned-storage";
+import {
   applyResultToStats,
   createHistoryEntry,
   defaultSettings,
@@ -30,13 +36,17 @@ import {
   loadVault,
   saveVault,
 } from "@/lib/game/storage";
+import { getTeachEntitiesForCategory } from "@/lib/game/teach";
 import {
   difficulties,
   entityCategories,
   gameModes,
   type AnsweredQuestion,
+  type AttributeKey,
+  type GameEntity,
   type GameResult,
   type GuessMyMindSession,
+  type NormalizedAnswer,
   type ReadMyMindSession,
   type StoredSettings,
   type TeachCase,
@@ -67,6 +77,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     ...queryOverrides,
   });
   const [vault, setVault] = useState(defaultVault);
+  const [learnedStore, setLearnedStore] = useState(defaultLearnedStore);
   const [hydrated, setHydrated] = useState(false);
   const [screen, setScreen] = useState<ScreenState>("setup");
   const [readSession, setReadSession] = useState<ReadMyMindSession | null>(null);
@@ -77,13 +88,30 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [guessDialogCandidateId, setGuessDialogCandidateId] = useState<string | null>(null);
   const [teachSaved, setTeachSaved] = useState(false);
   const [readTrailSnapshot, setReadTrailSnapshot] = useState<AnsweredQuestion[]>([]);
+  const [isRevealing, setIsRevealing] = useState(false);
   const [isPending, startTransition] = useTransition();
   const recordedResults = useRef<Set<string>>(new Set());
+  const revealTimeoutRef = useRef<number | null>(null);
+
+  function clearRevealTimeout() {
+    if (revealTimeoutRef.current !== null) {
+      window.clearTimeout(revealTimeoutRef.current);
+      revealTimeoutRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      clearRevealTimeout();
+    };
+  }, []);
 
   useEffect(() => {
     const stored = loadVault();
+    const storedLearned = loadLearnedEntities();
     const frame = window.requestAnimationFrame(() => {
       setVault(stored);
+      setLearnedStore(storedLearned);
       setSettings({
         ...stored.settings,
         ...initialOverridesRef.current,
@@ -105,6 +133,31 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       settings,
     });
   }, [hydrated, settings, vault]);
+
+  const activeTeachEntities: GameEntity[] = useMemo(() => {
+    if (!settings.useTeachCases) {
+      return [];
+    }
+
+    return getTeachEntitiesForCategory(learnedStore.entries, settings.category);
+  }, [settings.useTeachCases, settings.category, learnedStore.entries]);
+
+  const activeTeachEntityById = useMemo(() => {
+    return new Map(activeTeachEntities.map((entity) => [entity.id, entity] as const));
+  }, [activeTeachEntities]);
+
+  const teachCasesForCategory = useMemo(
+    () => learnedStore.entries.filter((tc) => tc.category === settings.category).length,
+    [learnedStore.entries, settings.category],
+  );
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    saveLearnedEntities(learnedStore);
+  }, [hydrated, learnedStore]);
 
   const persistResult = useEffectEvent((gameResult: GameResult) => {
     setVault((previous) => ({
@@ -146,6 +199,9 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   }
 
   function launchSession(nextSettings: StoredSettings = settings) {
+    clearRevealTimeout();
+    setIsRevealing(false);
+
     startTransition(() => {
       setTeachSaved(false);
       setResult(null);
@@ -153,20 +209,30 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       setGuessDialogCandidateId(null);
       setReadTrailSnapshot([]);
 
+      const teachPool = nextSettings.useTeachCases
+        ? getTeachEntitiesForCategory(learnedStore.entries, nextSettings.category)
+        : [];
+
       if (nextSettings.mode === "read-my-mind") {
         setReadSession(
-          createReadMyMindSession({
-            category: nextSettings.category,
-            difficulty: nextSettings.difficulty,
-          }),
+          createReadMyMindSession(
+            {
+              category: nextSettings.category,
+              difficulty: nextSettings.difficulty,
+            },
+            teachPool,
+          ),
         );
         setGuessSession(null);
       } else {
         setGuessSession(
-          createGuessMyMindSession({
-            category: nextSettings.category,
-            difficulty: nextSettings.difficulty,
-          }),
+          createGuessMyMindSession(
+            {
+              category: nextSettings.category,
+              difficulty: nextSettings.difficulty,
+            },
+            teachPool,
+          ),
         );
         setReadSession(null);
       }
@@ -175,11 +241,33 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     });
   }
 
+  /**
+   * Short suspense beat before the result screen appears. Only applied when
+   * there's an actual entity reveal to linger on — escapes with no revealed
+   * entity transition immediately so we never introduce dead air.
+   */
+  const REVEAL_DELAY_MS = 700;
+
   function finalizeResult(nextResult: GameResult) {
-    setResult(nextResult);
-    setScreen("result");
     setGuessDialogOpen(false);
     setGuessDialogCandidateId(null);
+    clearRevealTimeout();
+
+    const hasReveal = !!nextResult.revealedEntityId;
+
+    if (!hasReveal) {
+      setResult(nextResult);
+      setScreen("result");
+      return;
+    }
+
+    setIsRevealing(true);
+    revealTimeoutRef.current = window.setTimeout(() => {
+      revealTimeoutRef.current = null;
+      setIsRevealing(false);
+      setResult(nextResult);
+      setScreen("result");
+    }, REVEAL_DELAY_MS);
   }
 
   function handleReadAnswer(answer: AnsweredQuestion["answer"]) {
@@ -202,7 +290,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       : readSession.asked;
 
     startTransition(() => {
-      const outcome = applyReadMyMindAnswer(readSession, answer);
+      const outcome = applyReadMyMindAnswer(readSession, answer, activeTeachEntities);
 
       if (outcome.result) {
         setReadTrailSnapshot(trailSnapshot);
@@ -225,7 +313,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     setGuessDialogCandidateId(null);
 
     startTransition(() => {
-      const outcome = resolveReadMyMindGuess(readSession, guessedCorrectly);
+      const outcome = resolveReadMyMindGuess(readSession, guessedCorrectly, activeTeachEntities);
 
       if (outcome.result) {
         setReadTrailSnapshot(readSession.asked);
@@ -245,7 +333,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     }
 
     startTransition(() => {
-      setGuessSession(askGuessMyMindQuestion(guessSession, questionId));
+      setGuessSession(askGuessMyMindQuestion(guessSession, questionId, activeTeachEntities));
     });
   }
 
@@ -255,7 +343,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     }
 
     startTransition(() => {
-      const outcome = submitGuessMyMindGuess(guessSession, entityId);
+      const outcome = submitGuessMyMindGuess(guessSession, entityId, activeTeachEntities);
 
       if (outcome.result) {
         finalizeResult(outcome.result);
@@ -269,6 +357,9 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   }
 
   function handleBackToSetup() {
+    clearRevealTimeout();
+    setIsRevealing(false);
+
     startTransition(() => {
       setScreen("setup");
       setGuessDialogOpen(false);
@@ -293,7 +384,11 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     launchSession(nextSettings);
   }
 
-  function handleTeach(entityName: string, note: string) {
+  function handleTeach(
+    entityName: string,
+    note: string,
+    extraAttributes: Partial<Record<AttributeKey, NormalizedAnswer>>,
+  ) {
     const memory: TeachCase = {
       id:
         typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
@@ -305,12 +400,10 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       entityName,
       note,
       answers: readTrailSnapshot,
+      ...(Object.keys(extraAttributes).length > 0 ? { extraAttributes } : {}),
     };
 
-    setVault((previous) => ({
-      ...previous,
-      teachCases: [memory, ...previous.teachCases].slice(0, 16),
-    }));
+    setLearnedStore((previous) => prependLearnedEntity(previous, memory));
     setTeachSaved(true);
   }
 
@@ -358,28 +451,35 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             {screen === "setup" ? (
               <motion.div
                 key="setup"
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               >
-                <PlaySetup settings={settings} onChange={updateSettings} onStart={() => launchSession(settings)} isPending={isPending} />
+                <PlaySetup
+                  settings={settings}
+                  onChange={updateSettings}
+                  onStart={() => launchSession(settings)}
+                  isPending={isPending}
+                  teachCaseCount={teachCasesForCategory}
+                />
               </motion.div>
             ) : null}
 
             {screen === "play" && settings.mode === "read-my-mind" && readSession ? (
               <motion.div
                 key={`play-read-${readSession.startedAt}`}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
+                initial={{ opacity: 0, scale: 0.97, filter: "blur(6px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
+                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               >
                 <ReadMyMindBoard
                   session={readSession}
                   onAnswer={handleReadAnswer}
-                  isPending={isPending}
-                  isScanningGuess={isGuessScanning}
+                  isPending={isPending || isRevealing}
+                  isScanningGuess={isGuessScanning || isRevealing}
+                  teachEntities={activeTeachEntityById}
                 />
               </motion.div>
             ) : null}
@@ -387,16 +487,17 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             {screen === "play" && settings.mode === "guess-my-mind" && guessSession ? (
               <motion.div
                 key={`play-guess-${guessSession.startedAt}`}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
+                initial={{ opacity: 0, scale: 0.97, filter: "blur(6px)" }}
+                animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+                exit={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }}
+                transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
               >
                 <GuessMyMindBoard
                   session={guessSession}
                   onAskQuestion={handleAskQuestion}
                   onSubmitGuess={handleSubmitGuess}
-                  isPending={isPending}
+                  isPending={isPending || isRevealing}
+                  teachEntities={activeTeachEntityById}
                 />
               </motion.div>
             ) : null}
@@ -404,10 +505,14 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             {screen === "result" && result ? (
               <motion.div
                 key={`result-${result.id}`}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -24 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
+                initial={{ opacity: 0, scale: 1.03 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{
+                  duration: 0.55,
+                  ease: [0.22, 1, 0.36, 1],
+                  scale: { type: "spring", stiffness: 220, damping: 22 },
+                }}
               >
                 <ResultScreen
                   result={result}
@@ -415,6 +520,8 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
                   onBackToSetup={handleBackToSetup}
                   onTeach={handleTeach}
                   teachSaved={teachSaved}
+                  teachEntities={activeTeachEntityById}
+                  teachTrail={readTrailSnapshot}
                 />
               </motion.div>
             ) : null}
@@ -429,6 +536,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         guessesRemaining={Math.max(0, (readSession?.config.maxGuesses ?? 0) - (readSession?.guessAttemptsUsed ?? 0) - 1)}
         onConfirm={() => handleResolveGuess(true)}
         onReject={() => handleResolveGuess(false)}
+        teachEntities={activeTeachEntityById}
       />
 
       <StatsPanel
@@ -436,7 +544,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         onOpenChange={setStatsOpen}
         stats={vault.stats}
         history={vault.history}
-        teachCases={vault.teachCases}
+        learnedEntities={learnedStore.entries}
       />
     </div>
   );
