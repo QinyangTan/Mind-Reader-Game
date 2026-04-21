@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mind Reader
 
-## Getting Started
+Mind Reader is a polished local-first web guessing game with two mirrored modes:
 
-First, run the development server:
+- `Read My Mind`: the player thinks of an entity, answers fixed prompts, and the chamber tries to guess it.
+- `Guess My Mind`: the chamber picks a secret entity, answers from a shared question bank, and the player tries to uncover it.
+
+The MVP ships with a shared knowledge base of 110 entities across:
+
+- Fictional Characters
+- Animals
+
+It uses one typed inference engine for both modes, difficulty-specific limits, local persistence for stats/history, and a teach-the-game flow when the chamber fails.
+
+## Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Local data only, with `localStorage` persistence
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Gameplay notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `Read My Mind` uses weighted fuzzy scoring plus balanced-split question selection rather than random prompts.
+- `Guess My Mind` uses the same question bank and entity attributes, but flips the loop so the player is interrogating the chamber instead.
+- Difficulty changes both question budgets and guess budgets.
+- If the chamber loses in `Read My Mind`, the result screen can store the missed entity and a note in local storage.
 
-## Learn More
+## Verification
 
-To learn more about Next.js, take a look at the following resources:
+The app has been verified with:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run lint`
+- `npm run build`
+- Manual browser smoke testing for the landing page, setup flow, `Read My Mind` question progression, and `Guess My Mind` question/guess interactions
