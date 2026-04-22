@@ -36,22 +36,22 @@ const stepCopy: Record<
   mode: {
     eyebrow: "Choose the ritual",
     title: "Choose your ritual",
-    body: "Mora offers two games of thought. Choose one and the chamber will shape the rest.",
+    body: "Mora offers two games of thought. Choose one and let the chamber shape the rest.",
   },
   category: {
     eyebrow: "Choose the focus",
     title: "Choose a focus of thought",
-    body: "Keep the chamber fixed on one domain so the reading remains clear and direct.",
+    body: "Keep the chamber fixed on one domain so the reading stays clear.",
   },
   difficulty: {
     eyebrow: "Set the pressure",
     title: "Decide the pressure of the ritual",
-    body: "Sharper pressure means fewer chances to recover once the pattern tightens.",
+    body: "Sharper pressure leaves less room to recover once the pattern tightens.",
   },
   review: {
     eyebrow: "Begin",
     title: "The chamber is ready",
-    body: "Everything is aligned. Begin the reading when you are ready to enter it fully.",
+    body: "Everything is aligned. Begin when you are ready.",
   },
 };
 
@@ -112,7 +112,7 @@ export function PlaySetup({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[980px]">
+    <div className="mx-auto w-full max-w-[920px]">
       <RitualChoiceSurface
         eyebrow={stepCopy[step].eyebrow}
         title={stepCopy[step].title}
@@ -154,7 +154,7 @@ export function PlaySetup({
                   type="button"
                   onClick={() => choose({ mode: id as StoredSettings["mode"] })}
                   className={cn(
-                    "rounded-[999px] border px-6 py-5 text-left transition-[transform,border-color,background-color,color,box-shadow] duration-150",
+                    "rounded-[2rem] border px-6 py-5 text-left transition-[transform,border-color,background-color,color,box-shadow] duration-150",
                     ritualOption(active),
                   )}
                 >
@@ -206,7 +206,7 @@ export function PlaySetup({
               })}
             </div>
 
-            <div className="rounded-[1.6rem] border border-[rgba(214,174,98,0.2)] bg-[rgba(22,12,31,0.54)] px-5 py-4 text-center text-sm leading-6 text-[#d9caac]">
+            <div className="text-center text-sm leading-6 text-[#d9caac]">
               {selectedCategory.synopsis}
             </div>
           </div>
@@ -225,7 +225,7 @@ export function PlaySetup({
                   type="button"
                   onClick={() => choose({ difficulty: id as StoredSettings["difficulty"] })}
                   className={cn(
-                    "rounded-[2rem] border px-5 py-5 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-150",
+                    "rounded-[1.7rem] border px-5 py-5 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-150",
                     ritualOption(active),
                   )}
                 >
@@ -242,21 +242,18 @@ export function PlaySetup({
 
         {step === "review" ? (
           <div className="space-y-5">
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               {summary.map((item) => (
-                <div
+                <span
                   key={item.label}
-                  className="rounded-[1.8rem] border border-[rgba(214,174,98,0.22)] bg-[linear-gradient(180deg,rgba(45,24,62,0.82),rgba(21,12,30,0.94))] px-5 py-5 text-center"
+                  className="rounded-full border border-[rgba(214,174,98,0.22)] bg-[rgba(22,12,31,0.5)] px-4 py-2 text-sm text-[#eadbb3]"
                 >
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">
-                    {item.label}
-                  </p>
-                  <p className="mt-3 text-lg font-medium text-[#f6e7bf]">{item.value}</p>
-                </div>
+                  <span className="text-[#d8b36a]">{item.label}:</span> {item.value}
+                </span>
               ))}
             </div>
 
-            <div className="rounded-[1.8rem] border border-[rgba(214,174,98,0.2)] bg-[rgba(22,12,31,0.54)] px-5 py-4 text-center text-sm leading-6 text-[#d9caac]">
+            <div className="text-center text-sm leading-6 text-[#d9caac]">
               {limits.maxQuestions} questions. {limits.maxGuesses} guesses. {teachCaseCount} learned{" "}
               {teachCaseCount === 1 ? "memory" : "memories"} available in this focus.
             </div>

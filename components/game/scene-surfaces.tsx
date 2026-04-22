@@ -32,6 +32,12 @@ interface RitualProgressProps {
   value?: number;
 }
 
+interface PromptPlaqueProps extends ComponentProps<"div"> {
+  variant?: "dialogue" | "choice" | "inquiry" | "reveal" | "teach";
+  tail?: boolean;
+  size?: "xs" | "sm" | "md" | "lg";
+}
+
 const clipPaths: Record<SlabVariant, string> = {
   landing: "polygon(8% 0, 92% 0, 100% 22%, 98% 100%, 2% 100%, 0 22%)",
   dialogue: "polygon(6% 0, 94% 0, 100% 18%, 98% 86%, 94% 100%, 6% 100%, 2% 86%, 0 18%)",
@@ -158,6 +164,77 @@ export function RitualSlab({
   );
 }
 
+export function PromptPlaque({
+  variant = "dialogue",
+  tail = false,
+  size = "sm",
+  className,
+  children,
+  ...props
+}: PromptPlaqueProps) {
+  const palette =
+    variant === "reveal"
+      ? "border-[rgba(226,192,118,0.46)] bg-[radial-gradient(circle_at_50%_0%,rgba(132,82,177,0.34),transparent_38%),linear-gradient(180deg,rgba(42,20,58,0.94),rgba(22,12,31,0.98))]"
+      : variant === "choice"
+        ? "border-[rgba(214,174,98,0.4)] bg-[radial-gradient(circle_at_50%_0%,rgba(123,75,165,0.3),transparent_38%),linear-gradient(180deg,rgba(40,20,56,0.94),rgba(20,12,30,0.98))]"
+        : variant === "teach"
+          ? "border-[rgba(214,174,98,0.38)] bg-[radial-gradient(circle_at_50%_0%,rgba(118,73,157,0.26),transparent_36%),linear-gradient(180deg,rgba(37,20,53,0.94),rgba(20,12,29,0.98))]"
+          : "border-[rgba(214,174,98,0.38)] bg-[radial-gradient(circle_at_50%_0%,rgba(118,73,157,0.28),transparent_38%),linear-gradient(180deg,rgba(37,20,53,0.94),rgba(19,11,29,0.98))]";
+
+  const clipPath =
+    variant === "inquiry"
+      ? "polygon(8% 0,92% 0,100% 14%,98% 100%,2% 100%,0 14%)"
+      : "polygon(7% 0,93% 0,100% 18%,98% 86%,94% 100%,6% 100%,2% 86%,0 18%)";
+  const sizeClass =
+    size === "xs"
+      ? "max-w-[24rem]"
+      : size === "md"
+        ? "max-w-[40rem]"
+        : size === "lg"
+          ? "max-w-[46rem]"
+          : "max-w-[33rem]";
+  const frameClass =
+    size === "xs"
+      ? "px-4 py-4 sm:px-5 sm:py-4.5"
+      : size === "md"
+        ? "px-5 py-5 sm:px-7 sm:py-6"
+        : size === "lg"
+          ? "px-6 py-6 sm:px-8 sm:py-7"
+          : "px-5 py-4.5 sm:px-6 sm:py-5";
+
+  return (
+    <div
+      className={cn("relative mx-auto w-full overflow-visible", sizeClass, className)}
+      {...props}
+    >
+      <div
+        className={cn(
+          "relative border text-[#f6e7bf] shadow-[0_18px_44px_rgba(0,0,0,0.34)]",
+          frameClass,
+          palette,
+        )}
+        style={{ clipPath }}
+      >
+        <div
+          className="pointer-events-none absolute inset-[8px] border border-[rgba(237,212,153,0.18)]"
+          style={{ clipPath }}
+        />
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(239,217,161,0.5),transparent)]" />
+        <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(239,217,161,0.5),transparent)]" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-px w-20 -translate-x-1/2 bg-[linear-gradient(90deg,transparent,rgba(239,217,161,0.58),transparent)]" />
+        <div className="relative z-10">{children}</div>
+      </div>
+
+      <DefaultCrest position="top" />
+      {tail ? (
+        <div className="pointer-events-none absolute -bottom-5 left-1/2 h-10 w-10 -translate-x-1/2 rotate-45 rounded-[0.4rem] border border-[rgba(226,192,118,0.28)] bg-[linear-gradient(180deg,rgba(60,32,82,0.96),rgba(27,16,39,0.98))]" />
+      ) : (
+        <DefaultCrest position="bottom" />
+      )}
+    </div>
+  );
+}
+
 export function SurfaceHeading({
   eyebrow,
   title,
@@ -229,7 +306,7 @@ export function ResponseWell({
   return (
     <div
       className={cn(
-        "rounded-[1.8rem] border px-5 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+        "rounded-[1.5rem] border px-5 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
         tone === "muted"
           ? "border-[rgba(221,189,113,0.22)] bg-[linear-gradient(180deg,rgba(35,18,49,0.72),rgba(21,12,31,0.94))] text-[#d7c7a4]"
           : "border-[rgba(226,192,118,0.34)] bg-[linear-gradient(180deg,rgba(42,20,58,0.86),rgba(23,12,33,0.98))] text-[#ecdcb3]",
@@ -275,11 +352,13 @@ export function MoraDialogueSurface({
   children: ReactNode;
 }) {
   return (
-    <RitualSlab variant="dialogue" className={className}>
-      <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+    <div className={cn("space-y-4", className)}>
+      <PromptPlaque variant="dialogue" tail size="md">
+        <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+      </PromptPlaque>
       {children}
       {footer}
-    </RitualSlab>
+    </div>
   );
 }
 
@@ -299,11 +378,13 @@ export function RitualChoiceSurface({
   children: ReactNode;
 }) {
   return (
-    <RitualSlab variant="choice" className={className}>
-      <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+    <div className={cn("space-y-5", className)}>
+      <PromptPlaque variant="choice" size="sm">
+        <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+      </PromptPlaque>
       {children}
       {footer}
-    </RitualSlab>
+    </div>
   );
 }
 
@@ -321,11 +402,13 @@ export function InquirySurface({
   children: ReactNode;
 }) {
   return (
-    <RitualSlab variant="inquiry" className={className}>
-      <SurfaceHeading eyebrow={eyebrow} title={title} />
+    <div className={cn("space-y-5", className)}>
+      <PromptPlaque variant="inquiry" size="sm">
+        <SurfaceHeading eyebrow={eyebrow} title={title} />
+      </PromptPlaque>
       {children}
       {footer}
-    </RitualSlab>
+    </div>
   );
 }
 
@@ -343,10 +426,12 @@ export function RevealSurface({
   children: ReactNode;
 }) {
   return (
-    <RitualSlab variant="reveal" className={className}>
-      <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+    <div className={cn("space-y-5", className)}>
+      <PromptPlaque variant="reveal" size="md">
+        <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+      </PromptPlaque>
       {children}
-    </RitualSlab>
+    </div>
   );
 }
 
@@ -364,10 +449,12 @@ export function TeachSurface({
   children: ReactNode;
 }) {
   return (
-    <RitualSlab variant="teach" className={className}>
-      <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+    <div className={cn("space-y-5", className)}>
+      <PromptPlaque variant="teach" size="md">
+        <SurfaceHeading eyebrow={eyebrow} title={title} description={description} />
+      </PromptPlaque>
       {children}
-    </RitualSlab>
+    </div>
   );
 }
 

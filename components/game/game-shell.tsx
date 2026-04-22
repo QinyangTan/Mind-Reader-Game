@@ -552,22 +552,22 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       mood={stageMascotState}
       header={
         <div className="mx-auto flex w-full max-w-[1320px] items-start justify-between gap-4 pt-1">
-          <div className="flex min-w-[10rem] justify-start">
+          <div className="flex min-w-[8rem] justify-start">
             {(screen === "encounter" || screen === "setup") ? (
-              <SurfacePillButton tone="default" className="px-4 py-2 text-xs" onClick={() => setStatsOpen(true)}>
+              <SurfacePillButton tone="default" className="px-3 py-1.5 text-[0.68rem] opacity-80" onClick={() => setStatsOpen(true)}>
                 <BookHeart className="h-4 w-4" />
                 Chamber memory
               </SurfacePillButton>
             ) : null}
           </div>
 
-          <div className="flex justify-center pt-1 opacity-92">
-            <BrandLogo compact className="scale-95" />
+          <div className="flex justify-center pt-1 opacity-75">
+            <BrandLogo compact className="scale-[0.82]" />
           </div>
 
-          <div className="flex min-w-[10rem] justify-end">
+          <div className="flex min-w-[8rem] justify-end">
             {screen === "play" || screen === "result" ? (
-              <SurfacePillButton tone="default" className="px-4 py-2 text-xs" onClick={handleBackToSetup}>
+              <SurfacePillButton tone="default" className="px-3 py-1.5 text-[0.68rem] opacity-80" onClick={handleBackToSetup}>
                 <ArrowLeft className="h-4 w-4" />
                 Leave ritual
               </SurfacePillButton>

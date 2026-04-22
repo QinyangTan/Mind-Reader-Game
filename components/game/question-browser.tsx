@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { ResponseWell, SurfacePillButton } from "@/components/game/scene-surfaces";
+import { SurfacePillButton } from "@/components/game/scene-surfaces";
 import { rankAvailableQuestions } from "@/lib/game/question-selection";
 import type {
   EntityCategory,
@@ -133,9 +133,9 @@ export function QuestionBrowser({
 
   if (ranked.length === 0) {
     return (
-      <ResponseWell tone="muted">
+      <div className="text-center">
         <p className="text-sm text-[#d7c7a4]">The strongest lines are spent. It’s time to make your guess.</p>
-      </ResponseWell>
+      </div>
     );
   }
 
@@ -156,13 +156,17 @@ export function QuestionBrowser({
       </div>
 
       <div className="space-y-4">
-        <ResponseWell tone="muted">
-          <p className="text-sm uppercase tracking-[0.16em] text-[#d8b36a]">{familyMeta[resolvedFamily].label}</p>
-          <p className="mt-2 text-sm leading-6 text-[#d7c7a4]">{familyMeta[resolvedFamily].description}</p>
-        </ResponseWell>
+        <div className="space-y-2 text-center">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">
+            {familyMeta[resolvedFamily].label}
+          </p>
+          <p className="mx-auto max-w-[36rem] text-sm leading-6 text-[#d7c7a4]">
+            {familyMeta[resolvedFamily].description}
+          </p>
+        </div>
 
         <div className="flex flex-wrap justify-center gap-3">
-          {(activeGroup?.questions.slice(0, 8) ?? []).map((question) => {
+          {(activeGroup?.questions.slice(0, 6) ?? []).map((question) => {
             const recommendedQuestion = recommended.some((entry) => entry.id === question.id);
 
             return (

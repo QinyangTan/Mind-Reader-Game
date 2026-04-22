@@ -53,7 +53,7 @@ export function ReadMyMindBoard({
   const spokenPrompt = question ? toSpokenPrompt(question.question, session.asked.length) : null;
 
   return (
-    <div className="mx-auto w-full max-w-[980px]">
+    <div className="mx-auto w-full max-w-[860px]">
       <MoraDialogueSurface
         eyebrow={isScanningGuess ? "The reveal gathers" : "Mora asks"}
         title={isScanningGuess ? "She has seen enough." : spokenPrompt ?? "The next question is arriving."}
@@ -88,18 +88,14 @@ export function ReadMyMindBoard({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="space-y-6"
+              className="space-y-5"
             >
-              <p className="mx-auto max-w-[40rem] text-center text-base leading-7 text-[#d8c8a8] sm:text-lg">
-                Reply with the closest truth. Mora only needs one clear thread at a time.
-              </p>
-
-              <div className="flex flex-wrap items-center justify-center gap-3">
+              <div className="mx-auto flex max-w-[44rem] flex-wrap items-center justify-center gap-3">
                 {answerOptions.map((option) => (
                   <SurfacePillButton
                     key={option.value}
                     tone={option.tone}
-                    className="min-w-[10rem] px-5 py-3 text-base"
+                    className="min-w-[9rem] px-4 py-3 text-base"
                     disabled={isPending || !session.currentQuestionId}
                     onClick={() => onAnswer(option.value)}
                   >

@@ -89,7 +89,7 @@ export function ResultScreen({
   }
 
   return (
-    <div className="mx-auto w-full max-w-[980px] space-y-6">
+    <div className="mx-auto w-full max-w-[900px] space-y-6">
       <RevealSurface
         eyebrow="The ritual closes"
         title={result.title}
@@ -112,17 +112,10 @@ export function ResultScreen({
             </p>
           )}
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <span className="rounded-full border border-[rgba(214,174,98,0.22)] bg-[rgba(22,12,31,0.5)] px-4 py-2 text-sm text-[#eadbb3]">
-              {result.questionsUsed} / {limits.maxQuestions} questions
-            </span>
-            <span className="rounded-full border border-[rgba(214,174,98,0.22)] bg-[rgba(22,12,31,0.5)] px-4 py-2 text-sm text-[#eadbb3]">
-              {result.guessesUsed} / {limits.maxGuesses} guesses
-            </span>
-            <span className="rounded-full border border-[rgba(214,174,98,0.22)] bg-[rgba(22,12,31,0.5)] px-4 py-2 text-sm text-[#eadbb3]">
-              {result.winner === "player" ? "You prevailed" : "Mora prevailed"}
-            </span>
-          </div>
+          <p className="text-center text-sm leading-6 text-[#eadbb3]">
+            {result.questionsUsed} of {limits.maxQuestions} questions used. {result.guessesUsed} of {limits.maxGuesses} guesses used.{" "}
+            {result.winner === "player" ? "You prevailed." : "Mora prevailed."}
+          </p>
 
           {result.strongestQuestion ? (
             <ResponseWell>

@@ -93,6 +93,33 @@ const moodGlow: Record<MascotState, string> = {
   learning: "bg-[radial-gradient(circle_at_50%_22%,rgba(198,170,234,0.18),transparent_28%)]",
 };
 
+const scenePresenceGlow: Record<ChamberSceneKey, string> = {
+  landing: "right-[10%] top-[16%] h-[46vh] w-[30vw]",
+  encounter: "left-1/2 top-[16%] h-[48vh] w-[30vw] -translate-x-1/2",
+  "mode-selection": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
+  "category-selection": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
+  "read-my-mind": "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
+  "guess-my-mind": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
+  "clue-browser": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
+  reveal: "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
+  result: "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
+  "teach-flow": "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
+  archive: "right-[10%] top-[16%] h-[44vh] w-[28vw]",
+};
+
+const moodPresenceTone: Record<MascotState, string> = {
+  welcome: "bg-[radial-gradient(circle,rgba(245,219,170,0.28),rgba(167,116,228,0.16),transparent_72%)]",
+  idle: "bg-[radial-gradient(circle,rgba(245,219,170,0.18),rgba(167,116,228,0.1),transparent_72%)]",
+  observing: "bg-[radial-gradient(circle,rgba(172,189,230,0.18),rgba(150,116,206,0.12),transparent_72%)]",
+  thinking: "bg-[radial-gradient(circle,rgba(169,190,228,0.22),rgba(140,108,190,0.14),transparent_72%)]",
+  asking: "bg-[radial-gradient(circle,rgba(245,219,170,0.22),rgba(167,116,228,0.14),transparent_72%)]",
+  confident: "bg-[radial-gradient(circle,rgba(247,228,187,0.3),rgba(176,128,237,0.18),transparent_72%)]",
+  teasing: "bg-[radial-gradient(circle,rgba(224,157,209,0.22),rgba(173,119,223,0.16),transparent_72%)]",
+  celebration: "bg-[radial-gradient(circle,rgba(247,228,187,0.32),rgba(188,140,239,0.18),transparent_72%)]",
+  surprised: "bg-[radial-gradient(circle,rgba(179,195,234,0.22),rgba(139,108,190,0.16),transparent_72%)]",
+  learning: "bg-[radial-gradient(circle,rgba(206,182,237,0.24),rgba(154,119,211,0.18),transparent_72%)]",
+};
+
 export function ReferenceSceneBackdrop({
   scene,
   mood = "idle",
@@ -129,6 +156,23 @@ export function ReferenceSceneBackdrop({
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,2,8,0.68),rgba(7,4,10,0.2)_28%,rgba(10,7,12,0.06)_52%,rgba(7,4,10,0.7)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(248,228,188,0.16),transparent_16%),radial-gradient(circle_at_50%_92%,rgba(5,2,8,0.9),transparent_35%)]" />
       <div className={cn("absolute inset-0 opacity-95", moodGlow[mood])} />
+      <motion.div
+        className={cn(
+          "pointer-events-none absolute rounded-[50%] blur-[100px] mix-blend-screen",
+          scenePresenceGlow[scene],
+          moodPresenceTone[mood],
+        )}
+        animate={{
+          opacity: [0.12, 0.3, 0.16],
+          scale: [0.96, 1.03, 0.98],
+          y: [0, -8, 0],
+        }}
+        transition={{
+          duration: shouldPulse ? 5.8 : 9.4,
+          repeat: Number.POSITIVE_INFINITY,
+          ease: "easeInOut",
+        }}
+      />
       <div className="absolute inset-y-0 left-0 w-[20vw] bg-[linear-gradient(90deg,rgba(8,5,10,0.82),transparent)]" />
       <div className="absolute inset-y-0 right-0 w-[20vw] bg-[linear-gradient(270deg,rgba(8,5,10,0.82),transparent)]" />
       <div className="absolute inset-x-[10%] bottom-[10%] h-[26vh] rounded-[50%] bg-[radial-gradient(circle,rgba(6,3,8,0.86),transparent_72%)] blur-2xl" />
