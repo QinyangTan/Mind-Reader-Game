@@ -5,11 +5,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookHeart } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { SponsorRail } from "@/components/brand/sponsor-rail";
 import { ChamberSceneShell } from "@/components/game/chamber-scene-shell";
+import { EncounterScene } from "@/components/game/encounter-scene";
 import { EntityGuessDialog } from "@/components/game/entity-guess-dialog";
 import { GuessMyMindBoard } from "@/components/game/guess-my-mind-board";
 import { PlaySetup, type SetupStep } from "@/components/game/play-setup";
-import { PsychicPresence } from "@/components/game/psychic-presence";
 import { ReadMyMindBoard } from "@/components/game/read-my-mind-board";
 import { ResultScreen } from "@/components/game/result-screen";
 import { StatsPanel } from "@/components/game/stats-panel";
@@ -25,7 +26,6 @@ import {
   replayEntropyDrops,
 } from "@/lib/game/inference-model";
 import {
-  getMascotFacing,
   getSetupMascotState,
   getQuestionMascotState,
   getResultMascotState,
@@ -69,7 +69,7 @@ import {
   type TeachCase,
 } from "@/types/game";
 
-type ScreenState = "setup" | "play" | "result";
+type ScreenState = "encounter" | "setup" | "play" | "result";
 
 interface GameShellProps {
   initialMode?: string;
@@ -100,7 +100,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [vault, setVault] = useState(defaultVault);
   const [learnedStore, setLearnedStore] = useState(defaultLearnedStore);
   const [hydrated, setHydrated] = useState(false);
-  const [screen, setScreen] = useState<ScreenState>("setup");
+  const [screen, setScreen] = useState<ScreenState>("encounter");
   const [readSession, setReadSession] = useState<ReadMyMindSession | null>(null);
   const [guessSession, setGuessSession] = useState<GuessMyMindSession | null>(null);
   const [result, setResult] = useState<GameResult | null>(null);
@@ -110,7 +110,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [teachSaved, setTeachSaved] = useState(false);
   const [readTrailSnapshot, setReadTrailSnapshot] = useState<AnsweredQuestion[]>([]);
   const [isRevealing, setIsRevealing] = useState(false);
-  const [mascotReactionKey, setMascotReactionKey] = useState(0);
   const [setupStep, setSetupStep] = useState<SetupStep>("mode");
   const [isPending, startTransition] = useTransition();
   const recordedResults = useRef<Set<string>>(new Set());
@@ -221,10 +220,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     });
   }
 
-  function pulseMascot() {
-    setMascotReactionKey((current) => current + 1);
-  }
-
   function launchSession(nextSettings: StoredSettings = settings) {
     clearRevealTimeout();
     setIsRevealing(false);
@@ -302,8 +297,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     if (!readSession) {
       return;
     }
-
-    pulseMascot();
     const currentQuestion = readSession.currentQuestionId ? questionById.get(readSession.currentQuestionId) : null;
     const trailSnapshot = currentQuestion
       ? [
@@ -346,8 +339,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     if (!readSession) {
       return;
     }
-
-    pulseMascot();
     setGuessDialogOpen(false);
     setGuessDialogCandidateId(null);
 
@@ -379,8 +370,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     if (!guessSession) {
       return;
     }
-
-    pulseMascot();
     startTransition(() => {
       setGuessSession(askGuessMyMindQuestion(guessSession, questionId, activeTeachEntities));
     });
@@ -390,8 +379,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     if (!guessSession) {
       return;
     }
-
-    pulseMascot();
     startTransition(() => {
       const outcome = submitGuessMyMindGuess(guessSession, entityId, activeTeachEntities);
 
@@ -528,9 +515,39 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
               isPending: isPending || isRevealing,
               isScanningGuess: isGuessScanning || isRevealing,
             })
-          : getSetupMascotState(setupStep);
+          : screen === "encounter"
+            ? "welcome"
+            : getSetupMascotState(setupStep);
+  const shellScene =
+    guessDialogOpen
+      ? "reveal"
+      : screen === "encounter"
+        ? "encounter"
+        : screen === "setup"
+          ? setupStep === "mode"
+            ? "mode-selection"
+            : "category-selection"
+        : screen === "play"
+          ? settings.mode === "read-my-mind"
+              ? "read-my-mind"
+              : guessSession && guessSession.asked.length > 0
+                ? "clue-browser"
+                : "guess-my-mind"
+            : result?.teachable && !teachSaved
+              ? "teach-flow"
+              : "result";
+  const sponsorContext =
+    screen === "play"
+      ? settings.mode === "read-my-mind"
+        ? "read"
+        : "guess"
+      : screen === "result"
+        ? "result"
+        : "setup";
   const headerLine =
-    screen === "setup"
+    screen === "encounter"
+      ? "Mora has opened the chamber."
+      : screen === "setup"
       ? "Choose the ritual, then let the chamber narrow around it."
       : screen === "play"
         ? settings.mode === "read-my-mind"
@@ -545,22 +562,21 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   return (
     <>
     <ChamberSceneShell
+      scene={shellScene}
+      mood={stageMascotState}
       header={
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <BrandLogo compact withTagline />
-            <p className="text-sm text-[#d6cab5]">{headerLine}</p>
-          </div>
+        <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between gap-4">
+          <BrandLogo compact />
 
           <div className="flex flex-wrap items-center gap-3">
-            {screen === "setup" ? (
+            {(screen === "encounter" || screen === "setup") ? (
               <Button size="sm" variant="ghost" onClick={() => setStatsOpen(true)}>
                 <BookHeart className="h-4 w-4" />
                 Chamber memory
               </Button>
             ) : null}
 
-            {screen !== "setup" ? (
+            {screen === "play" || screen === "result" ? (
               <Button size="sm" variant="ghost" onClick={handleBackToSetup}>
                 <ArrowLeft className="h-4 w-4" />
                 Leave ritual
@@ -569,21 +585,26 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
           </div>
         </div>
       }
-      mascot={
-        <PsychicPresence
-          state={stageMascotState}
-          mode={screen === "result" && result ? result.mode : settings.mode}
-          facing={getMascotFacing(screen === "result" && result ? result.mode : settings.mode)}
-          reactionKey={mascotReactionKey}
-          className={
-            screen === "play"
-              ? "xl:translate-x-[4%] xl:scale-[1.22] 2xl:scale-[1.3]"
-              : "xl:translate-x-[2%] xl:scale-[1.14] 2xl:scale-[1.2]"
-          }
-        />
+      support={<SponsorRail context={sponsorContext} />}
+      footer={
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-center px-2 pb-1 text-[0.72rem] uppercase tracking-[0.16em] text-[#e2d3b0]/72">
+          {headerLine}
+        </div>
       }
     >
       <AnimatePresence mode="wait" initial={false}>
+        {screen === "encounter" ? (
+          <motion.div
+            key="encounter"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <EncounterScene onContinue={() => setScreen("setup")} />
+          </motion.div>
+        ) : null}
+
         {screen === "setup" ? (
           <motion.div
             key="setup"
@@ -616,8 +637,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
               onAnswer={handleReadAnswer}
               isPending={isPending || isRevealing}
               isScanningGuess={isGuessScanning || isRevealing}
-              teachEntities={activeTeachEntityById}
-              mascotReactionKey={mascotReactionKey}
             />
           </motion.div>
         ) : null}
@@ -636,7 +655,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
               onSubmitGuess={handleSubmitGuess}
               isPending={isPending || isRevealing}
               teachEntities={activeTeachEntityById}
-              mascotReactionKey={mascotReactionKey}
               inferenceModel={learnedStore.model}
             />
           </motion.div>

@@ -9,7 +9,6 @@ import { MindChamberPanel } from "@/components/game/mind-chamber-panel";
 import { QuestionBrowser } from "@/components/game/question-browser";
 import { Button } from "@/components/ui/button";
 import { rankCandidates } from "@/lib/game/scoring";
-import { cn } from "@/lib/utils/cn";
 import type {
   GameEntity,
   GuessMyMindSession,
@@ -25,7 +24,6 @@ interface GuessMyMindBoardProps {
   onSubmitGuess: (entityId: string) => void;
   isPending: boolean;
   teachEntities?: Map<string, GameEntity>;
-  mascotReactionKey?: number;
   inferenceModel?: LearnedInferenceModel;
 }
 
@@ -49,7 +47,7 @@ export function GuessMyMindBoard({
   );
   const remainingQuestions = session.config.maxQuestions - session.asked.length;
   const remainingGuesses = session.config.maxGuesses - session.guessAttemptsUsed;
-  const recentAnswers = useMemo(() => session.asked.slice(-2).reverse(), [session.asked]);
+  const recentAnswers = useMemo(() => session.asked.slice(-3).reverse(), [session.asked]);
   const activePanelMode: PanelMode = remainingQuestions <= 0 ? "guess" : panelMode;
   const latestReply = recentAnswers[0] ?? null;
   const candidateRankings = useMemo(
@@ -58,7 +56,7 @@ export function GuessMyMindBoard({
   );
 
   return (
-    <div className="mx-auto max-w-[800px] space-y-4">
+    <div className="mx-auto w-full max-w-[880px]">
       <AnimatePresence mode="wait" initial={false}>
         {activePanelMode === "ask" ? (
           <motion.div
@@ -68,51 +66,54 @@ export function GuessMyMindBoard({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <MindChamberPanel eyebrow="Question the psychic" title="Ask one clear question.">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#5f463a]">
-                <span>{remainingQuestions} questions remain</span>
-                <span>{remainingGuesses} guesses remain</span>
-              </div>
-
-              <p className="max-w-2xl text-base leading-7 text-[#4f3830]">
-                Mora will answer calmly, but every reply still shapes the outline of her hidden thought.
-              </p>
-
-              {latestReply ? (
-                <div className="rounded-[1.2rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.08)] px-4 py-4">
-                  <p className="text-sm text-[#6e5243]">Your last question</p>
-                  <p className="mt-1 text-base font-medium text-[#2d1b19]">{latestReply.prompt}</p>
-                  <p className="mt-3 text-sm text-[#6e5243]">Mora replied</p>
-                  <p className="mt-1 text-base font-medium capitalize text-[#2d1b19]">{formatAnswer(latestReply)}</p>
+            <MindChamberPanel eyebrow="Read Mora instead" title="Ask one clean clue at a time.">
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#5b4034]">
+                  <span>{remainingQuestions} questions remain</span>
+                  <span>{remainingGuesses} guesses remain</span>
                 </div>
-              ) : (
-                <div className="rounded-[1.2rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.08)] px-4 py-4 text-sm text-[#5a433b]">
-                  Mora is waiting for your first clue question.
+
+                <div className="rounded-[1.15rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] p-4">
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#8a5b24]">
+                    Mora’s latest reply
+                  </p>
+                  {latestReply ? (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm text-[#6a4a3c]">{latestReply.prompt}</p>
+                      <p className="font-display text-[2rem] capitalize leading-none text-[#2d1b19] sm:text-[2.35rem]">
+                        {formatAnswer(latestReply)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm leading-6 text-[#5a433b]">
+                      Her thought is hidden. Ask a first clue and listen carefully.
+                    </p>
+                  )}
                 </div>
-              )}
 
-              <QuestionBrowser
-                category={session.category}
-                askedQuestionIds={session.asked.map((entry) => entry.questionId)}
-                rankedCandidates={candidateRankings}
-                remainingQuestions={remainingQuestions}
-                onAskQuestion={onAskQuestion}
-                isPending={isPending}
-                extraEntities={extraEntities}
-                inferenceModel={inferenceModel}
-              />
+                <QuestionBrowser
+                  category={session.category}
+                  askedQuestionIds={session.asked.map((entry) => entry.questionId)}
+                  rankedCandidates={candidateRankings}
+                  remainingQuestions={remainingQuestions}
+                  onAskQuestion={onAskQuestion}
+                  isPending={isPending}
+                  extraEntities={extraEntities}
+                  inferenceModel={inferenceModel}
+                />
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-[#5a433b]">Move to a guess only when the pattern feels narrow.</p>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setPanelMode("guess")}
-                  disabled={remainingGuesses <= 0}
-                >
-                  Name her thought
-                  <Crosshair className="h-4 w-4" />
-                </Button>
+                <div className="flex flex-col items-center gap-3 border-t border-[rgba(111,75,45,0.16)] pt-2 sm:flex-row sm:justify-between">
+                  <p className="text-sm text-[#5a433b]">Switch to a guess only when the pattern feels narrow.</p>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setPanelMode("guess")}
+                    disabled={remainingGuesses <= 0}
+                  >
+                    Name her thought
+                    <Crosshair className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </MindChamberPanel>
           </motion.div>
@@ -124,53 +125,51 @@ export function GuessMyMindBoard({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <MindChamberPanel eyebrow="Make your declaration" title="Speak the answer aloud.">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#5f463a]">
-                <span>{remainingGuesses} guesses remain</span>
-                <span>{session.wrongGuessIds.length} already burned</span>
-              </div>
+            <MindChamberPanel eyebrow="Make your declaration" title="Speak the hidden thought aloud.">
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#5b4034]">
+                  <span>{remainingGuesses} guesses remain</span>
+                  <span>{session.wrongGuessIds.length} burned already</span>
+                </div>
 
-              <p className="max-w-2xl text-base leading-7 text-[#4f3830]">
-                Search the cast, choose one answer, and confront Mora with it.
-              </p>
+                <p className="text-center text-base leading-7 text-[#4d352c] sm:text-lg">
+                  Search the field, choose one answer, and test whether you can read Mora back.
+                </p>
 
-              <EntityPicker
-                category={session.category}
-                excludedIds={session.wrongGuessIds}
-                selectedId={selectedGuessId}
-                onSelect={setSelectedGuessId}
-                extraEntities={extraEntities}
-              />
+                <EntityPicker
+                  category={session.category}
+                  excludedIds={session.wrongGuessIds}
+                  selectedId={selectedGuessId}
+                  onSelect={setSelectedGuessId}
+                  extraEntities={extraEntities}
+                />
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Button
-                  type="button"
-                  size="lg"
-                  disabled={!selectedGuessId || isPending || remainingGuesses <= 0}
-                  onClick={() => {
-                    if (!selectedGuessId) {
-                      return;
-                    }
+                <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+                  {remainingQuestions > 0 ? (
+                    <Button type="button" variant="ghost" onClick={() => setPanelMode("ask")}>
+                      Return to questions
+                    </Button>
+                  ) : (
+                    <span className="text-sm text-[#5a433b]">No questions remain. Only the guess matters now.</span>
+                  )}
 
-                    onSubmitGuess(selectedGuessId);
-                    setSelectedGuessId(null);
-                  }}
-                >
-                  Speak the guess
-                  <SearchCheck className="h-4 w-4" />
-                </Button>
-
-                {remainingQuestions > 0 ? (
                   <Button
                     type="button"
                     size="lg"
-                    variant="ghost"
-                    className={cn("sm:order-first")}
-                    onClick={() => setPanelMode("ask")}
+                    disabled={!selectedGuessId || isPending || remainingGuesses <= 0}
+                    onClick={() => {
+                      if (!selectedGuessId) {
+                        return;
+                      }
+
+                      onSubmitGuess(selectedGuessId);
+                      setSelectedGuessId(null);
+                    }}
                   >
-                    Back to questions
+                    Speak the guess
+                    <SearchCheck className="h-4 w-4" />
                   </Button>
-                ) : null}
+                </div>
               </div>
             </MindChamberPanel>
           </motion.div>

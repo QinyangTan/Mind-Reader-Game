@@ -8,6 +8,7 @@ interface BrandLogoProps {
   className?: string;
   markClassName?: string;
   withTagline?: boolean;
+  withDescription?: boolean;
 }
 
 export function BrandLogo({
@@ -16,6 +17,7 @@ export function BrandLogo({
   className,
   markClassName,
   withTagline = false,
+  withDescription = true,
 }: BrandLogoProps) {
   if (compact) {
     return (
@@ -73,9 +75,11 @@ export function BrandLogo({
             tone === "light" ? "bg-[rgba(213,176,106,0.55)]" : "bg-[rgba(147,101,34,0.48)]",
           )}
         />
-        <p className={cn("mt-3 text-sm sm:text-base", tone === "light" ? "text-[#d8cab1]" : "text-[#4f334a]")}>
-          A cinematic browser ritual of hidden thoughts, spoken clues, and impossible guesses.
-        </p>
+        {withDescription ? (
+          <p className={cn("mt-3 text-sm sm:text-base", tone === "light" ? "text-[#d8cab1]" : "text-[#4f334a]")}>
+            A cinematic browser ritual of hidden thoughts, spoken clues, and impossible guesses.
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 
-import { questionGroupMeta, questionStageMeta } from "@/lib/data/questions";
 import { rankAvailableQuestions } from "@/lib/game/question-selection";
 import { cn } from "@/lib/utils/cn";
 import type {
@@ -11,7 +9,6 @@ import type {
   GameEntity,
   LearnedInferenceModel,
   QuestionDefinition,
-  QuestionGroup,
   RankedCandidate,
 } from "@/types/game";
 
@@ -24,6 +21,67 @@ interface QuestionBrowserProps {
   isPending: boolean;
   extraEntities?: GameEntity[];
   inferenceModel?: LearnedInferenceModel;
+}
+
+type BrowserFamily = "identity" | "nature" | "appearance" | "behavior" | "origin" | "advanced";
+
+const familyMeta: Record<
+  BrowserFamily,
+  {
+    label: string;
+    description: string;
+  }
+> = {
+  identity: {
+    label: "Identity",
+    description: "Big early clues that split the thought quickly.",
+  },
+  nature: {
+    label: "Nature",
+    description: "Living, usage, habitat, and what kind of thing it is.",
+  },
+  appearance: {
+    label: "Appearance",
+    description: "Body, size, surface, and visual form.",
+  },
+  behavior: {
+    label: "Behavior",
+    description: "Abilities, movement, purpose, and common actions.",
+  },
+  origin: {
+    label: "Origin",
+    description: "Where it comes from or what world it belongs to.",
+  },
+  advanced: {
+    label: "Advanced Clues",
+    description: "Sharper disambiguators once the field is small.",
+  },
+};
+
+function familyForQuestion(question: QuestionDefinition): BrowserFamily {
+  if (question.stage === "fine" || question.stage === "specialist") {
+    return "advanced";
+  }
+
+  switch (question.group) {
+    case "identity":
+    case "role":
+      return "identity";
+    case "body":
+    case "size":
+    case "pattern":
+    case "material":
+      return "appearance";
+    case "powers":
+    case "behavior":
+    case "mobility":
+    case "transport":
+      return "behavior";
+    case "origin":
+      return "origin";
+    default:
+      return "nature";
+  }
 }
 
 export function QuestionBrowser({
@@ -49,57 +107,34 @@ export function QuestionBrowser({
     [category, askedQuestionIds, rankedCandidates, extraEntities, remainingQuestions, inferenceModel],
   );
 
-  const staged = useMemo(() => {
-    const stageBuckets = new Map<
-      QuestionDefinition["stage"],
-      Map<QuestionDefinition["group"], QuestionDefinition[]>
-    >();
+  const grouped = useMemo(() => {
+    const buckets = new Map<BrowserFamily, QuestionDefinition[]>();
 
     for (const entry of ranked) {
-      const stageBucket = stageBuckets.get(entry.question.stage) ?? new Map();
-      const current = stageBucket.get(entry.question.group) ?? [];
+      const family = familyForQuestion(entry.question);
+      const current = buckets.get(family) ?? [];
       current.push(entry.question);
-      stageBucket.set(entry.question.group, current);
-      stageBuckets.set(entry.question.stage, stageBucket);
+      buckets.set(family, current);
     }
 
-    return Array.from(stageBuckets.entries())
-      .map(([stage, groups]) => ({
-        stage,
-        meta: questionStageMeta[stage],
-        groups: Array.from(groups.entries())
-          .map(([group, questions]) => ({
-            group,
-            meta: questionGroupMeta[group],
-            questions,
-          }))
-          .toSorted((left, right) => left.meta.order - right.meta.order),
+    return (Object.keys(familyMeta) as BrowserFamily[])
+      .map((family) => ({
+        family,
+        questions: buckets.get(family) ?? [],
       }))
-      .toSorted((left, right) => left.meta.order - right.meta.order);
+      .filter((entry) => entry.questions.length > 0);
   }, [ranked]);
 
   const recommended = ranked.slice(0, 3).map((entry) => entry.question);
-  const firstStage = staged[0]?.stage ?? null;
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<QuestionDefinition["stage"] | null>(firstStage);
-  const activeStage =
-    selectedStage && staged.some((entry) => entry.stage === selectedStage)
-      ? selectedStage
-      : firstStage;
-  const stageBucket = staged.find((entry) => entry.stage === activeStage) ?? staged[0] ?? null;
-  const [selectedGroup, setSelectedGroup] = useState<QuestionGroup | null>(stageBucket?.groups[0]?.group ?? null);
-  const activeGroup =
-    selectedGroup && stageBucket?.groups.some((entry) => entry.group === selectedGroup)
-      ? selectedGroup
-      : stageBucket?.groups[0]?.group ?? null;
-  const selectedBucket =
-    stageBucket?.groups.find((entry) => entry.group === activeGroup) ??
-    stageBucket?.groups[0] ??
-    null;
+  const firstFamily = grouped[0]?.family ?? "identity";
+  const [activeFamily, setActiveFamily] = useState<BrowserFamily>(firstFamily);
+  const resolvedFamily = grouped.some((entry) => entry.family === activeFamily) ? activeFamily : firstFamily;
+
+  const activeGroup = grouped.find((entry) => entry.family === resolvedFamily) ?? grouped[0] ?? null;
 
   if (ranked.length === 0) {
     return (
-      <div className="rounded-[1.1rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.08)] px-4 py-5 text-sm text-[#5a433b]">
+      <div className="rounded-[1.1rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] px-4 py-5 text-sm text-[#5a433b]">
         The strongest lines of questioning are spent. It’s time to make your guess.
       </div>
     );
@@ -107,105 +142,58 @@ export function QuestionBrowser({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-[0.7rem] uppercase tracking-[0.22em] text-[#8a5b24]">Best next questions</p>
-            <p className="mt-1 text-sm text-[#5a433b]">Ask one of these first if you want the quickest clue.</p>
-          </div>
-          {ranked[0] ? (
-            <span className="rounded-full border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] px-3 py-1 text-xs text-[#6a4a3c]">
-              {questionStageMeta[ranked[0].targetStage].label}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="grid gap-2">
+      <div className="rounded-[1.15rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] p-4">
+        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#8a5b24]">Best opening clues</p>
+        <div className="mt-3 grid gap-2">
           {recommended.map((question) => (
-            <motion.button
+            <button
               key={question.id}
               type="button"
               onClick={() => onAskQuestion(question.id)}
               disabled={isPending || remainingQuestions <= 0}
-              whileTap={{ scale: 0.985 }}
-              className="rounded-[1.1rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.08)] px-4 py-3 text-left transition-colors duration-150 hover:border-[rgba(138,91,36,0.24)] hover:bg-[rgba(84,49,35,0.12)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="rounded-[1rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(255,255,255,0.3)] px-4 py-3 text-left text-sm leading-6 text-[#2d1b19] transition-colors duration-150 hover:border-[rgba(126,79,39,0.38)] hover:bg-[rgba(255,255,255,0.4)] disabled:cursor-not-allowed disabled:opacity-45"
             >
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-6 text-[#2d1b19]">{question.question}</p>
-                <p className="text-xs text-[#6e5243]">
-                  {questionGroupMeta[question.group].label} · {questionStageMeta[question.stage].shortLabel}
-                </p>
-              </div>
-            </motion.button>
+              {question.question}
+            </button>
           ))}
         </div>
       </div>
 
-      <div className="border-t border-[rgba(102,72,52,0.12)] pt-4">
-        <button
-          type="button"
-          onClick={() => setArchiveOpen((current) => !current)}
-          className="text-sm font-medium text-[#6a452a] transition-colors hover:text-[#8a5b24]"
-        >
-          {archiveOpen ? "Hide the deeper archive" : "Browse deeper lines of questioning"}
-        </button>
+      <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          {grouped.map((entry) => (
+            <button
+              key={entry.family}
+              type="button"
+              onClick={() => setActiveFamily(entry.family)}
+              className={cn(
+                "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
+                resolvedFamily === entry.family
+                  ? "border-[rgba(126,79,39,0.5)] bg-[rgba(255,255,255,0.34)] text-[#2d1b19]"
+                  : "border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] text-[#5a433b] hover:border-[rgba(126,79,39,0.32)]",
+              )}
+            >
+              {familyMeta[entry.family].label}
+            </button>
+          ))}
+        </div>
 
-        {archiveOpen ? (
-          <div className="mt-4 space-y-4 rounded-[1.2rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] p-4">
-            <div className="flex flex-wrap gap-2">
-              {staged.map((entry) => (
+        {activeGroup ? (
+          <div className="rounded-[1.15rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] p-4">
+            <p className="text-sm text-[#6a4a3c]">{familyMeta[activeGroup.family].description}</p>
+            <div className="mt-3 grid gap-2">
+              {activeGroup.questions.slice(0, 8).map((question) => (
                 <button
-                  key={entry.stage}
+                  key={question.id}
                   type="button"
-                  onClick={() => {
-                    setSelectedStage(entry.stage);
-                    setSelectedGroup(entry.groups[0]?.group ?? null);
-                  }}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
-                    activeStage === entry.stage
-                      ? "border-[rgba(138,91,36,0.22)] bg-[rgba(255,255,255,0.34)] text-[#2d1b19]"
-                      : "border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] text-[#5a433b] hover:border-[rgba(138,91,36,0.24)]",
-                  )}
+                  onClick={() => onAskQuestion(question.id)}
+                  disabled={isPending || remainingQuestions <= 0}
+                  className="rounded-[1rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(255,255,255,0.28)] px-4 py-3 text-left text-sm leading-6 text-[#2d1b19] transition-colors duration-150 hover:border-[rgba(126,79,39,0.38)] hover:bg-[rgba(255,255,255,0.38)] disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  {entry.meta.shortLabel}
+                  {question.question}
                 </button>
               ))}
             </div>
-
-            <div className="flex flex-wrap gap-2">
-              {stageBucket?.groups.map((entry) => (
-                <button
-                  key={entry.group}
-                  type="button"
-                  onClick={() => setSelectedGroup(entry.group)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
-                    activeGroup === entry.group
-                      ? "border-[rgba(138,91,36,0.22)] bg-[rgba(255,255,255,0.34)] text-[#2d1b19]"
-                      : "border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] text-[#5a433b] hover:border-[rgba(138,91,36,0.24)]",
-                  )}
-                >
-                  {entry.meta.label}
-                </button>
-              ))}
-            </div>
-
-            {selectedBucket ? (
-              <div className="grid gap-2">
-                {selectedBucket.questions.slice(0, 6).map((question) => (
-                  <button
-                    key={question.id}
-                    type="button"
-                    onClick={() => onAskQuestion(question.id)}
-                    disabled={isPending || remainingQuestions <= 0}
-                    className="rounded-[1rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(255,255,255,0.24)] px-4 py-3 text-left text-sm leading-6 text-[#2d1b19] transition-colors duration-150 hover:border-[rgba(138,91,36,0.24)] hover:bg-[rgba(255,255,255,0.34)] disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    {question.question}
-                  </button>
-                ))}
-              </div>
-            ) : null}
           </div>
         ) : null}
       </div>
