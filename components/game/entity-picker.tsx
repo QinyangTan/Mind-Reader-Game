@@ -5,7 +5,6 @@ import { Search, Sparkles } from "lucide-react";
 
 import { getEntitiesForCategory } from "@/lib/data/entities";
 import { isTeachEntityId } from "@/lib/game/teach";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils/cn";
 import type { EntityCategory, GameEntity } from "@/types/game";
 
@@ -64,11 +63,11 @@ export function EntityPicker({
     <div className="space-y-4">
       <label className="relative block">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#d6a653]" />
-        <Input
+        <input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search the playbill..."
-          className="pl-11"
+          className="flex h-12 w-full rounded-[999px] border border-[rgba(214,174,98,0.28)] bg-[linear-gradient(180deg,rgba(45,24,62,0.92),rgba(21,12,30,0.96))] pl-11 pr-4 text-sm text-[#f6e7bf] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#a99976] focus:border-[rgba(242,226,181,0.56)] focus:shadow-[0_0_20px_rgba(177,119,219,0.18)]"
         />
       </label>
 
@@ -82,36 +81,36 @@ export function EntityPicker({
               type="button"
               onClick={() => onSelect(entity.id)}
               className={cn(
-                "flex items-center justify-between rounded-[1.2rem] border px-4 py-3 text-left transition-colors duration-150",
+                "flex items-center justify-between rounded-[1.2rem] border px-4 py-3 text-left transition-[transform,border-color,background-color,color,box-shadow] duration-150",
                 active
-                  ? "brand-paper"
-                  : "border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.54)] hover:border-[rgba(240,217,162,0.24)] hover:bg-[rgba(29,16,38,0.88)]",
+                  ? "border-[rgba(242,226,181,0.62)] bg-[linear-gradient(180deg,rgba(145,86,196,0.54),rgba(70,39,99,0.94))] text-[#f7ebcb] shadow-[0_0_24px_rgba(177,119,219,0.18)]"
+                  : "border-[rgba(214,174,98,0.24)] bg-[linear-gradient(180deg,rgba(45,24,62,0.82),rgba(21,12,30,0.94))] text-[#e6d4a8] hover:-translate-y-[1px] hover:border-[rgba(239,218,163,0.42)]",
               )}
             >
               <div className="min-w-0">
-                <p className={cn("truncate font-medium", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>
+                <p className={cn("truncate font-medium", active ? "text-[#f7ebcb]" : "text-[#f6e7bf]")}>
                   <span className="mr-2">{entity.imageEmoji}</span>
                   {entity.name}
                   {isTeachEntityId(entity.id) ? (
                     <span className={cn(
                       "ml-2 rounded-md border px-2 py-0.5 text-[0.65rem]",
                       active
-                        ? "border-[rgba(138,91,36,0.16)] bg-white/35 text-[#8a5b24]"
-                        : "border-[rgba(240,217,162,0.16)] bg-[rgba(240,217,162,0.08)] text-[#f0d9a2]",
+                        ? "border-[rgba(246,235,203,0.36)] bg-[rgba(255,255,255,0.16)] text-[#f7ebcb]"
+                        : "border-[rgba(214,174,98,0.16)] bg-[rgba(240,217,162,0.08)] text-[#f0d9a2]",
                     )}>
                       Teach
                     </span>
                   ) : null}
                 </p>
-                <p className={cn("truncate text-xs", active ? "text-[#5c433e]" : "text-[#af9c83]")}>{entity.shortDescription}</p>
+                <p className={cn("truncate text-xs", active ? "text-[#eadbb3]" : "text-[#af9c83]")}>{entity.shortDescription}</p>
               </div>
-              {active ? <Sparkles className="h-4 w-4 shrink-0 text-[#8a5b24]" /> : null}
+              {active ? <Sparkles className="h-4 w-4 shrink-0 text-[#f3d691]" /> : null}
             </button>
           );
         })}
 
         {results.length === 0 ? (
-          <div className="brand-inset rounded-[1.2rem] border-dashed px-4 py-6 text-center text-sm text-[#af9c83]">
+          <div className="rounded-[1.2rem] border border-dashed border-[rgba(214,174,98,0.2)] bg-[rgba(22,12,31,0.54)] px-4 py-6 text-center text-sm text-[#af9c83]">
             No match in the chamber archive yet. Try a broader clue.
           </div>
         ) : null}

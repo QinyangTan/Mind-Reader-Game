@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { ResponseWell, SurfacePillButton } from "@/components/game/scene-surfaces";
 import { rankAvailableQuestions } from "@/lib/game/question-selection";
-import { cn } from "@/lib/utils/cn";
 import type {
   EntityCategory,
   GameEntity,
@@ -38,15 +38,15 @@ const familyMeta: Record<
   },
   nature: {
     label: "Nature",
-    description: "Living, usage, habitat, and what kind of thing it is.",
+    description: "Living, habitat, use, and what kind of thing it is.",
   },
   appearance: {
     label: "Appearance",
-    description: "Body, size, surface, and visual form.",
+    description: "Body, scale, surface, and visible form.",
   },
   behavior: {
     label: "Behavior",
-    description: "Abilities, movement, purpose, and common actions.",
+    description: "Abilities, movement, purpose, and repeated actions.",
   },
   origin: {
     label: "Origin",
@@ -54,7 +54,7 @@ const familyMeta: Record<
   },
   advanced: {
     label: "Advanced Clues",
-    description: "Sharper disambiguators once the field is small.",
+    description: "Sharper disambiguators once the field is narrow.",
   },
 };
 
@@ -125,77 +125,59 @@ export function QuestionBrowser({
       .filter((entry) => entry.questions.length > 0);
   }, [ranked]);
 
-  const recommended = ranked.slice(0, 3).map((entry) => entry.question);
+  const recommended = ranked.slice(0, 5).map((entry) => entry.question);
   const firstFamily = grouped[0]?.family ?? "identity";
   const [activeFamily, setActiveFamily] = useState<BrowserFamily>(firstFamily);
   const resolvedFamily = grouped.some((entry) => entry.family === activeFamily) ? activeFamily : firstFamily;
-
   const activeGroup = grouped.find((entry) => entry.family === resolvedFamily) ?? grouped[0] ?? null;
 
   if (ranked.length === 0) {
     return (
-      <div className="rounded-[1.1rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] px-4 py-5 text-sm text-[#5a433b]">
-        The strongest lines of questioning are spent. It’s time to make your guess.
-      </div>
+      <ResponseWell tone="muted">
+        <p className="text-sm text-[#d7c7a4]">The strongest lines are spent. It’s time to make your guess.</p>
+      </ResponseWell>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-[1.15rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] p-4">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#8a5b24]">Best opening clues</p>
-        <div className="mt-3 grid gap-2">
-          {recommended.map((question) => (
-            <button
-              key={question.id}
-              type="button"
-              onClick={() => onAskQuestion(question.id)}
-              disabled={isPending || remainingQuestions <= 0}
-              className="rounded-[1rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(255,255,255,0.3)] px-4 py-3 text-left text-sm leading-6 text-[#2d1b19] transition-colors duration-150 hover:border-[rgba(126,79,39,0.38)] hover:bg-[rgba(255,255,255,0.4)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {question.question}
-            </button>
-          ))}
-        </div>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        {grouped.map((entry) => (
+          <SurfacePillButton
+            key={entry.family}
+            active={resolvedFamily === entry.family}
+            tone={resolvedFamily === entry.family ? "accent" : "default"}
+            className="px-4 py-2.5"
+            onClick={() => setActiveFamily(entry.family)}
+          >
+            {familyMeta[entry.family].label}
+          </SurfacePillButton>
+        ))}
       </div>
 
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          {grouped.map((entry) => (
-            <button
-              key={entry.family}
-              type="button"
-              onClick={() => setActiveFamily(entry.family)}
-              className={cn(
-                "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
-                resolvedFamily === entry.family
-                  ? "border-[rgba(126,79,39,0.5)] bg-[rgba(255,255,255,0.34)] text-[#2d1b19]"
-                  : "border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] text-[#5a433b] hover:border-[rgba(126,79,39,0.32)]",
-              )}
-            >
-              {familyMeta[entry.family].label}
-            </button>
-          ))}
-        </div>
+      <div className="space-y-4">
+        <ResponseWell tone="muted">
+          <p className="text-sm uppercase tracking-[0.16em] text-[#d8b36a]">{familyMeta[resolvedFamily].label}</p>
+          <p className="mt-2 text-sm leading-6 text-[#d7c7a4]">{familyMeta[resolvedFamily].description}</p>
+        </ResponseWell>
 
-        {activeGroup ? (
-          <div className="rounded-[1.15rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] p-4">
-            <p className="text-sm text-[#6a4a3c]">{familyMeta[activeGroup.family].description}</p>
-            <div className="mt-3 grid gap-2">
-              {activeGroup.questions.slice(0, 8).map((question) => (
-                <button
-                  key={question.id}
-                  type="button"
-                  onClick={() => onAskQuestion(question.id)}
-                  disabled={isPending || remainingQuestions <= 0}
-                  className="rounded-[1rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(255,255,255,0.28)] px-4 py-3 text-left text-sm leading-6 text-[#2d1b19] transition-colors duration-150 hover:border-[rgba(126,79,39,0.38)] hover:bg-[rgba(255,255,255,0.38)] disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  {question.question}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap justify-center gap-3">
+          {(activeGroup?.questions.slice(0, 8) ?? []).map((question) => {
+            const recommendedQuestion = recommended.some((entry) => entry.id === question.id);
+
+            return (
+              <SurfacePillButton
+                key={question.id}
+                tone={recommendedQuestion ? "accent" : "default"}
+                className="min-w-[11rem] px-4 py-3 text-sm leading-5"
+                disabled={isPending || remainingQuestions <= 0}
+                onClick={() => onAskQuestion(question.id)}
+              >
+                {question.question}
+              </SurfacePillButton>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

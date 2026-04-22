@@ -13,8 +13,8 @@ import { GuessMyMindBoard } from "@/components/game/guess-my-mind-board";
 import { PlaySetup, type SetupStep } from "@/components/game/play-setup";
 import { ReadMyMindBoard } from "@/components/game/read-my-mind-board";
 import { ResultScreen } from "@/components/game/result-screen";
+import { SurfacePillButton } from "@/components/game/scene-surfaces";
 import { StatsPanel } from "@/components/game/stats-panel";
-import { Button } from "@/components/ui/button";
 import { entityById } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import {
@@ -544,20 +544,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       : screen === "result"
         ? "result"
         : "setup";
-  const headerLine =
-    screen === "encounter"
-      ? "Mora has opened the chamber."
-      : screen === "setup"
-      ? "Choose the ritual, then let the chamber narrow around it."
-      : screen === "play"
-        ? settings.mode === "read-my-mind"
-          ? isGuessScanning || isRevealing
-            ? "Mora has stopped asking. The reveal is forming."
-            : "Answer the psychic clearly and keep your thought steady."
-          : "Question the psychic one clue at a time until you are ready to guess."
-        : result?.teachable && !teachSaved
-          ? "The ritual has slipped. You can teach Mora what escaped."
-          : "The ritual is complete.";
 
   return (
     <>
@@ -565,32 +551,31 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       scene={shellScene}
       mood={stageMascotState}
       header={
-        <div className="mx-auto flex w-full max-w-[1320px] items-center justify-between gap-4">
-          <BrandLogo compact />
-
-          <div className="flex flex-wrap items-center gap-3">
+        <div className="mx-auto flex w-full max-w-[1320px] items-start justify-between gap-4 pt-1">
+          <div className="flex min-w-[10rem] justify-start">
             {(screen === "encounter" || screen === "setup") ? (
-              <Button size="sm" variant="ghost" onClick={() => setStatsOpen(true)}>
+              <SurfacePillButton tone="default" className="px-4 py-2 text-xs" onClick={() => setStatsOpen(true)}>
                 <BookHeart className="h-4 w-4" />
                 Chamber memory
-              </Button>
+              </SurfacePillButton>
             ) : null}
+          </div>
 
+          <div className="flex justify-center pt-1 opacity-92">
+            <BrandLogo compact className="scale-95" />
+          </div>
+
+          <div className="flex min-w-[10rem] justify-end">
             {screen === "play" || screen === "result" ? (
-              <Button size="sm" variant="ghost" onClick={handleBackToSetup}>
+              <SurfacePillButton tone="default" className="px-4 py-2 text-xs" onClick={handleBackToSetup}>
                 <ArrowLeft className="h-4 w-4" />
                 Leave ritual
-              </Button>
+              </SurfacePillButton>
             ) : null}
           </div>
         </div>
       }
       support={<SponsorRail context={sponsorContext} />}
-      footer={
-        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-center px-2 pb-1 text-[0.72rem] uppercase tracking-[0.16em] text-[#e2d3b0]/72">
-          {headerLine}
-        </div>
-      }
     >
       <AnimatePresence mode="wait" initial={false}>
         {screen === "encounter" ? (

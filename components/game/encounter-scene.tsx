@@ -2,8 +2,7 @@
 
 import { ArrowRight } from "lucide-react";
 
-import { MindChamberPanel } from "@/components/game/mind-chamber-panel";
-import { Button } from "@/components/ui/button";
+import { MoraDialogueSurface, SurfacePillButton } from "@/components/game/scene-surfaces";
 
 interface EncounterSceneProps {
   onContinue: () => void;
@@ -12,21 +11,20 @@ interface EncounterSceneProps {
 export function EncounterScene({ onContinue }: EncounterSceneProps) {
   return (
     <div className="mx-auto w-full max-w-[760px]">
-      <MindChamberPanel eyebrow="First encounter" title="Mora has opened the chamber to you.">
+      <MoraDialogueSurface
+        eyebrow="First encounter"
+        title="Mora has opened the chamber to you."
+        description="She reads thoughts the way other people read candle smoke. Sit at the table, choose a ritual, and let the chamber decide who understands whom first."
+      >
         <div className="space-y-5 text-center">
-          <p className="mx-auto max-w-[32rem] text-base leading-7 text-[#4d352c] sm:text-lg">
-            She reads thoughts the way other people read candle smoke. Sit at the table, choose a ritual, and let the
-            chamber decide who understands whom first.
-          </p>
-
           <div className="flex justify-center pt-1">
-            <Button size="lg" onClick={onContinue}>
+            <SurfacePillButton tone="accent" className="min-w-[13rem] px-7 py-3.5 text-base" onClick={onContinue}>
               Continue
               <ArrowRight className="h-4 w-4" />
-            </Button>
+            </SurfacePillButton>
           </div>
         </div>
-      </MindChamberPanel>
+      </MoraDialogueSurface>
     </div>
   );
 }

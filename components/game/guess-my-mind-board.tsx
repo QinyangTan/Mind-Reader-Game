@@ -5,9 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Crosshair, SearchCheck } from "lucide-react";
 
 import { EntityPicker } from "@/components/game/entity-picker";
-import { MindChamberPanel } from "@/components/game/mind-chamber-panel";
+import { InquirySurface, ResponseWell, RitualProgress, SurfacePillButton } from "@/components/game/scene-surfaces";
 import { QuestionBrowser } from "@/components/game/question-browser";
-import { Button } from "@/components/ui/button";
 import { rankCandidates } from "@/lib/game/scoring";
 import type {
   GameEntity,
@@ -56,7 +55,7 @@ export function GuessMyMindBoard({
   );
 
   return (
-    <div className="mx-auto w-full max-w-[880px]">
+    <div className="mx-auto w-full max-w-[1040px]">
       <AnimatePresence mode="wait" initial={false}>
         {activePanelMode === "ask" ? (
           <motion.div
@@ -66,30 +65,32 @@ export function GuessMyMindBoard({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <MindChamberPanel eyebrow="Read Mora instead" title="Ask one clean clue at a time.">
+            <InquirySurface
+              eyebrow="Read Mora instead"
+              title="Choose your line of inquiry"
+              footer={
+                <RitualProgress
+                  label={`Question ${Math.min(session.asked.length + 1, session.config.maxQuestions)} of ${session.config.maxQuestions}`}
+                  value={(session.asked.length / session.config.maxQuestions) * 100}
+                />
+              }
+            >
               <div className="space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#5b4034]">
-                  <span>{remainingQuestions} questions remain</span>
-                  <span>{remainingGuesses} guesses remain</span>
-                </div>
-
-                <div className="rounded-[1.15rem] border border-[rgba(111,75,45,0.18)] bg-[rgba(98,62,40,0.08)] p-4">
-                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#8a5b24]">
-                    Mora’s latest reply
-                  </p>
+                <ResponseWell>
+                  <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">Response</p>
                   {latestReply ? (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-sm text-[#6a4a3c]">{latestReply.prompt}</p>
-                      <p className="font-display text-[2rem] capitalize leading-none text-[#2d1b19] sm:text-[2.35rem]">
+                    <>
+                      <p className="mt-3 text-sm leading-6 text-[#d7c7a4]">{latestReply.prompt}</p>
+                      <p className="mt-3 font-display text-[2rem] capitalize leading-none text-[#f6e7bf] sm:text-[2.4rem]">
                         {formatAnswer(latestReply)}
                       </p>
-                    </div>
+                    </>
                   ) : (
-                    <p className="mt-3 text-sm leading-6 text-[#5a433b]">
-                      Her thought is hidden. Ask a first clue and listen carefully.
+                    <p className="mt-3 text-sm leading-6 text-[#d7c7a4]">
+                      Mora’s thought is hidden. Ask a first clue and let her answer in her own way.
                     </p>
                   )}
-                </div>
+                </ResponseWell>
 
                 <QuestionBrowser
                   category={session.category}
@@ -102,20 +103,20 @@ export function GuessMyMindBoard({
                   inferenceModel={inferenceModel}
                 />
 
-                <div className="flex flex-col items-center gap-3 border-t border-[rgba(111,75,45,0.16)] pt-2 sm:flex-row sm:justify-between">
-                  <p className="text-sm text-[#5a433b]">Switch to a guess only when the pattern feels narrow.</p>
-                  <Button
-                    type="button"
-                    variant="secondary"
+                <div className="flex flex-col items-center gap-3 border-t border-[rgba(214,174,98,0.16)] pt-3 sm:flex-row sm:justify-between">
+                  <p className="text-sm text-[#d7c7a4]">When the shape feels narrow, declare the answer aloud.</p>
+                  <SurfacePillButton
+                    tone="accent"
+                    className="px-6 py-3 text-base"
                     onClick={() => setPanelMode("guess")}
                     disabled={remainingGuesses <= 0}
                   >
                     Name her thought
                     <Crosshair className="h-4 w-4" />
-                  </Button>
+                  </SurfacePillButton>
                 </div>
               </div>
-            </MindChamberPanel>
+            </InquirySurface>
           </motion.div>
         ) : (
           <motion.div
@@ -125,16 +126,17 @@ export function GuessMyMindBoard({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <MindChamberPanel eyebrow="Make your declaration" title="Speak the hidden thought aloud.">
+            <InquirySurface
+              eyebrow="Make your declaration"
+              title="Speak Mora’s hidden thought"
+              footer={<RitualProgress label={`${remainingGuesses} guesses remain`} />}
+            >
               <div className="space-y-5">
-                <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#5b4034]">
-                  <span>{remainingGuesses} guesses remain</span>
-                  <span>{session.wrongGuessIds.length} burned already</span>
-                </div>
-
-                <p className="text-center text-base leading-7 text-[#4d352c] sm:text-lg">
-                  Search the field, choose one answer, and test whether you can read Mora back.
-                </p>
+                <ResponseWell tone="muted">
+                  <p className="text-sm leading-7 text-[#d7c7a4]">
+                    Search the cast, choose one answer, and test whether you can read Mora back.
+                  </p>
+                </ResponseWell>
 
                 <EntityPicker
                   category={session.category}
@@ -146,16 +148,16 @@ export function GuessMyMindBoard({
 
                 <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
                   {remainingQuestions > 0 ? (
-                    <Button type="button" variant="ghost" onClick={() => setPanelMode("ask")}>
+                    <SurfacePillButton tone="default" className="px-5 py-3" onClick={() => setPanelMode("ask")}>
                       Return to questions
-                    </Button>
+                    </SurfacePillButton>
                   ) : (
-                    <span className="text-sm text-[#5a433b]">No questions remain. Only the guess matters now.</span>
+                    <p className="text-sm text-[#d7c7a4]">No questions remain. Only the guess matters now.</p>
                   )}
 
-                  <Button
-                    type="button"
-                    size="lg"
+                  <SurfacePillButton
+                    tone="accent"
+                    className="px-6 py-3 text-base"
                     disabled={!selectedGuessId || isPending || remainingGuesses <= 0}
                     onClick={() => {
                       if (!selectedGuessId) {
@@ -168,10 +170,10 @@ export function GuessMyMindBoard({
                   >
                     Speak the guess
                     <SearchCheck className="h-4 w-4" />
-                  </Button>
+                  </SurfacePillButton>
                 </div>
               </div>
-            </MindChamberPanel>
+            </InquirySurface>
           </motion.div>
         )}
       </AnimatePresence>
