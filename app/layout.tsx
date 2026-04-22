@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Space_Grotesk } from "next/font/google";
+import { Alegreya_Sans, Cormorant_Garamond } from "next/font/google";
 
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const alegreyaSans = Alegreya_Sans({
+  variable: "--font-alegreya-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "700", "800"],
 });
 
 const cormorant = Cormorant_Garamond({
@@ -17,7 +18,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "Mind Reader",
   description:
-    "A polished psychic guessing game with mirrored modes, local persistence, and a mysterious futuristic chamber aesthetic.",
+    "A theatrical browser mind-reading game set inside the Moon Moth Parlor, with mirrored modes, local persistence, and original branding.",
 };
 
 export default function RootLayout({
@@ -29,7 +30,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${spaceGrotesk.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${alegreyaSans.variable} ${cormorant.variable} h-full antialiased`}
     >
       <body className="min-h-full">{children}</body>
     </html>

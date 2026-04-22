@@ -2,10 +2,13 @@ import {
   attributeKeys,
   normalizedAnswers,
   type AttributeKey,
+  type LegacyLearnedEntityStoreV1,
   type LearnedEntityStore,
+  type LearnedInferenceModel,
   type NormalizedAnswer,
   type TeachCase,
 } from "@/types/game";
+import { defaultLearnedInferenceModel } from "@/lib/game/inference-model";
 
 const attributeKeySet = new Set<string>(attributeKeys);
 const normalizedAnswerSet = new Set<string>(normalizedAnswers);
@@ -14,8 +17,9 @@ const LEARNED_STORAGE_KEY = "mind-reader.learned.v1";
 const MAX_LEARNED_ENTRIES = 64;
 
 export const defaultLearnedStore: LearnedEntityStore = {
-  version: 1,
+  version: 2,
   entries: [],
+  model: defaultLearnedInferenceModel,
 };
 
 function canUseStorage() {
@@ -89,12 +93,20 @@ export function loadLearnedEntities(): LearnedEntityStore {
       return defaultLearnedStore;
     }
 
-    const parsed = JSON.parse(raw) as Partial<LearnedEntityStore>;
+    const parsed = JSON.parse(raw) as Partial<LearnedEntityStore> &
+      Partial<LegacyLearnedEntityStoreV1>;
 
-    return {
-      version: 1,
+    const migrated: LearnedEntityStore = {
+      version: 2,
       entries: sanitizeEntries(parsed.entries).slice(0, MAX_LEARNED_ENTRIES),
+      model: sanitizeModel((parsed as Partial<LearnedEntityStore>).model),
     };
+
+    if (parsed.version !== 2) {
+      saveLearnedEntities(migrated);
+    }
+
+    return migrated;
   } catch {
     return defaultLearnedStore;
   }
@@ -106,8 +118,9 @@ export function saveLearnedEntities(store: LearnedEntityStore) {
   }
 
   const capped: LearnedEntityStore = {
-    version: 1,
+    version: 2,
     entries: store.entries.slice(0, MAX_LEARNED_ENTRIES),
+    model: sanitizeModel(store.model),
   };
 
   window.localStorage.setItem(LEARNED_STORAGE_KEY, JSON.stringify(capped));
@@ -118,8 +131,9 @@ export function prependLearnedEntity(
   entry: TeachCase,
 ): LearnedEntityStore {
   return {
-    version: 1,
+    version: 2,
     entries: [entry, ...store.entries].slice(0, MAX_LEARNED_ENTRIES),
+    model: store.model,
   };
 }
 
@@ -143,7 +157,52 @@ export function mergeLegacyTeachCases(
   }
 
   return {
-    version: 1,
+    version: 2,
     entries: [...additions, ...store.entries].slice(0, MAX_LEARNED_ENTRIES),
+    model: store.model,
+  };
+}
+
+function sanitizeModel(raw: unknown): LearnedInferenceModel {
+  if (!raw || typeof raw !== "object") {
+    return defaultLearnedInferenceModel;
+  }
+
+  const candidate = raw as Partial<LearnedInferenceModel>;
+
+  const attributeAnswerCounts = Object.fromEntries(
+    Object.entries(candidate.attributeAnswerCounts ?? {}).filter(
+      ([key, value]) => typeof key === "string" && typeof value === "number" && Number.isFinite(value) && value >= 0,
+    ),
+  );
+
+  const readEntityCounts = Object.fromEntries(
+    Object.entries(candidate.readEntityCounts ?? {}).filter(
+      ([key, value]) => typeof key === "string" && typeof value === "number" && Number.isFinite(value) && value >= 0,
+    ),
+  );
+
+  const questionStats = Object.fromEntries(
+    Object.entries(candidate.questionStats ?? {}).flatMap(([key, value]) => {
+      if (
+        !value ||
+        typeof value !== "object" ||
+        typeof (value as { askedCount?: unknown }).askedCount !== "number" ||
+        typeof (value as { totalEntropyDrop?: unknown }).totalEntropyDrop !== "number"
+      ) {
+        return [];
+      }
+
+      const askedCount = Math.max(0, (value as { askedCount: number }).askedCount);
+      const totalEntropyDrop = Math.max(0, (value as { totalEntropyDrop: number }).totalEntropyDrop);
+      return [[key, { askedCount, totalEntropyDrop }]];
+    }),
+  );
+
+  return {
+    version: 1,
+    attributeAnswerCounts,
+    questionStats,
+    readEntityCounts,
   };
 }

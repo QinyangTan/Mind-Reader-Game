@@ -1,11 +1,14 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, BrainCircuit, Crosshair, Library, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Library } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { MascotScene } from "@/components/brand/mascot-scene";
 import { MindChamberPanel } from "@/components/game/mind-chamber-panel";
+import { Button } from "@/components/ui/button";
 import { categoryMeta, difficultyConfig, modeMeta } from "@/lib/game/game-config";
+import { getMascotFacing, getSetupMascotState } from "@/lib/game/mascot";
 import { cn } from "@/lib/utils/cn";
 import type { StoredSettings } from "@/types/game";
 
@@ -15,230 +18,309 @@ interface PlaySetupProps {
   onStart: () => void;
   isPending: boolean;
   teachCaseCount: number;
+  onStepChange?: (step: SetupStep) => void;
 }
 
-export function PlaySetup({ settings, onChange, onStart, isPending, teachCaseCount }: PlaySetupProps) {
+export type SetupStep = "mode" | "category" | "difficulty" | "review";
+
+const stepOrder: SetupStep[] = ["mode", "category", "difficulty", "review"];
+
+const stepCopy: Record<
+  SetupStep,
+  {
+    eyebrow: string;
+    title: string;
+    description: string;
+  }
+> = {
+  mode: {
+    eyebrow: "Step 1",
+    title: "Choose the ritual",
+    description: "Pick how this round should work.",
+  },
+  category: {
+    eyebrow: "Step 2",
+    title: "Choose the focus",
+    description: "Narrow the cast before the round begins.",
+  },
+  difficulty: {
+    eyebrow: "Step 3",
+    title: "Choose the pressure",
+    description: "Set how long the room has to get there.",
+  },
+  review: {
+    eyebrow: "Step 4",
+    title: "Start the round",
+    description: "Check the setup, then begin.",
+  },
+};
+
+function nextStep(current: SetupStep) {
+  const index = stepOrder.indexOf(current);
+  return stepOrder[Math.min(index + 1, stepOrder.length - 1)];
+}
+
+function previousStep(current: SetupStep) {
+  const index = stepOrder.indexOf(current);
+  return stepOrder[Math.max(index - 1, 0)];
+}
+
+export function PlaySetup({
+  settings,
+  onChange,
+  onStart,
+  isPending,
+  teachCaseCount,
+  onStepChange,
+}: PlaySetupProps) {
+  const [step, setStep] = useState<SetupStep>("mode");
   const selectedMode = modeMeta[settings.mode];
   const selectedCategory = categoryMeta[settings.category];
   const selectedDifficulty = difficultyConfig[settings.difficulty];
-  const activeLimits =
+  const limits =
     settings.mode === "read-my-mind"
       ? selectedDifficulty.readMyMind
       : selectedDifficulty.guessMyMind;
 
+  const stepIndex = stepOrder.indexOf(step) + 1;
+
+  const selectionSummary = useMemo(
+    () => [
+      { label: "Ritual", value: selectedMode.label },
+      { label: "Category", value: selectedCategory.label },
+      { label: "Difficulty", value: selectedDifficulty.label },
+    ],
+    [selectedCategory.label, selectedDifficulty.label, selectedMode.label],
+  );
+  const visibleSummary = useMemo(() => {
+    if (step === "category") {
+      return selectionSummary.slice(0, 1);
+    }
+
+    if (step === "difficulty") {
+      return selectionSummary.slice(0, 2);
+    }
+
+    if (step === "review") {
+      return selectionSummary;
+    }
+
+    return [];
+  }, [selectionSummary, step]);
+
+  useEffect(() => {
+    onStepChange?.(step);
+  }, [onStepChange, step]);
+
+  function handleStepChoice(patch: Partial<StoredSettings>) {
+    onChange(patch);
+    setStep((current) => nextStep(current));
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+    <div className="mx-auto max-w-[860px]">
       <motion.div
-        initial={{ opacity: 0, y: 18 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="space-y-6"
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="space-y-4"
       >
-        <MindChamberPanel eyebrow="Calibrate the chamber" title="Choose the ritual">
-          <div className="grid gap-4 md:grid-cols-2">
-            {Object.entries(modeMeta).map(([id, meta]) => {
-              const active = settings.mode === id;
-
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => onChange({ mode: id as StoredSettings["mode"] })}
-                  className={cn(
-                    "group rounded-[1.8rem] border px-5 py-5 text-left transition duration-300",
-                    active
-                      ? "border-cyan-300/45 bg-cyan-300/10 shadow-[0_0_0_1px_rgba(103,232,249,0.18)]"
-                      : "border-white/10 bg-white/5 hover:border-white/16 hover:bg-white/8",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[0.68rem] uppercase tracking-[0.3em] text-slate-400">
-                        {meta.eyebrow}
-                      </p>
-                      <h3 className="mt-2 font-display text-3xl text-white">{meta.label}</h3>
-                    </div>
-                    <div
-                      className={cn(
-                        "rounded-full border p-3 transition duration-300",
-                        active
-                          ? "border-cyan-300/30 bg-cyan-300/12 text-cyan-100"
-                          : "border-white/10 bg-white/6 text-slate-300",
-                      )}
-                    >
-                      {id === "read-my-mind" ? (
-                        <BrainCircuit className="h-5 w-5" />
-                      ) : (
-                        <Crosshair className="h-5 w-5" />
-                      )}
-                    </div>
-                  </div>
-                  <p className="mt-4 max-w-sm text-sm leading-7 text-slate-300">{meta.description}</p>
-                </button>
-              );
-            })}
-          </div>
-        </MindChamberPanel>
-
-        <MindChamberPanel eyebrow="Signal library" title="Category focus" tone="emerald">
-          <div className="grid gap-4 md:grid-cols-2">
-            {Object.entries(categoryMeta).map(([id, meta]) => {
-              const active = settings.category === id;
-
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => onChange({ category: id as StoredSettings["category"] })}
-                  className={cn(
-                    "rounded-[1.8rem] border px-5 py-5 text-left transition duration-300",
-                    active
-                      ? "border-white/16 bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
-                      : "border-white/10 bg-white/4 hover:border-white/16 hover:bg-white/8",
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-display text-3xl text-white">{meta.icon}</span>
-                    <h3 className="text-lg font-semibold text-white">{meta.label}</h3>
-                  </div>
-                  <p className="mt-3 text-sm leading-7 text-slate-300">{meta.synopsis}</p>
-                  <p className={cn("mt-3 text-xs uppercase tracking-[0.24em]", active ? "text-cyan-200" : "text-slate-500")}>
-                    {meta.flavor}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </MindChamberPanel>
-
-        {settings.mode === "read-my-mind" ? (
-          <MindChamberPanel
-            eyebrow="Memory vault"
-            title="Use past teach cases"
-            tone="emerald"
-          >
-            <button
-              type="button"
-              onClick={() => onChange({ useTeachCases: !settings.useTeachCases })}
-              aria-pressed={settings.useTeachCases}
-              className={cn(
-                "flex w-full items-start gap-4 rounded-[1.8rem] border px-5 py-5 text-left transition duration-300",
-                settings.useTeachCases
-                  ? "border-emerald-200/35 bg-emerald-300/10 shadow-[0_0_0_1px_rgba(110,231,183,0.18)]"
-                  : "border-white/10 bg-white/4 hover:border-white/16 hover:bg-white/8",
-              )}
-            >
-              <div
+        <div className="flex items-center justify-between gap-3 text-sm text-[#dbcdb5]">
+          <p>
+            Step {stepIndex} of {stepOrder.length}
+          </p>
+          <div className="flex items-center gap-2">
+            {stepOrder.map((entry, index) => (
+              <span
+                key={entry}
                 className={cn(
-                  "rounded-full border p-3",
-                  settings.useTeachCases
-                    ? "border-emerald-200/30 bg-emerald-300/12 text-emerald-100"
-                    : "border-white/10 bg-white/6 text-slate-300",
+                  "h-2.5 w-8 rounded-full border transition-colors duration-150",
+                  index < stepIndex
+                    ? "border-[rgba(214,166,83,0.38)] bg-[#d6a653]"
+                    : "border-[rgba(240,217,162,0.16)] bg-[rgba(18,10,24,0.48)]",
                 )}
-              >
-                <Library className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold text-white">
-                    {settings.useTeachCases ? "Enabled" : "Disabled"}
-                  </h3>
-                  <span
+              />
+            ))}
+          </div>
+        </div>
+
+        <MindChamberPanel eyebrow={stepCopy[step].eyebrow} title={stepCopy[step].title}>
+          <MascotScene
+            compact
+            state={getSetupMascotState(step)}
+            mode={settings.mode}
+            facing={getMascotFacing(settings.mode)}
+            className="xl:hidden"
+            title={
+              step === "mode"
+                ? "Mora opens the curtain."
+                : step === "review"
+                  ? "Mora is ready to begin."
+                  : undefined
+            }
+          />
+
+          <p className="max-w-2xl text-sm leading-6 text-[#dbcdb5]">{stepCopy[step].description}</p>
+
+          {visibleSummary.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {visibleSummary.map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-full border border-[rgba(240,217,162,0.16)] bg-[rgba(18,10,24,0.38)] px-3 py-2 text-sm text-[#e6dcc7]"
+                >
+                  <span className="mr-2 text-[0.68rem] font-semibold tracking-[0.18em] text-[#d6a653]">
+                    {item.label}
+                  </span>
+                  <span>{item.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          {step === "mode" ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {Object.entries(modeMeta).map(([id, meta]) => {
+                const active = settings.mode === id;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => handleStepChoice({ mode: id as StoredSettings["mode"] })}
                     className={cn(
-                      "text-xs uppercase tracking-[0.22em]",
-                      settings.useTeachCases ? "text-emerald-200" : "text-slate-500",
+                      "rounded-[1.25rem] border px-5 py-5 text-left transition-colors duration-150",
+                      active ? "brand-paper" : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
                     )}
                   >
-                    {teachCaseCount} stored
-                  </span>
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Include entities you taught the chamber in past Read-My-Mind escapes. They enter the candidate pool
-                  only for this category, ranked alongside the seeded library.
-                </p>
-                {teachCaseCount === 0 ? (
-                  <p className="mt-3 text-xs uppercase tracking-[0.22em] text-slate-500">
-                    No teach cases yet in this category. Lose a round and tap &ldquo;Store in memory&rdquo; to build one.
-                  </p>
-                ) : null}
+                    <h3 className={cn("font-display text-4xl leading-none", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>
+                      {meta.label}
+                    </h3>
+                    <p className={cn("mt-3 text-sm leading-6", active ? "text-[#4b3430]" : "text-[#d8ceb8]")}>
+                      {meta.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {step === "category" ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              {Object.entries(categoryMeta).map(([id, meta]) => {
+                const active = settings.category === id;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => handleStepChoice({ category: id as StoredSettings["category"] })}
+                    className={cn(
+                      "rounded-[1.25rem] border px-5 py-5 text-left transition-colors duration-150",
+                      active ? "brand-paper" : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className={cn("text-3xl", active ? "text-[#8a5b24]" : "text-[#f7efd9]")}>{meta.icon}</span>
+                      <h3 className={cn("text-xl font-semibold", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>{meta.label}</h3>
+                    </div>
+                    <p className={cn("mt-3 text-sm leading-6", active ? "text-[#4b3430]" : "text-[#d8ceb8]")}>{meta.synopsis}</p>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {step === "difficulty" ? (
+            <div className="grid gap-3 md:grid-cols-3">
+              {Object.entries(difficultyConfig).map(([id, config]) => {
+                const active = settings.difficulty === id;
+                const modeLimits =
+                  settings.mode === "read-my-mind" ? config.readMyMind : config.guessMyMind;
+
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => handleStepChoice({ difficulty: id as StoredSettings["difficulty"] })}
+                    className={cn(
+                      "rounded-[1.25rem] border px-4 py-5 text-left transition-colors duration-150",
+                      active ? "brand-paper" : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
+                    )}
+                  >
+                    <h3 className={cn("text-xl font-semibold", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>{config.label}</h3>
+                    <p className={cn("mt-3 text-sm leading-6", active ? "text-[#4b3430]" : "text-[#d8ceb8]")}>{config.description}</p>
+                    <p className={cn("mt-4 text-sm", active ? "text-[#8a5b24]" : "text-[#bba98e]")}>
+                      {modeLimits.maxQuestions} questions • {modeLimits.maxGuesses} guesses
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+
+          {step === "review" ? (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {selectionSummary.map((item) => (
+                  <div key={item.label} className="brand-paper rounded-[1.1rem] px-4 py-4">
+                    <p className="text-[0.68rem] font-semibold tracking-[0.22em] text-[#8a5b24]">{item.label}</p>
+                    <p className="mt-2 text-lg font-semibold text-[#2b1a1e]">{item.value}</p>
+                  </div>
+                ))}
               </div>
-            </button>
-          </MindChamberPanel>
-        ) : null}
 
-        <MindChamberPanel eyebrow="Pressure profile" title="Difficulty" tone="violet">
-          <div className="grid gap-3 md:grid-cols-3">
-            {Object.entries(difficultyConfig).map(([id, config]) => {
-              const active = settings.difficulty === id;
-              const limits = settings.mode === "read-my-mind" ? config.readMyMind : config.guessMyMind;
+              <div className="brand-inset rounded-[1.1rem] px-4 py-4 text-sm text-[#dbcdb5]">
+                {limits.maxQuestions} questions · {limits.maxGuesses} guesses
+              </div>
 
-              return (
+              {settings.mode === "read-my-mind" ? (
                 <button
-                  key={id}
                   type="button"
-                  onClick={() => onChange({ difficulty: id as StoredSettings["difficulty"] })}
+                  onClick={() => onChange({ useTeachCases: !settings.useTeachCases })}
                   className={cn(
-                    "rounded-[1.6rem] border px-4 py-4 text-left transition duration-300",
-                    active
-                      ? "border-fuchsia-300/32 bg-fuchsia-300/10 shadow-[0_0_0_1px_rgba(217,70,239,0.14)]"
-                      : "border-white/10 bg-white/4 hover:border-white/16 hover:bg-white/8",
+                    "flex w-full items-start justify-between gap-4 rounded-[1.2rem] border px-4 py-4 text-left transition-colors duration-150",
+                    settings.useTeachCases
+                      ? "brand-paper"
+                      : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
                   )}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-white">{config.label}</h3>
-                    <Sparkles className={cn("h-4 w-4", active ? "text-fuchsia-200" : "text-slate-500")} />
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Library className={cn("h-4 w-4", settings.useTeachCases ? "text-[#8a5b24]" : "text-[#d6a653]")} />
+                      <p className={cn("font-semibold", settings.useTeachCases ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>
+                        Use past teach cases
+                      </p>
+                    </div>
+                    <p className={cn("text-sm leading-6", settings.useTeachCases ? "text-[#4b3430]" : "text-[#d8ceb8]")}>
+                      {teachCaseCount > 0
+                        ? `${teachCaseCount} stored memory${teachCaseCount === 1 ? "" : "ies"} can join the candidate pool.`
+                        : "No stored memories for this category yet."}
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">{config.description}</p>
-                  <p className="mt-4 text-xs uppercase tracking-[0.22em] text-slate-400">
-                    {limits.maxQuestions} questions • {limits.maxGuesses} guesses
-                  </p>
+                  <span className={cn("text-sm", settings.useTeachCases ? "text-[#8a5b24]" : "text-[#bba98e]")}>
+                    {settings.useTeachCases ? "On" : "Off"}
+                  </span>
                 </button>
-              );
-            })}
-          </div>
-        </MindChamberPanel>
-      </motion.div>
+              ) : null}
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, delay: 0.08, ease: "easeOut" }}
-      >
-        <MindChamberPanel eyebrow="Session preview" title="Thought chamber ready" className="sticky top-6">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(103,232,249,0.18),transparent_45%),rgba(255,255,255,0.04)] p-6">
-            <div className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0,transparent_60%)]" />
-            <div className="relative">
-              <p className="text-[0.68rem] uppercase tracking-[0.28em] text-cyan-200/80">
-                {selectedMode.eyebrow}
-              </p>
-              <h3 className="mt-3 font-display text-5xl leading-none text-white">{selectedMode.label}</h3>
-              <p className="mt-4 max-w-md text-sm leading-7 text-slate-300">{selectedMode.description}</p>
+              <Button size="lg" className="w-full sm:w-auto" onClick={onStart} disabled={isPending}>
+                {selectedMode.cta}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
+          ) : null}
 
-          <div className="grid gap-3 text-sm text-slate-300">
-            <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/4 px-4 py-3">
-              <span>Category</span>
-              <span className="font-medium text-white">{selectedCategory.label}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/4 px-4 py-3">
-              <span>Difficulty</span>
-              <span className={cn("font-medium", selectedDifficulty.accent)}>{selectedDifficulty.label}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/4 px-4 py-3">
-              <span>Question budget</span>
-              <span className="font-medium text-white">{activeLimits.maxQuestions}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-[1.4rem] border border-white/8 bg-white/4 px-4 py-3">
-              <span>Guess budget</span>
-              <span className="font-medium text-white">{activeLimits.maxGuesses}</span>
-            </div>
-          </div>
+          <div className="flex items-center justify-between gap-3 pt-1">
+            {step === "mode" ? <span /> : (
+              <Button type="button" variant="ghost" onClick={() => setStep((current) => previousStep(current))}>
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+            )}
 
-          <Button size="lg" className="w-full" onClick={onStart} disabled={isPending}>
-            {selectedMode.cta}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+            {step !== "review" ? <p className="text-sm text-[#cbbda5]">Select one option to continue</p> : null}
+          </div>
         </MindChamberPanel>
       </motion.div>
     </div>

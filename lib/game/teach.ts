@@ -3,6 +3,9 @@ import {
   animalAttributeKeys,
   attributeKeys,
   fictionalAttributeKeys,
+  foodAttributeKeys,
+  objectAttributeKeys,
+  vehicleAttributeKeys,
   type AttributeKey,
   type EntityCategory,
   type GameEntity,
@@ -15,6 +18,9 @@ export const TEACH_ENTITY_ID_PREFIX = "teach:";
 const CATEGORY_MARKER: Record<EntityCategory, AttributeKey> = {
   fictional_characters: "fictional",
   animals: "real",
+  objects: "object",
+  foods: "food",
+  vehicles: "vehicle",
 };
 
 export function isTeachEntityId(id: string) {
@@ -27,6 +33,12 @@ function categoryAttributeKeys(category: EntityCategory): readonly AttributeKey[
       return fictionalAttributeKeys;
     case "animals":
       return animalAttributeKeys;
+    case "objects":
+      return objectAttributeKeys;
+    case "foods":
+      return foodAttributeKeys;
+    case "vehicles":
+      return vehicleAttributeKeys;
   }
 }
 
@@ -70,6 +82,11 @@ function buildAttributeMap(tc: TeachCase): Record<AttributeKey, NormalizedAnswer
   );
 
   attributes[CATEGORY_MARKER[tc.category]] = "yes";
+
+  if (tc.category !== "fictional_characters") {
+    attributes.real = "yes";
+    attributes.fictional = "no";
+  }
 
   for (const answer of tc.answers) {
     attributes[answer.attributeKey] = answer.answer;

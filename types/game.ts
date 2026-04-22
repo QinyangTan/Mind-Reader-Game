@@ -11,6 +11,7 @@ export type NormalizedAnswer = (typeof normalizedAnswers)[number];
 export const attributeKeys = [
   "fictional",
   "real",
+  "living",
   "human",
   "male",
   "female",
@@ -34,6 +35,7 @@ export const attributeKeys = [
   "mammal",
   "bird",
   "reptile",
+  "insect",
   "aquatic",
   "pet",
   "wild",
@@ -46,12 +48,56 @@ export const attributeKeys = [
   "lives_in_ocean",
   "dangerous",
   "farm_animal",
+  "nocturnal",
+  "object",
+  "food",
+  "vehicle",
+  "portable",
+  "electronic",
+  "household",
+  "kitchen_related",
+  "office_related",
+  "wearable",
+  "used_daily",
+  "indoor_use",
+  "outdoor_use",
+  "made_of_metal",
+  "made_of_wood",
+  "made_of_glass",
+  "made_of_plastic",
+  "powered",
+  "has_screen",
+  "has_wheels",
+  "sweet",
+  "savory",
+  "served_hot",
+  "served_cold",
+  "baked",
+  "fried",
+  "fruit",
+  "vegetable",
+  "meat_based",
+  "dairy_based",
+  "drinkable",
+  "dessert",
+  "spicy",
+  "motorized",
+  "human_powered",
+  "road_vehicle",
+  "air_vehicle",
+  "water_vehicle",
+  "rail_vehicle",
+  "public_transport",
+  "cargo_vehicle",
+  "emergency_vehicle",
+  "luxury_vehicle",
 ] as const;
 
 export type AttributeKey = (typeof attributeKeys)[number];
 
 export const fictionalAttributeKeys: AttributeKey[] = [
   "fictional",
+  "living",
   "human",
   "male",
   "female",
@@ -76,9 +122,11 @@ export const fictionalAttributeKeys: AttributeKey[] = [
 
 export const animalAttributeKeys: AttributeKey[] = [
   "real",
+  "living",
   "mammal",
   "bird",
   "reptile",
+  "insect",
   "aquatic",
   "can_fly",
   "pet",
@@ -92,14 +140,113 @@ export const animalAttributeKeys: AttributeKey[] = [
   "lives_in_ocean",
   "dangerous",
   "farm_animal",
+  "nocturnal",
+];
+
+export const objectAttributeKeys: AttributeKey[] = [
+  "real",
+  "object",
+  "portable",
+  "electronic",
+  "household",
+  "kitchen_related",
+  "office_related",
+  "wearable",
+  "used_daily",
+  "indoor_use",
+  "outdoor_use",
+  "made_of_metal",
+  "made_of_wood",
+  "made_of_glass",
+  "made_of_plastic",
+  "powered",
+  "has_screen",
+  "has_wheels",
+  "large",
+  "small",
+];
+
+export const foodAttributeKeys: AttributeKey[] = [
+  "real",
+  "food",
+  "portable",
+  "sweet",
+  "savory",
+  "served_hot",
+  "served_cold",
+  "baked",
+  "fried",
+  "fruit",
+  "vegetable",
+  "meat_based",
+  "dairy_based",
+  "drinkable",
+  "dessert",
+  "spicy",
+  "used_daily",
+];
+
+export const vehicleAttributeKeys: AttributeKey[] = [
+  "real",
+  "vehicle",
+  "large",
+  "small",
+  "outdoor_use",
+  "powered",
+  "has_wheels",
+  "motorized",
+  "human_powered",
+  "road_vehicle",
+  "air_vehicle",
+  "water_vehicle",
+  "rail_vehicle",
+  "public_transport",
+  "cargo_vehicle",
+  "emergency_vehicle",
+  "luxury_vehicle",
 ];
 
 export const entityCategories = [
   "fictional_characters",
   "animals",
+  "objects",
+  "foods",
+  "vehicles",
 ] as const;
 
 export type EntityCategory = (typeof entityCategories)[number];
+
+export const questionStages = [
+  "broad",
+  "category",
+  "profile",
+  "specialist",
+  "fine",
+] as const;
+
+export type QuestionStage = (typeof questionStages)[number];
+
+export const questionGroups = [
+  "identity",
+  "origin",
+  "role",
+  "powers",
+  "body",
+  "habitat",
+  "diet",
+  "size",
+  "pattern",
+  "behavior",
+  "usage",
+  "material",
+  "technology",
+  "mobility",
+  "transport",
+  "taste",
+  "serving",
+] as const;
+
+export type QuestionGroup = (typeof questionGroups)[number];
 
 export const gameModes = ["read-my-mind", "guess-my-mind"] as const;
 
@@ -115,6 +262,7 @@ export interface GameEntity {
   category: EntityCategory;
   shortDescription: string;
   imageEmoji: string;
+  aliases?: string[];
   attributes: Record<AttributeKey, NormalizedAnswer>;
 }
 
@@ -124,6 +272,9 @@ export interface QuestionDefinition {
   question: string;
   supportedCategories: EntityCategory[];
   attributeKey: AttributeKey;
+  group: QuestionGroup;
+  stage: QuestionStage;
+  family: string;
   weight?: number;
 }
 
@@ -150,6 +301,12 @@ export interface RankedCandidate {
   score: number;
   confidence: number;
   matchedAnswers: number;
+}
+
+export interface CandidateUncertaintyMetrics {
+  entropy: number;
+  normalizedEntropy: number;
+  effectiveCandidateCount: number;
 }
 
 export interface ReadMyMindConfig {
@@ -288,6 +445,24 @@ export interface LegacyPersistedVaultV1 {
 }
 
 export interface LearnedEntityStore {
+  version: 2;
+  entries: TeachCase[];
+  model: LearnedInferenceModel;
+}
+
+export interface LegacyLearnedEntityStoreV1 {
   version: 1;
   entries: TeachCase[];
+}
+
+export interface LearnedQuestionStat {
+  askedCount: number;
+  totalEntropyDrop: number;
+}
+
+export interface LearnedInferenceModel {
+  version: 1;
+  attributeAnswerCounts: Record<string, number>;
+  questionStats: Record<string, LearnedQuestionStat>;
+  readEntityCounts: Record<string, number>;
 }

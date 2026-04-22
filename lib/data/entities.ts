@@ -1,7 +1,10 @@
 import { animals } from "@/lib/data/animals";
+import { foods } from "@/lib/data/foods";
 import { fictionalCharacters } from "@/lib/data/fictional-characters";
+import { objects } from "@/lib/data/objects";
 import { allQuestions } from "@/lib/data/questions";
-import type { EntityCategory, GameEntity, QuestionDefinition } from "@/types/game";
+import { vehicles } from "@/lib/data/vehicles";
+import { entityCategories, type EntityCategory, type GameEntity, type QuestionDefinition } from "@/types/game";
 
 function freezeMapMutation<K, V>(map: Map<K, V>): ReadonlyMap<K, V> {
   const block = () => {
@@ -16,42 +19,33 @@ function freezeMapMutation<K, V>(map: Map<K, V>): ReadonlyMap<K, V> {
 export const entities: readonly GameEntity[] = Object.freeze([
   ...fictionalCharacters,
   ...animals,
+  ...objects,
+  ...foods,
+  ...vehicles,
 ]);
 
 export const entityById: ReadonlyMap<string, GameEntity> = freezeMapMutation(
   new Map(entities.map((entity) => [entity.id, entity])),
 );
 
-const fictionalEntities: readonly GameEntity[] = Object.freeze(
-  entities.filter((entity) => entity.category === "fictional_characters"),
-);
-
-const animalEntities: readonly GameEntity[] = Object.freeze(
-  entities.filter((entity) => entity.category === "animals"),
-);
-
 export const entitiesByCategory: ReadonlyMap<EntityCategory, readonly GameEntity[]> =
   freezeMapMutation(
-    new Map<EntityCategory, readonly GameEntity[]>([
-      ["fictional_characters", fictionalEntities],
-      ["animals", animalEntities],
-    ]),
+    new Map<EntityCategory, readonly GameEntity[]>(
+      entityCategories.map((category) => [
+        category,
+        Object.freeze(entities.filter((entity) => entity.category === category)),
+      ]),
+    ),
   );
-
-const fictionalQuestions: readonly QuestionDefinition[] = Object.freeze(
-  allQuestions.filter((question) => question.supportedCategories.includes("fictional_characters")),
-);
-
-const animalQuestions: readonly QuestionDefinition[] = Object.freeze(
-  allQuestions.filter((question) => question.supportedCategories.includes("animals")),
-);
 
 export const questionsByCategory: ReadonlyMap<EntityCategory, readonly QuestionDefinition[]> =
   freezeMapMutation(
-    new Map<EntityCategory, readonly QuestionDefinition[]>([
-      ["fictional_characters", fictionalQuestions],
-      ["animals", animalQuestions],
-    ]),
+    new Map<EntityCategory, readonly QuestionDefinition[]>(
+      entityCategories.map((category) => [
+        category,
+        Object.freeze(allQuestions.filter((question) => question.supportedCategories.includes(category))),
+      ]),
+    ),
   );
 
 const EMPTY_ENTITIES: readonly GameEntity[] = Object.freeze([]);

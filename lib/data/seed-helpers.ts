@@ -5,6 +5,7 @@ interface EntitySeedInput {
   name: string;
   shortDescription: string;
   imageEmoji: string;
+  aliases?: string[];
   category: EntityCategory;
 }
 
@@ -63,16 +64,25 @@ function buildAttributeRecord(seed: AttributeSeed) {
   if (record.mammal === "yes") {
     record.bird = "no";
     record.reptile = "no";
+    record.insect = "no";
   }
 
   if (record.bird === "yes") {
     record.mammal = "no";
     record.reptile = "no";
+    record.insect = "no";
   }
 
   if (record.reptile === "yes") {
     record.mammal = "no";
     record.bird = "no";
+    record.insect = "no";
+  }
+
+  if (record.insect === "yes") {
+    record.mammal = "no";
+    record.bird = "no";
+    record.reptile = "no";
   }
 
   if (record.large === "yes" && record.small === "unknown") {
@@ -89,6 +99,61 @@ function buildAttributeRecord(seed: AttributeSeed) {
 
   if (record.carnivore === "yes" && record.herbivore === "unknown") {
     record.herbivore = "probably_not";
+  }
+
+  if (record.living === "yes") {
+    if (record.object === "unknown") {
+      record.object = "no";
+    }
+    if (record.food === "unknown") {
+      record.food = "no";
+    }
+    if (record.vehicle === "unknown") {
+      record.vehicle = "no";
+    }
+  }
+
+  if (record.object === "yes") {
+    record.living = "no";
+    record.food = "no";
+    record.vehicle = "no";
+  }
+
+  if (record.food === "yes") {
+    record.living = "no";
+    record.object = "no";
+    record.vehicle = "no";
+  }
+
+  if (record.vehicle === "yes") {
+    record.living = "no";
+    record.object = "no";
+    record.food = "no";
+  }
+
+  if (record.electronic === "yes" && record.powered === "unknown") {
+    record.powered = "probably";
+  }
+
+  if (record.has_screen === "yes") {
+    record.electronic = "yes";
+  }
+
+  if (record.motorized === "yes") {
+    record.powered = "yes";
+    record.human_powered = "no";
+  }
+
+  if (record.human_powered === "yes" && record.motorized === "unknown") {
+    record.motorized = "no";
+  }
+
+  if (record.road_vehicle === "yes") {
+    record.outdoor_use = "yes";
+  }
+
+  if (record.air_vehicle === "yes" || record.water_vehicle === "yes" || record.rail_vehicle === "yes") {
+    record.outdoor_use = "yes";
   }
 
   return record;
@@ -113,8 +178,8 @@ export function createCharacter(
       category: "fictional_characters",
     },
     {
-      yes: ["fictional", ...(seed.yes ?? [])],
-      no: ["real", ...(seed.no ?? [])],
+      yes: ["fictional", "living", ...(seed.yes ?? [])],
+      no: ["real", "object", "food", "vehicle", ...(seed.no ?? [])],
       probably: seed.probably,
       probably_not: seed.probably_not,
     },
@@ -128,8 +193,53 @@ export function createAnimal(input: Omit<EntitySeedInput, "category">, seed: Att
       category: "animals",
     },
     {
-      yes: ["real", ...(seed.yes ?? [])],
-      no: ["fictional", ...(seed.no ?? [])],
+      yes: ["real", "living", ...(seed.yes ?? [])],
+      no: ["fictional", "object", "food", "vehicle", ...(seed.no ?? [])],
+      probably: seed.probably,
+      probably_not: seed.probably_not,
+    },
+  );
+}
+
+export function createObject(input: Omit<EntitySeedInput, "category">, seed: AttributeSeed) {
+  return createEntity(
+    {
+      ...input,
+      category: "objects",
+    },
+    {
+      yes: ["real", "object", ...(seed.yes ?? [])],
+      no: ["fictional", "living", "food", "vehicle", "human", "animal_like", ...(seed.no ?? [])],
+      probably: seed.probably,
+      probably_not: seed.probably_not,
+    },
+  );
+}
+
+export function createFood(input: Omit<EntitySeedInput, "category">, seed: AttributeSeed) {
+  return createEntity(
+    {
+      ...input,
+      category: "foods",
+    },
+    {
+      yes: ["real", "food", ...(seed.yes ?? [])],
+      no: ["fictional", "living", "object", "vehicle", "human", "animal_like", ...(seed.no ?? [])],
+      probably: seed.probably,
+      probably_not: seed.probably_not,
+    },
+  );
+}
+
+export function createVehicle(input: Omit<EntitySeedInput, "category">, seed: AttributeSeed) {
+  return createEntity(
+    {
+      ...input,
+      category: "vehicles",
+    },
+    {
+      yes: ["real", "vehicle", ...(seed.yes ?? [])],
+      no: ["fictional", "living", "object", "food", "human", "animal_like", ...(seed.no ?? [])],
       probably: seed.probably,
       probably_not: seed.probably_not,
     },

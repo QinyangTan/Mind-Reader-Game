@@ -605,4 +605,190 @@ export const animals = [
       yes: ["mammal", "wild", "herbivore", "large", "dangerous"],
     },
   ),
+  a(
+    {
+      id: "otter",
+      name: "Otter",
+      shortDescription: "Playful aquatic mammal with excellent floating confidence.",
+      imageEmoji: "🦦",
+    },
+    {
+      yes: ["mammal", "aquatic", "wild", "carnivore", "small"],
+      probably_not: ["dangerous"],
+    },
+  ),
+  a(
+    {
+      id: "walrus",
+      name: "Walrus",
+      shortDescription: "Huge tusked marine mammal that looks permanently unimpressed.",
+      imageEmoji: "🦭",
+    },
+    {
+      yes: ["mammal", "aquatic", "wild", "large", "lives_in_ocean"],
+      probably: ["dangerous", "carnivore"],
+    },
+  ),
+  a(
+    {
+      id: "hippopotamus",
+      name: "Hippopotamus",
+      shortDescription: "Heavy river mammal that treats water like a hiding place.",
+      imageEmoji: "🦛",
+    },
+    {
+      yes: ["mammal", "aquatic", "wild", "large", "dangerous", "herbivore"],
+    },
+  ),
+  a(
+    {
+      id: "flamingo",
+      name: "Flamingo",
+      shortDescription: "Long-legged bird whose balance makes pink look inevitable.",
+      imageEmoji: "🦩",
+    },
+    {
+      yes: ["bird", "aquatic", "can_fly"],
+      probably: ["small"],
+      probably_not: ["dangerous"],
+    },
+  ),
+  a(
+    {
+      id: "bee",
+      name: "Bee",
+      shortDescription: "Pollinating insect with tiny wings and large agricultural importance.",
+      imageEmoji: "🐝",
+    },
+    {
+      yes: ["insect", "can_fly", "small", "wild"],
+      probably: ["dangerous"],
+      probably_not: ["aquatic"],
+    },
+  ),
+  a(
+    {
+      id: "butterfly",
+      name: "Butterfly",
+      shortDescription: "Delicate flying insect built almost entirely from transformation branding.",
+      imageEmoji: "🦋",
+    },
+    {
+      yes: ["insect", "can_fly", "small", "wild"],
+      probably_not: ["dangerous", "aquatic"],
+    },
+  ),
+  a(
+    {
+      id: "chimpanzee",
+      name: "Chimpanzee",
+      shortDescription: "Highly intelligent primate with social complexity and strong arms.",
+      imageEmoji: "🐒",
+    },
+    {
+      yes: ["mammal", "wild", "large"],
+      probably: ["dangerous"],
+      probably_not: ["herbivore"],
+    },
+  ),
+  a(
+    {
+      id: "alligator",
+      name: "Alligator",
+      shortDescription: "Broad-snouted reptile that turns still water into a warning.",
+      imageEmoji: "🐊",
+    },
+    {
+      yes: ["reptile", "aquatic", "wild", "carnivore", "large", "dangerous"],
+      probably_not: ["lives_in_ocean"],
+    },
+  ),
+  a(
+    {
+      id: "snail",
+      name: "Snail",
+      shortDescription: "Shell-carrying small creature whose entire brand is patience.",
+      imageEmoji: "🐌",
+    },
+    {
+      yes: ["small"],
+      probably: ["wild"],
+      probably_not: ["dangerous", "can_fly", "large"],
+    },
+  ),
+  a(
+    {
+      id: "raccoon",
+      name: "Raccoon",
+      shortDescription: "Masked scavenger that turns trash cans into side quests.",
+      imageEmoji: "🦝",
+    },
+    {
+      yes: ["mammal", "wild", "small", "nocturnal"],
+      probably: ["carnivore"],
+      probably_not: ["dangerous"],
+    },
+  ),
+  a(
+    {
+      id: "donkey",
+      name: "Donkey",
+      shortDescription: "Sturdy farm mammal with a voice you hear before you see.",
+      imageEmoji: "🫏",
+    },
+    {
+      yes: ["mammal", "farm_animal", "herbivore", "large"],
+      probably_not: ["wild", "dangerous"],
+    },
+  ),
+  a(
+    {
+      id: "sloth",
+      name: "Sloth",
+      shortDescription: "Tree-dwelling mammal that made slow motion a personality.",
+      imageEmoji: "🦥",
+    },
+    {
+      yes: ["mammal", "wild", "small", "herbivore"],
+      probably_not: ["dangerous"],
+    },
+  ),
+  a(
+    {
+      id: "porcupine",
+      name: "Porcupine",
+      shortDescription: "Spiny mammal that solves most arguments without chasing anyone.",
+      imageEmoji: "🦔",
+    },
+    {
+      yes: ["mammal", "wild", "small", "herbivore"],
+      probably: ["dangerous"],
+    },
+  ),
+  a(
+    {
+      id: "meerkat",
+      name: "Meerkat",
+      shortDescription: "Small alert mammal with a permanent lookout posture.",
+      imageEmoji: "🪶",
+    },
+    {
+      yes: ["mammal", "wild", "small"],
+      probably: ["carnivore"],
+      probably_not: ["dangerous"],
+    },
+  ),
+  a(
+    {
+      id: "stingray",
+      name: "Stingray",
+      shortDescription: "Flat ocean animal that turns gliding into camouflage.",
+      imageEmoji: "🥏",
+    },
+    {
+      yes: ["aquatic", "wild", "lives_in_ocean"],
+      probably: ["carnivore", "dangerous"],
+      probably_not: ["small"],
+    },
+  ),
 ] as const;

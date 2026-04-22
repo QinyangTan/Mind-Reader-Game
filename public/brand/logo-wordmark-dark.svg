@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 156" fill="none">
+  <defs>
+    <linearGradient id="wordmark-gold-dark" x1="14" x2="140" y1="18" y2="138" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E6B95B"/>
+      <stop offset="1" stop-color="#A86E1F"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8 14)">
+    <rect x="0" y="0" width="112" height="112" rx="28" fill="#F2E4C3"/>
+    <rect x="4.5" y="4.5" width="103" height="103" rx="23.5" stroke="#7E5A27" stroke-opacity=".95"/>
+    <path d="M56 16c4 7 11 10 19 12-9 4-13 10-15 19-2-9-7-15-15-19 8-2 14-5 19-12Z" fill="url(#wordmark-gold-dark)"/>
+    <path d="M55 48c-10 0-20 4-28 13 8 9 18 13 28 13 11 0 21-4 30-13-9-9-19-13-30-13Z" fill="#F9F3E7"/>
+    <path d="M55 52c-8 0-16 3-22 9 6 6 14 9 22 9 9 0 17-3 24-9-7-6-15-9-24-9Z" fill="#2E1830"/>
+    <circle cx="55" cy="61" r="8" fill="url(#wordmark-gold-dark)"/>
+    <circle cx="55" cy="61" r="3.1" fill="#2E1830"/>
+    <path d="M28 73c-7-3-12-11-12-20 0-13 10-23 22-23 7 0 15 3 18 10-11 1-18 10-18 22 0 4 1 8 3 12-5 1-9 0-13-1Z" fill="#5E978D" fill-opacity=".78"/>
+    <path d="M83 73c7-3 12-11 12-20 0-13-10-23-22-23-7 0-15 3-18 10 11 1 18 10 18 22 0 4-1 8-3 12 5 1 9 0 13-1Z" fill="#5E978D" fill-opacity=".78"/>
+  </g>
+  <g transform="translate(146 28)">
+    <text x="0" y="52" fill="#2F1931" font-family="'Cormorant Garamond', Georgia, serif" font-size="62" font-weight="700" letter-spacing="1.2">Mind Reader</text>
+    <text x="4" y="84" fill="#936522" font-family="'Alegreya Sans', Georgia, serif" font-size="16" font-weight="700" letter-spacing="5.5">THE MOON MOTH PARLOR</text>
+    <path d="M4 100H580" stroke="#A87A32" stroke-opacity=".88"/>
+    <text x="4" y="124" fill="#4F334A" font-family="'Alegreya Sans', Georgia, serif" font-size="17" font-weight="500">A theatrical browser game of impossible hunches and hidden identities.</text>
+  </g>
+</svg>

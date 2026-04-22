@@ -7,22 +7,22 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-semibold tracking-[0.02em] transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/80 disabled:pointer-events-none disabled:opacity-40",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[1rem] border text-sm font-semibold tracking-[0.03em] transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6a653]/70 disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
         primary:
-          "bg-[linear-gradient(135deg,rgba(121,230,255,0.92),rgba(114,126,255,0.88))] text-slate-950 shadow-[0_14px_40px_rgba(88,206,255,0.28)] hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(88,206,255,0.36)]",
+          "border-[#f0d9a2] bg-[linear-gradient(180deg,#f3d590,#d6a653)] text-[#2b1a1e] shadow-[0_10px_20px_rgba(21,10,18,0.22)] hover:bg-[linear-gradient(180deg,#f7dfaa,#deb26b)] hover:-translate-y-0.5",
         secondary:
-          "border border-white/12 bg-white/8 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-cyan-300/35 hover:bg-white/12",
-        ghost: "text-slate-200 hover:bg-white/8 hover:text-white",
+          "border-[rgba(214,166,83,0.32)] bg-[linear-gradient(180deg,rgba(61,24,60,0.98),rgba(26,14,35,0.98))] text-[#f4e7c8] hover:border-[rgba(240,217,162,0.42)] hover:bg-[linear-gradient(180deg,rgba(74,30,70,0.98),rgba(31,17,40,0.98))]",
+        ghost: "border-transparent bg-transparent text-[#e4d8bf] hover:bg-[rgba(240,217,162,0.08)] hover:text-white",
         danger:
-          "bg-[linear-gradient(135deg,rgba(253,164,175,0.92),rgba(251,113,133,0.84))] text-slate-950 shadow-[0_14px_40px_rgba(251,113,133,0.22)] hover:-translate-y-0.5",
+          "border-[#f0c6c8] bg-[linear-gradient(180deg,#e7a5ad,#bf6273)] text-[#2b1a1e] hover:bg-[linear-gradient(180deg,#efb1b8,#cc7482)]",
       },
       size: {
-        default: "h-11 px-5",
-        sm: "h-9 px-4 text-xs",
-        lg: "h-13 px-6 text-base",
+        default: "h-11 px-4.5",
+        sm: "h-9 px-3 text-xs",
+        lg: "h-12 px-6 text-base",
         icon: "h-11 w-11",
       },
     },

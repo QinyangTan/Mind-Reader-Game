@@ -357,10 +357,11 @@ export const fictionalCharacters = [
   ),
   c(
     {
-      id: "donkey",
+      id: "donkey-shrek",
       name: "Donkey",
       shortDescription: "Motor-mouth sidekick with unstoppable optimism.",
       imageEmoji: "🐴",
+      aliases: ["donkey"],
     },
     {
       yes: ["male", "animal_like", "from_movie", "adult", "famous_worldwide"],
@@ -864,6 +865,205 @@ export const fictionalCharacters = [
       yes: ["human", "female", "uses_weapons", "from_anime"],
       probably: ["child", "animal_like", "associated_with_magic"],
       probably_not: ["adult"],
+    },
+  ),
+  c(
+    {
+      id: "ariel",
+      name: "Ariel",
+      shortDescription: "Curious mermaid princess convinced the surface is worth the trouble.",
+      imageEmoji: "🧜‍♀️",
+    },
+    {
+      yes: ["female", "royal", "from_movie", "famous_worldwide"],
+      probably: ["animal_like", "child", "associated_with_magic"],
+      probably_not: ["adult", "human"],
+    },
+  ),
+  c(
+    {
+      id: "rapunzel",
+      name: "Rapunzel",
+      shortDescription: "Tower-raised heroine with healing magic and impossible hair logistics.",
+      imageEmoji: "🌼",
+    },
+    {
+      yes: ["human", "female", "magical", "royal", "from_movie", "associated_with_magic"],
+      probably: ["child", "famous_worldwide"],
+      probably_not: ["adult"],
+    },
+  ),
+  c(
+    {
+      id: "merida",
+      name: "Merida",
+      shortDescription: "Archer princess who treats tradition like a negotiable draft.",
+      imageEmoji: "🏹",
+    },
+    {
+      yes: ["human", "female", "royal", "uses_weapons", "from_movie"],
+      probably: ["child", "associated_with_magic"],
+      probably_not: ["adult"],
+    },
+  ),
+  c(
+    {
+      id: "vegeta",
+      name: "Vegeta",
+      shortDescription: "Pride-fueled rival who treats humility like an optional side quest.",
+      imageEmoji: "💥",
+    },
+    {
+      yes: ["male", "from_anime", "can_fly", "adult", "famous_worldwide"],
+      probably: ["human", "villain", "associated_with_space", "uses_weapons"],
+    },
+  ),
+  c(
+    {
+      id: "captain-america",
+      name: "Captain America",
+      shortDescription: "Shield-first hero built from ideals, discipline, and a star motif.",
+      imageEmoji: "🛡️",
+    },
+    {
+      yes: ["human", "male", "superhero", "uses_weapons", "adult", "from_movie", "famous_worldwide"],
+      probably_not: ["villain"],
+    },
+  ),
+  c(
+    {
+      id: "thor",
+      name: "Thor",
+      shortDescription: "Hammer-wielding thunder god who carries myth like a spotlight.",
+      imageEmoji: "⚡",
+    },
+    {
+      yes: ["male", "superhero", "uses_weapons", "adult", "from_movie", "famous_worldwide"],
+      probably: ["magical", "royal", "can_fly", "associated_with_magic"],
+    },
+  ),
+  c(
+    {
+      id: "hulk",
+      name: "Hulk",
+      shortDescription: "Green force-of-nature hero powered by rage and collateral damage.",
+      imageEmoji: "💚",
+    },
+    {
+      yes: ["male", "superhero", "adult", "from_movie", "famous_worldwide"],
+      probably: ["human"],
+      probably_not: ["uses_weapons", "wears_mask"],
+    },
+  ),
+  c(
+    {
+      id: "scarlet-witch",
+      name: "Scarlet Witch",
+      shortDescription: "Reality-twisting powerhouse with grief and magic in equal measure.",
+      imageEmoji: "🔺",
+    },
+    {
+      yes: ["female", "superhero", "magical", "adult", "from_movie", "associated_with_magic", "famous_worldwide"],
+      probably: ["human", "villain", "can_fly"],
+    },
+  ),
+  c(
+    {
+      id: "obi-wan-kenobi",
+      name: "Obi-Wan Kenobi",
+      shortDescription: "Measured Jedi mentor who can turn calm into a weapon.",
+      imageEmoji: "🟦",
+    },
+    {
+      yes: ["human", "male", "uses_weapons", "adult", "from_movie", "associated_with_space", "famous_worldwide"],
+      probably: ["associated_with_magic"],
+    },
+  ),
+  c(
+    {
+      id: "anakin-skywalker",
+      name: "Anakin Skywalker",
+      shortDescription: "Gifted hero whose arc bends hard toward disaster before the mask.",
+      imageEmoji: "🌌",
+    },
+    {
+      yes: ["human", "male", "uses_weapons", "from_movie", "associated_with_space", "famous_worldwide"],
+      probably: ["child", "adult", "villain", "associated_with_magic"],
+    },
+  ),
+  c(
+    {
+      id: "zelda",
+      name: "Zelda",
+      shortDescription: "Wise royal figure whose calm usually hides a larger plan.",
+      imageEmoji: "🜃",
+      aliases: ["princess zelda"],
+    },
+    {
+      yes: ["human", "female", "royal", "from_game", "associated_with_magic", "famous_worldwide"],
+      probably: ["magical", "adult"],
+    },
+  ),
+  c(
+    {
+      id: "kratos",
+      name: "Kratos",
+      shortDescription: "Axe-and-anger warrior who treats gods like unfinished business.",
+      imageEmoji: "🪓",
+    },
+    {
+      yes: ["human", "male", "uses_weapons", "adult", "from_game"],
+      probably: ["villain", "associated_with_magic", "famous_worldwide"],
+    },
+  ),
+  c(
+    {
+      id: "geralt-of-rivia",
+      name: "Geralt of Rivia",
+      shortDescription: "Monster hunter whose professionalism is mostly sarcasm-resistant.",
+      imageEmoji: "🐺",
+    },
+    {
+      yes: ["human", "male", "uses_weapons", "adult", "from_game", "associated_with_magic"],
+      probably: ["magical", "famous_worldwide"],
+    },
+  ),
+  c(
+    {
+      id: "sephiroth",
+      name: "Sephiroth",
+      shortDescription: "Silver-haired antagonist with long sword energy and apocalyptic posture.",
+      imageEmoji: "🪽",
+    },
+    {
+      yes: ["male", "villain", "uses_weapons", "adult", "from_game", "famous_worldwide"],
+      probably: ["human", "can_fly", "associated_with_magic"],
+    },
+  ),
+  c(
+    {
+      id: "baymax",
+      name: "Baymax",
+      shortDescription: "Inflatable healthcare robot with maximum hug geometry.",
+      imageEmoji: "🤍",
+    },
+    {
+      yes: ["animal_like", "from_movie"],
+      probably: ["can_fly", "famous_worldwide"],
+      probably_not: ["human", "villain", "uses_weapons"],
+    },
+  ),
+  c(
+    {
+      id: "toothless",
+      name: "Toothless",
+      shortDescription: "Dragon companion with stealth, speed, and enormous marketability.",
+      imageEmoji: "🐉",
+    },
+    {
+      yes: ["animal_like", "can_fly", "from_movie", "famous_worldwide"],
+      probably: ["associated_with_magic"],
+      probably_not: ["human", "villain"],
     },
   ),
 ] as const;

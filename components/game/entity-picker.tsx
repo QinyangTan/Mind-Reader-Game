@@ -44,7 +44,8 @@ export function EntityPicker({
 
       return (
         entity.name.toLowerCase().includes(query) ||
-        entity.shortDescription.toLowerCase().includes(query)
+        entity.shortDescription.toLowerCase().includes(query) ||
+        entity.aliases?.some((alias) => alias.toLowerCase().includes(query))
       );
     })
     .toSorted((left, right) => {
@@ -62,11 +63,11 @@ export function EntityPicker({
   return (
     <div className="space-y-4">
       <label className="relative block">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#d6a653]" />
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search the archive..."
+          placeholder="Search the playbill..."
           className="pl-11"
         />
       </label>
@@ -81,31 +82,36 @@ export function EntityPicker({
               type="button"
               onClick={() => onSelect(entity.id)}
               className={cn(
-                "flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition duration-300",
+                "flex items-center justify-between rounded-[1.2rem] border px-4 py-3 text-left transition-colors duration-150",
                 active
-                  ? "border-cyan-300/50 bg-cyan-300/12 shadow-[0_0_0_1px_rgba(103,232,249,0.2)]"
-                  : "border-white/10 bg-white/5 hover:border-white/18 hover:bg-white/9",
+                  ? "brand-paper"
+                  : "border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.54)] hover:border-[rgba(240,217,162,0.24)] hover:bg-[rgba(29,16,38,0.88)]",
               )}
             >
               <div className="min-w-0">
-                <p className="truncate font-medium text-slate-100">
+                <p className={cn("truncate font-medium", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>
                   <span className="mr-2">{entity.imageEmoji}</span>
                   {entity.name}
                   {isTeachEntityId(entity.id) ? (
-                    <span className="ml-2 rounded-full border border-emerald-200/30 bg-emerald-300/10 px-2 py-0.5 text-[0.6rem] uppercase tracking-[0.22em] text-emerald-100">
+                    <span className={cn(
+                      "ml-2 rounded-md border px-2 py-0.5 text-[0.65rem]",
+                      active
+                        ? "border-[rgba(138,91,36,0.16)] bg-white/35 text-[#8a5b24]"
+                        : "border-[rgba(240,217,162,0.16)] bg-[rgba(240,217,162,0.08)] text-[#f0d9a2]",
+                    )}>
                       Teach
                     </span>
                   ) : null}
                 </p>
-                <p className="truncate text-xs text-slate-400">{entity.shortDescription}</p>
+                <p className={cn("truncate text-xs", active ? "text-[#5c433e]" : "text-[#af9c83]")}>{entity.shortDescription}</p>
               </div>
-              {active ? <Sparkles className="h-4 w-4 shrink-0 text-cyan-200" /> : null}
+              {active ? <Sparkles className="h-4 w-4 shrink-0 text-[#8a5b24]" /> : null}
             </button>
           );
         })}
 
         {results.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 bg-white/4 px-4 py-6 text-center text-sm text-slate-400">
+          <div className="brand-inset rounded-[1.2rem] border-dashed px-4 py-6 text-center text-sm text-[#af9c83]">
             No match in the chamber archive yet. Try a broader clue.
           </div>
         ) : null}

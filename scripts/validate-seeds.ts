@@ -18,6 +18,8 @@ import {
   attributeKeys,
   entityCategories,
   normalizedAnswers,
+  questionGroups,
+  questionStages,
   type GameEntity,
   type QuestionDefinition,
 } from "@/types/game";
@@ -36,8 +38,15 @@ export interface ValidationReport {
 const attributeKeySet = new Set<string>(attributeKeys);
 const categorySet = new Set<string>(entityCategories);
 const answerSet = new Set<string>(normalizedAnswers);
+const questionGroupSet = new Set<string>(questionGroups);
+const questionStageSet = new Set<string>(questionStages);
 
 const SPARSE_ATTRIBUTE_WARN_THRESHOLD = 2;
+const MIN_GROUPS_PER_CATEGORY = 4;
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
 
 export interface ValidateSeedsInput {
   entities: readonly GameEntity[];
@@ -54,6 +63,8 @@ export function validateSeeds(
   const warnings: ValidationIssue[] = [];
 
   const seenEntityIds = new Set<string>();
+  const seenEntityNames = new Map<string, string>();
+  const seenAliases = new Map<string, string>();
   for (const entity of entityList) {
     if (!entity.id.trim()) {
       errors.push({
@@ -96,12 +107,45 @@ export function validateSeeds(
     }
     seenEntityIds.add(entity.id);
 
+    const normalizedName = `${entity.category}:${normalizeText(entity.name)}`;
+    if (seenEntityNames.has(normalizedName)) {
+      errors.push({
+        scope: "entities",
+        code: "duplicate_name",
+        message: `Duplicate entity name in ${entity.category}: ${entity.name}`,
+      });
+    }
+    seenEntityNames.set(normalizedName, entity.id);
+
     if (!categorySet.has(entity.category)) {
       errors.push({
         scope: "entities",
         code: "invalid_category",
         message: `Entity ${entity.id} has unknown category '${entity.category}'`,
       });
+    }
+
+    if (entity.aliases) {
+      for (const alias of entity.aliases) {
+        if (!alias.trim()) {
+          errors.push({
+            scope: "entities",
+            code: "empty_alias",
+            message: `Entity ${entity.id} has an empty alias entry`,
+          });
+          continue;
+        }
+
+        const normalizedAlias = `${entity.category}:${normalizeText(alias)}`;
+        if (seenAliases.has(normalizedAlias)) {
+          warnings.push({
+            scope: "entities",
+            code: "duplicate_alias",
+            message: `Alias '${alias}' is shared by ${seenAliases.get(normalizedAlias)} and ${entity.id}`,
+          });
+        }
+        seenAliases.set(normalizedAlias, entity.id);
+      }
     }
 
     for (const key of attributeKeys) {
@@ -134,6 +178,7 @@ export function validateSeeds(
   }
 
   const seenQuestionIds = new Set<string>();
+  const seenQuestionPrompts = new Map<string, string>();
   for (const question of questionList) {
     if (!question.id.trim()) {
       errors.push({
@@ -179,6 +224,30 @@ export function validateSeeds(
     }
     seenQuestionIds.add(question.id);
 
+    if (!questionGroupSet.has(question.group)) {
+      errors.push({
+        scope: "questions",
+        code: "invalid_question_group",
+        message: `Question ${question.id} references unknown group '${question.group}'`,
+      });
+    }
+
+    if (!questionStageSet.has(question.stage)) {
+      errors.push({
+        scope: "questions",
+        code: "invalid_question_stage",
+        message: `Question ${question.id} references unknown stage '${question.stage}'`,
+      });
+    }
+
+    if (!question.family.trim()) {
+      errors.push({
+        scope: "questions",
+        code: "empty_question_family",
+        message: `Question ${question.id} has an empty family`,
+      });
+    }
+
     if (!attributeKeySet.has(question.attributeKey)) {
       errors.push({
         scope: "questions",
@@ -203,6 +272,16 @@ export function validateSeeds(
           message: `Question ${question.id} references unknown category '${category}'`,
         });
       }
+
+      const promptKey = `${category}:${normalizeText(question.question)}`;
+      if (seenQuestionPrompts.has(promptKey)) {
+        warnings.push({
+          scope: "questions",
+          code: "duplicate_prompt",
+          message: `Question prompt is duplicated within ${category}: '${question.question}'`,
+        });
+      }
+      seenQuestionPrompts.set(promptKey, question.id);
     }
   }
 
@@ -224,6 +303,25 @@ export function validateSeeds(
         scope: "entities",
         code: "no_entities_for_category",
         message: `No entities configured for category '${category}'`,
+      });
+    }
+
+    const categoryQuestions = questionList.filter((q) => q.supportedCategories.includes(category));
+    const broadCount = categoryQuestions.filter((q) => q.stage === "broad").length;
+    if (broadCount === 0) {
+      errors.push({
+        scope: "questions",
+        code: "no_broad_questions_for_category",
+        message: `Category '${category}' has no broad-stage questions`,
+      });
+    }
+
+    const groupCount = new Set(categoryQuestions.map((q) => q.group)).size;
+    if (groupCount < MIN_GROUPS_PER_CATEGORY) {
+      warnings.push({
+        scope: "questions",
+        code: "low_group_diversity",
+        message: `Category '${category}' only spans ${groupCount} question groups`,
       });
     }
   }

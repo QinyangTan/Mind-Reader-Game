@@ -1,9 +1,15 @@
 import { getEntitiesForCategory } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
+import {
+  getEntityPriorLogBoost,
+  getSmoothedLikelihood,
+  getUncertaintyMetrics,
+} from "@/lib/game/inference-model";
 import type {
   AnsweredQuestion,
   EntityCategory,
   GameEntity,
+  LearnedInferenceModel,
   NormalizedAnswer,
   RankedCandidate,
   ReadMyMindConfig,
@@ -31,41 +37,6 @@ export function toProbability(answer: NormalizedAnswer) {
   return answerProbability[answer];
 }
 
-/**
- * Likelihood of the player's answer given a candidate's attribute value.
- *
- * Tiers:
- *   exact match                        → 1.0  (ideal)
- *   player unknown                     → 0.5  (neutral, no info)
- *   entity unknown                     → ~0.5 with a small penalty vs players
- *                                        who were confident, so "known" entities
- *                                        out-rank vague ones on equal distance
- *   hard contradiction (yes ↔ no)      → 0.025 (effectively eliminates)
- *   strength mismatch (yes ↔ pn etc.)  → continuous via distance + tight floor
- */
-function compatibility(candidate: NormalizedAnswer, player: NormalizedAnswer) {
-  if (candidate === player) {
-    return 1;
-  }
-
-  if (player === "unknown") {
-    return 0.5;
-  }
-
-  if (HARD_ANSWERS.has(candidate) && HARD_ANSWERS.has(player)) {
-    return 0.025;
-  }
-
-  const delta = Math.abs(toProbability(candidate) - toProbability(player));
-  let base = 0.12 + 0.88 * (1 - delta);
-
-  if (candidate === "unknown") {
-    base *= 0.88;
-  }
-
-  return base;
-}
-
 function isHardContradiction(candidate: NormalizedAnswer, player: NormalizedAnswer) {
   return (
     candidate !== player &&
@@ -80,21 +51,37 @@ interface EntityScore {
   hardContradictions: number;
 }
 
-function scoreEntity(entity: GameEntity, answers: AnsweredQuestion[]): EntityScore {
+function scoreEntity(
+  entity: GameEntity,
+  answers: AnsweredQuestion[],
+  category: EntityCategory,
+  categoryPool: readonly GameEntity[],
+  inferenceModel?: LearnedInferenceModel,
+): EntityScore {
   if (answers.length === 0) {
-    return { score: 0, matchedAnswers: 0, hardContradictions: 0 };
+    return {
+      score: getEntityPriorLogBoost(inferenceModel, categoryPool, entity.id),
+      matchedAnswers: 0,
+      hardContradictions: 0,
+    };
   }
 
-  let score = 0;
+  let score = getEntityPriorLogBoost(inferenceModel, categoryPool, entity.id);
   let matchedAnswers = 0;
   let hardContradictions = 0;
 
   for (const answer of answers) {
     const entityValue = entity.attributes[answer.attributeKey];
     const weight = questionById.get(answer.questionId)?.weight ?? 1;
-    const fit = compatibility(entityValue, answer.answer);
+    const fit = getSmoothedLikelihood(
+      inferenceModel,
+      category,
+      answer.attributeKey,
+      entityValue,
+      answer.answer,
+    );
 
-    if (fit >= 0.76) {
+    if (Math.abs(toProbability(entityValue) - toProbability(answer.answer)) <= 0.24) {
       matchedAnswers += 1;
     }
 
@@ -113,6 +100,7 @@ export function rankCandidates(
   answers: AnsweredQuestion[],
   rejectedGuessIds: string[],
   extraEntities: GameEntity[] = [],
+  inferenceModel?: LearnedInferenceModel,
 ): RankedCandidate[] {
   const rejected = new Set(rejectedGuessIds);
   const seeded = getEntitiesForCategory(category);
@@ -130,7 +118,7 @@ export function rankCandidates(
   }
 
   const scored: InternalCandidate[] = candidates.map((entity) => {
-    const entityScore = scoreEntity(entity, answers);
+    const entityScore = scoreEntity(entity, answers, category, candidates, inferenceModel);
     return {
       entityId: entity.id,
       score: entityScore.score,
@@ -317,8 +305,14 @@ export function shouldAttemptGuess(
   const leader = rankings[0];
   const runnerUp = rankings[1];
   const margin = leader.confidence - (runnerUp?.confidence ?? 0);
+  const uncertainty = getUncertaintyMetrics(rankings);
 
-  if (leader.confidence >= config.guessConfidence && margin >= config.guessMargin) {
+  if (
+    leader.confidence >= config.guessConfidence &&
+    margin >= config.guessMargin &&
+    uncertainty.effectiveCandidateCount <= 4.8 &&
+    uncertainty.normalizedEntropy <= 0.38
+  ) {
     return true;
   }
 
@@ -331,12 +325,21 @@ export function shouldAttemptGuess(
     const lateConfidence = config.guessConfidence * 0.7;
     const lateMargin = config.guessMargin * 0.6;
 
-    if (leader.confidence >= lateConfidence && margin >= lateMargin) {
+    if (
+      leader.confidence >= lateConfidence &&
+      margin >= lateMargin &&
+      uncertainty.effectiveCandidateCount <= 6.2 &&
+      uncertainty.normalizedEntropy <= 0.48
+    ) {
       return true;
     }
   }
 
-  if (rankings.length <= 3 && margin >= config.guessMargin * 0.4) {
+  if (
+    (rankings.length <= 3 || uncertainty.effectiveCandidateCount <= 2.6) &&
+    margin >= config.guessMargin * 0.38 &&
+    uncertainty.normalizedEntropy <= 0.78
+  ) {
     return true;
   }
 

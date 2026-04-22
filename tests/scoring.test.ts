@@ -9,7 +9,7 @@ import {
   strongestNarrowingQuestion,
   toProbability,
 } from "@/lib/game/scoring";
-import type { AnsweredQuestion, RankedCandidate } from "@/types/game";
+import type { AnsweredQuestion, GameEntity, RankedCandidate } from "@/types/game";
 
 describe("toProbability", () => {
   it("is monotonic from no → yes", () => {
@@ -111,8 +111,9 @@ describe("shouldAttemptGuess", () => {
   it("isolates the narrow-survivor-pool rule (not primary, not endgame)", () => {
     // Leader below guessConfidence, margin below guessMargin (so primary fails),
     // remaining well above the late-fallback window, but ≤ 3 un-rejected
-    // candidates and the margin still clears 40 % of guessMargin.
-    const rankings = [candidate("a", 0.35), candidate("b", 0.30)];
+    // candidates, low enough effective count, and enough real margin to
+    // justify a narrow-pool guess.
+    const rankings = [candidate("a", 0.38), candidate("b", 0.11), candidate("c", 0.07)];
     expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess, 8)).toBe(true);
   });
 });
@@ -138,10 +139,13 @@ describe("strongestNarrowingQuestion", () => {
   });
 
   it("picks one of the answered questions when the top candidates still disagree", () => {
-    // Use a single `probably` answer so hard-contradiction elimination
-    // doesn't collapse the top-5 into unanimous agreement on the answered
-    // attribute — which would leave the metric with zero split and a
-    // correctly-null result.
+    const rankedCandidate = (entityId: string, confidence: number): RankedCandidate => ({
+      entityId,
+      score: Math.log(confidence === 0 ? 1e-6 : confidence),
+      confidence,
+      matchedAnswers: 0,
+    });
+
     const answers: AnsweredQuestion[] = [
       {
         questionId: "fiction-magical",
@@ -150,22 +154,63 @@ describe("strongestNarrowingQuestion", () => {
         answer: "probably",
         askedAt: "2024-01-01T00:00:00.000Z",
       },
+      {
+        questionId: "fiction-mask",
+        attributeKey: "wears_mask",
+        prompt: "y",
+        answer: "no",
+        askedAt: "2024-01-01T00:00:01.000Z",
+      },
     ];
-    const rankings = rankCandidates("fictional_characters", answers, []);
-    const resolve = (id: string) => entityById.get(id);
-    const best = strongestNarrowingQuestion(answers, rankings, resolve);
 
-    // With mixed-polarity survivors, narrowing should be non-null and can
-    // only ever name a question that was actually answered.
-    if (best !== null) {
-      expect(["fiction-magical"]).toContain(best.questionId);
-    } else {
-      // If seed drift ever makes the top-5 unanimous on `magical`, the
-      // metric returns null by design. Surface that path as a soft failure
-      // rather than a hard assertion.
-      throw new Error(
-        "Expected non-null narrowing with a 'probably' answer — seed data may have drifted",
-      );
-    }
+    const fakeEntities = new Map<string, GameEntity>([
+      [
+        "a",
+        {
+          ...entityById.get("harry-potter")!,
+          id: "a",
+          attributes: {
+            ...entityById.get("harry-potter")!.attributes,
+            magical: "yes",
+            wears_mask: "no",
+          },
+        },
+      ],
+      [
+        "b",
+        {
+          ...entityById.get("batman")!,
+          id: "b",
+          attributes: {
+            ...entityById.get("batman")!.attributes,
+            magical: "no",
+            wears_mask: "yes",
+          },
+        },
+      ],
+      [
+        "c",
+        {
+          ...entityById.get("doctor-strange")!,
+          id: "c",
+          attributes: {
+            ...entityById.get("doctor-strange")!.attributes,
+            magical: "probably",
+            wears_mask: "no",
+          },
+        },
+      ],
+    ]);
+
+    const rankings: RankedCandidate[] = [
+      rankedCandidate("a", 0.38),
+      rankedCandidate("b", 0.32),
+      rankedCandidate("c", 0.24),
+    ];
+
+    const best = strongestNarrowingQuestion(answers, rankings, (id) => fakeEntities.get(id));
+
+    expect(best).not.toBeNull();
+    expect(["fiction-magical", "fiction-mask"]).toContain(best!.questionId);
   });
 });

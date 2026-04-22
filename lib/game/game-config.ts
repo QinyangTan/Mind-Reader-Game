@@ -24,6 +24,27 @@ export const categoryMeta: Record<
     flavor: "Instinct patterns, natural traits, and primal tells.",
     accent: "from-emerald-300 via-cyan-300 to-blue-500",
   },
+  objects: {
+    label: "Objects",
+    icon: "⌘",
+    synopsis: "Everyday tools, devices, furniture, and familiar things with clear use patterns.",
+    flavor: "Material clues, room context, and everyday utility.",
+    accent: "from-amber-300 via-orange-300 to-rose-400",
+  },
+  foods: {
+    label: "Foods",
+    icon: "◌",
+    synopsis: "Meals, snacks, drinks, desserts, and staple foods with flavor-based clues.",
+    flavor: "Taste, serving style, and ingredient identity.",
+    accent: "from-yellow-300 via-orange-300 to-red-400",
+  },
+  vehicles: {
+    label: "Vehicles",
+    icon: "⟡",
+    synopsis: "Road, rail, air, and water machines built to move people, cargo, or urgency.",
+    flavor: "Power source, terrain, and transport role.",
+    accent: "from-sky-300 via-cyan-300 to-indigo-400",
+  },
 };
 
 export const modeMeta: Record<

@@ -1,8 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { BrainCircuit, Library, Sparkles } from "lucide-react";
+import { BrainCircuit, Library } from "lucide-react";
 
+import { MascotScene } from "@/components/brand/mascot-scene";
 import { entityById } from "@/lib/data/entities";
 import { isTeachEntityId } from "@/lib/game/teach";
 import { Button } from "@/components/ui/button";
@@ -45,80 +45,59 @@ export function EntityGuessDialog({
 
   const fromTeachLibrary = isTeachEntityId(entity.id);
 
-  const confidencePct = Math.max(18, Math.round(confidence * 100));
-
   return (
     <Dialog open={open}>
-      <DialogContent className="overflow-hidden p-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(103,232,249,0.18),transparent_48%),radial-gradient(circle_at_bottom,rgba(217,70,239,0.16),transparent_42%)]" />
+      <DialogContent className="max-w-2xl overflow-hidden p-0">
+        <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#f0d9a2,#d6a653,#f0d9a2)]" />
 
-        {/* Sheen sweep on open — ties the dialog into the scan-then-lock rhythm */}
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_35%,rgba(255,255,255,0.14)_50%,transparent_65%)]"
-          initial={{ x: "-120%" }}
-          animate={{ x: "120%" }}
-          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
-        />
-
-        <div className="relative p-7 sm:p-8">
+        <div className="p-7 sm:p-8">
           <DialogHeader className="gap-4">
-            <div className="flex items-center gap-3 text-[0.68rem] uppercase tracking-[0.32em] text-cyan-200/80">
+            <div className="flex items-center gap-2 text-sm text-[#f0d9a2]">
               {fromTeachLibrary ? <Library className="h-4 w-4" /> : <BrainCircuit className="h-4 w-4" />}
-              {fromTeachLibrary ? "Memory vault lock" : "Psychic Lock"}
+              {fromTeachLibrary ? "Memory vault guess" : "Psychic guess"}
             </div>
 
-            <div className="flex items-start gap-4">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={entity.id}
-                  initial={{ scale: 0.65, opacity: 0, rotate: -6 }}
-                  animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                  transition={{ type: "spring", stiffness: 280, damping: 18 }}
-                  className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.3rem] border border-white/10 bg-white/6 sm:h-20 sm:w-20"
-                >
-                  <span className="pointer-events-none absolute inset-0 rounded-[1.3rem] bg-[radial-gradient(circle_at_center,rgba(103,232,249,0.55),transparent_65%)] blur-xl opacity-80" />
-                  <span className="relative text-3xl sm:text-4xl">{entity.imageEmoji}</span>
-                </motion.div>
-              </AnimatePresence>
+            <div className="brand-paper rounded-[1.5rem] p-5 sm:p-6">
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] border border-[rgba(138,91,36,0.18)] bg-white/35 text-4xl">
+                      {entity.imageEmoji}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.72rem] font-semibold tracking-[0.24em] text-[#8a5b24]">FINAL REVEAL</p>
+                      <DialogTitle className="mt-2 font-display text-4xl leading-none text-[#2b1a1e] sm:text-[2.7rem]">
+                        Are you thinking of {entity.name}?
+                      </DialogTitle>
+                    </div>
+                  </div>
 
-              <div className="min-w-0">
-                <DialogTitle className="text-3xl leading-tight sm:text-4xl">
-                  Are you thinking of {entity.name}?
-                </DialogTitle>
-                <DialogDescription className="mt-2 max-w-xl text-sm leading-6 text-slate-300 sm:text-base sm:leading-7">
-                  {fromTeachLibrary
-                    ? "This candidate comes from your teach library — a memory you stored after a past escape. "
-                    : ""}
-                  {entity.shortDescription} The chamber&apos;s certainty is hovering around{" "}
-                  {Math.round(confidence * 100)}%, with {guessesRemaining} guess
-                  {guessesRemaining === 1 ? "" : "es"} left after this one.
-                </DialogDescription>
+                  <DialogDescription className="mt-4 text-sm leading-7 text-[#4b3430] sm:text-base">
+                    {entity.shortDescription}
+                  </DialogDescription>
+                </div>
+
+                <MascotScene
+                  compact
+                  state="confident"
+                  title="Mora steps forward."
+                  detail="The signal is strong enough for one clear yes-or-no reveal."
+                />
               </div>
             </div>
           </DialogHeader>
 
-          <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-white/6 px-5 py-4 text-sm text-slate-300">
-            <div className="mb-3 flex items-center gap-2 text-cyan-200">
-              <Sparkles className="h-4 w-4" />
-              Thought signature surge
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/8">
-              <motion.div
-                className="h-full rounded-full bg-[linear-gradient(90deg,#67e8f9,#8b5cf6,#f472b6)]"
-                initial={{ width: 0 }}
-                animate={{ width: `${confidencePct}%` }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-              />
-            </div>
-          </div>
+          <p className="mt-5 text-sm leading-6 text-[#dbcdb5]">
+            Roughly {Math.round(confidence * 100)}% confidence. {guessesRemaining} guess
+            {guessesRemaining === 1 ? "" : "es"} remain after this reveal.
+          </p>
 
           <DialogFooter className="mt-8">
             <Button variant="secondary" size="lg" onClick={onReject}>
-              No, keep scanning
+              No
             </Button>
             <Button size="lg" onClick={onConfirm}>
-              Yes, you found it
+              Yes
             </Button>
           </DialogFooter>
         </div>

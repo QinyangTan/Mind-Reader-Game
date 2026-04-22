@@ -86,9 +86,11 @@ describe("loadVault", () => {
     expect(rewritten.version).toBe(2);
     expect(rewritten.teachCases).toBeUndefined();
 
-    const learned = JSON.parse(store[LEARNED_KEY]) as { entries: unknown[] };
+    const learned = JSON.parse(store[LEARNED_KEY]) as { version: number; entries: unknown[]; model: unknown };
+    expect(learned.version).toBe(2);
     expect(learned.entries).toHaveLength(1);
     expect((learned.entries[0] as { id: string }).id).toBe("teach-1");
+    expect(learned.model).toBeDefined();
   });
 
   it("is idempotent across repeated loads", () => {

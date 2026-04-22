@@ -14,6 +14,7 @@ import type {
   PersistedVault,
   StoredSettings,
 } from "@/types/game";
+import { difficulties, entityCategories, gameModes } from "@/types/game";
 
 const STORAGE_KEY = "mind-reader.v1";
 const CURRENT_VAULT_VERSION = 2 as const;
@@ -26,6 +27,10 @@ export const defaultSettings: StoredSettings = {
   useTeachCases: true,
 };
 
+function zeroRecord<T extends readonly string[]>(values: T): Record<T[number], number> {
+  return Object.fromEntries(values.map((value) => [value, 0])) as Record<T[number], number>;
+}
+
 export const defaultStats: GameStats = {
   totalGames: 0,
   systemWins: 0,
@@ -35,36 +40,13 @@ export const defaultStats: GameStats = {
   lastMode: null,
   lastCategory: null,
   lastPlayedAt: null,
-  byMode: {
-    "read-my-mind": 0,
-    "guess-my-mind": 0,
-  },
-  byCategory: {
-    fictional_characters: 0,
-    animals: 0,
-  },
-  winsByMode: {
-    "read-my-mind": 0,
-    "guess-my-mind": 0,
-  },
-  winsByCategory: {
-    fictional_characters: 0,
-    animals: 0,
-  },
-  byDifficulty: {
-    easy: 0,
-    normal: 0,
-    hard: 0,
-  },
-  winsByDifficulty: {
-    easy: 0,
-    normal: 0,
-    hard: 0,
-  },
-  questionsByMode: {
-    "read-my-mind": 0,
-    "guess-my-mind": 0,
-  },
+  byMode: zeroRecord(gameModes),
+  byCategory: zeroRecord(entityCategories),
+  winsByMode: zeroRecord(gameModes),
+  winsByCategory: zeroRecord(entityCategories),
+  byDifficulty: zeroRecord(difficulties),
+  winsByDifficulty: zeroRecord(difficulties),
+  questionsByMode: zeroRecord(gameModes),
   systemGuessAttempts: 0,
   systemGuessHits: 0,
   playerGuessAttempts: 0,

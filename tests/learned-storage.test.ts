@@ -62,7 +62,7 @@ describe("loadLearnedEntities", () => {
 
   it("drops entries missing required fields", () => {
     store[KEY] = JSON.stringify({
-      version: 1,
+      version: 2,
       entries: [
         makeCase("ok"),
         {
@@ -85,7 +85,7 @@ describe("loadLearnedEntities", () => {
 
   it("sanitizes extraAttributes: drops unknown keys and invalid values", () => {
     store[KEY] = JSON.stringify({
-      version: 1,
+      version: 2,
       entries: [
         makeCase("e1", {
           extraAttributes: {
@@ -103,7 +103,7 @@ describe("loadLearnedEntities", () => {
 
   it("omits extraAttributes entirely when sanitization leaves nothing", () => {
     store[KEY] = JSON.stringify({
-      version: 1,
+      version: 2,
       entries: [
         makeCase("e1", {
           extraAttributes: {
@@ -125,7 +125,7 @@ describe("loadLearnedEntities", () => {
 
 describe("mergeLegacyTeachCases", () => {
   it("dedupes by id when merging", () => {
-    const existing = { version: 1 as const, entries: [makeCase("a")] };
+    const existing = { ...defaultLearnedStore, entries: [makeCase("a")] };
     const legacy = [makeCase("a"), makeCase("b")];
     const merged = mergeLegacyTeachCases(existing, legacy);
     const ids = merged.entries.map((e) => e.id).sort();
@@ -133,7 +133,7 @@ describe("mergeLegacyTeachCases", () => {
   });
 
   it("is a no-op when legacy is empty", () => {
-    const existing = { version: 1 as const, entries: [makeCase("a")] };
+    const existing = { ...defaultLearnedStore, entries: [makeCase("a")] };
     expect(mergeLegacyTeachCases(existing, [])).toBe(existing);
   });
 });
@@ -150,7 +150,7 @@ describe("prependLearnedEntity + saveLearnedEntities cap", () => {
   });
 
   it("prepends the new entry at the front of the list", () => {
-    const base = { version: 1 as const, entries: [makeCase("old")] };
+    const base = { ...defaultLearnedStore, entries: [makeCase("old")] };
     const next = prependLearnedEntity(base, makeCase("new"));
     expect(next.entries[0].id).toBe("new");
     expect(next.entries[1].id).toBe("old");
@@ -158,7 +158,7 @@ describe("prependLearnedEntity + saveLearnedEntities cap", () => {
 
   it("caps persisted entries at the store's maximum", () => {
     const huge = Array.from({ length: 200 }, (_, i) => makeCase(`c-${i}`));
-    saveLearnedEntities({ version: 1, entries: huge });
+    saveLearnedEntities({ ...defaultLearnedStore, entries: huge });
 
     const loaded = loadLearnedEntities();
     // Exact cap is an internal constant; we just assert it's bounded and
@@ -166,5 +166,17 @@ describe("prependLearnedEntity + saveLearnedEntities cap", () => {
     expect(loaded.entries.length).toBeLessThan(huge.length);
     expect(loaded.entries.length).toBeGreaterThan(0);
     expect(store[KEY]).toBeDefined();
+  });
+
+  it("migrates a v1 learned store into the v2 shape with a default model", () => {
+    store[KEY] = JSON.stringify({
+      version: 1,
+      entries: [makeCase("legacy")],
+    });
+
+    const loaded = loadLearnedEntities();
+    expect(loaded.version).toBe(2);
+    expect(loaded.entries).toHaveLength(1);
+    expect(loaded.model.attributeAnswerCounts).toEqual({});
   });
 });
