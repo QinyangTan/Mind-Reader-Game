@@ -11,6 +11,7 @@ import type {
   GameEntity,
   LearnedInferenceModel,
   QuestionDefinition,
+  QuestionGroup,
   RankedCandidate,
 } from "@/types/game";
 
@@ -79,30 +80,26 @@ export function QuestionBrowser({
 
   const recommended = ranked.slice(0, 3).map((entry) => entry.question);
   const firstStage = staged[0]?.stage ?? null;
+  const [archiveOpen, setArchiveOpen] = useState(false);
   const [selectedStage, setSelectedStage] = useState<QuestionDefinition["stage"] | null>(firstStage);
   const activeStage =
     selectedStage && staged.some((entry) => entry.stage === selectedStage)
       ? selectedStage
       : firstStage;
   const stageBucket = staged.find((entry) => entry.stage === activeStage) ?? staged[0] ?? null;
-  const [selectedGroup, setSelectedGroup] = useState<QuestionDefinition["group"] | null>(stageBucket?.groups[0]?.group ?? null);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [selectedGroup, setSelectedGroup] = useState<QuestionGroup | null>(stageBucket?.groups[0]?.group ?? null);
   const activeGroup =
     selectedGroup && stageBucket?.groups.some((entry) => entry.group === selectedGroup)
       ? selectedGroup
       : stageBucket?.groups[0]?.group ?? null;
-
   const selectedBucket =
     stageBucket?.groups.find((entry) => entry.group === activeGroup) ??
     stageBucket?.groups[0] ??
     null;
-  const selectedQuestions = selectedBucket?.questions ?? [];
-  const visibleSelectedQuestions =
-    expandedGroups[selectedBucket?.group ?? ""] ? selectedQuestions : selectedQuestions.slice(0, 5);
 
   if (ranked.length === 0) {
     return (
-      <div className="rounded-[1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.56)] px-4 py-5 text-sm text-[#af9c83]">
+      <div className="rounded-[1.1rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.08)] px-4 py-5 text-sm text-[#5a433b]">
         The strongest lines of questioning are spent. It’s time to make your guess.
       </div>
     );
@@ -110,25 +107,20 @@ export function QuestionBrowser({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1rem] border border-[rgba(214,166,83,0.16)] bg-[rgba(15,10,21,0.56)] p-4">
-        <div className="flex items-center justify-between gap-3">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">BEST NEXT QUESTIONS</p>
-            <p className="mt-1 text-sm text-[#cbbda5]">
-              Start with the most revealing questions before opening the deeper archive.
-            </p>
+            <p className="text-[0.7rem] uppercase tracking-[0.22em] text-[#8a5b24]">Best next questions</p>
+            <p className="mt-1 text-sm text-[#5a433b]">Ask one of these first if you want the quickest clue.</p>
           </div>
-          <p className="text-xs text-[#9e8e79]">{remainingQuestions} clues left</p>
+          {ranked[0] ? (
+            <span className="rounded-full border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] px-3 py-1 text-xs text-[#6a4a3c]">
+              {questionStageMeta[ranked[0].targetStage].label}
+            </span>
+          ) : null}
         </div>
 
-        {ranked[0] ? (
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[rgba(240,217,162,0.16)] bg-[rgba(31,16,39,0.82)] px-3 py-1.5 text-xs text-[#dbcdb5]">
-            <span className="text-[#d6a653]">Current layer</span>
-            <span>{questionStageMeta[ranked[0].targetStage].label}</span>
-          </div>
-        ) : null}
-
-        <div className="mt-3 grid gap-2">
+        <div className="grid gap-2">
           {recommended.map((question) => (
             <motion.button
               key={question.id}
@@ -136,109 +128,83 @@ export function QuestionBrowser({
               onClick={() => onAskQuestion(question.id)}
               disabled={isPending || remainingQuestions <= 0}
               whileTap={{ scale: 0.985 }}
-              className="rounded-[1rem] border border-[rgba(240,217,162,0.16)] bg-[rgba(24,14,33,0.82)] px-4 py-3 text-left transition-colors duration-150 hover:border-[rgba(240,217,162,0.26)] hover:bg-[rgba(32,18,42,0.92)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="rounded-[1.1rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.08)] px-4 py-3 text-left transition-colors duration-150 hover:border-[rgba(138,91,36,0.24)] hover:bg-[rgba(84,49,35,0.12)] disabled:cursor-not-allowed disabled:opacity-45"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium leading-6 text-[#f7efd9]">{question.question}</p>
-                  <p className="text-xs text-[#a99781]">{questionStageMeta[question.stage].shortLabel}</p>
-                </div>
-                <span className="shrink-0 rounded-full border border-[rgba(240,217,162,0.14)] bg-[rgba(240,217,162,0.08)] px-2 py-1 text-[0.66rem] tracking-[0.14em] text-[#d6a653]">
-                  {questionGroupMeta[question.group].label}
-                </span>
+              <div className="space-y-1">
+                <p className="text-sm font-medium leading-6 text-[#2d1b19]">{question.question}</p>
+                <p className="text-xs text-[#6e5243]">
+                  {questionGroupMeta[question.group].label} · {questionStageMeta[question.stage].shortLabel}
+                </p>
               </div>
             </motion.button>
           ))}
         </div>
       </div>
 
-      <div className="space-y-3 rounded-[1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.5)] p-4">
-        <div>
-          <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">DEEPER ARCHIVE</p>
-          <p className="mt-1 text-sm text-[#cbbda5]">
-            Open broader or narrower layers only when you need them.
-          </p>
-        </div>
+      <div className="border-t border-[rgba(102,72,52,0.12)] pt-4">
+        <button
+          type="button"
+          onClick={() => setArchiveOpen((current) => !current)}
+          className="text-sm font-medium text-[#6a452a] transition-colors hover:text-[#8a5b24]"
+        >
+          {archiveOpen ? "Hide the deeper archive" : "Browse deeper lines of questioning"}
+        </button>
 
-        <div className="flex flex-wrap gap-2">
-          {staged.map((entry) => (
-            <button
-              key={entry.stage}
-              type="button"
-              onClick={() => {
-                setSelectedStage(entry.stage);
-                setSelectedGroup(entry.groups[0]?.group ?? null);
-              }}
-              className={cn(
-                "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
-                activeStage === entry.stage
-                  ? "brand-paper"
-                  : "border-[rgba(240,217,162,0.16)] bg-[rgba(20,13,28,0.68)] text-[#dbcdb5] hover:border-[rgba(240,217,162,0.28)]",
-              )}
-            >
-              {entry.meta.shortLabel} ({entry.groups.reduce((sum, group) => sum + group.questions.length, 0)})
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {stageBucket?.groups.map((entry) => (
-            <button
-              key={entry.group}
-              type="button"
-              onClick={() => setSelectedGroup(entry.group)}
-              className={cn(
-                "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
-                activeGroup === entry.group
-                  ? "brand-paper"
-                  : "border-[rgba(240,217,162,0.16)] bg-[rgba(20,13,28,0.68)] text-[#dbcdb5] hover:border-[rgba(240,217,162,0.28)]",
-              )}
-            >
-              {entry.meta.label} ({entry.questions.length})
-            </button>
-          ))}
-        </div>
-
-        {selectedBucket ? (
-          <div className="space-y-3 rounded-[1rem] border border-[rgba(240,217,162,0.12)] bg-[rgba(20,12,29,0.62)] p-4">
-            <div className="space-y-1">
-              {stageBucket ? (
-                <p className="text-xs tracking-[0.16em] text-[#d6a653]">{stageBucket.meta.label}</p>
-              ) : null}
-              <p className="text-base font-semibold text-[#f7efd9]">{selectedBucket.meta.label}</p>
-              <p className="text-sm text-[#cbbda5]">
-                {selectedBucket.meta.description}
-                {stageBucket ? ` ${stageBucket.meta.description}` : ""}
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              {visibleSelectedQuestions.map((question) => (
+        {archiveOpen ? (
+          <div className="mt-4 space-y-4 rounded-[1.2rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] p-4">
+            <div className="flex flex-wrap gap-2">
+              {staged.map((entry) => (
                 <button
-                  key={question.id}
+                  key={entry.stage}
                   type="button"
-                  onClick={() => onAskQuestion(question.id)}
-                  disabled={isPending || remainingQuestions <= 0}
-                  className="rounded-[0.95rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.72)] px-4 py-3 text-left text-sm leading-6 text-[#f7efd9] transition-colors duration-150 hover:border-[rgba(240,217,162,0.26)] hover:bg-[rgba(27,16,36,0.92)] disabled:cursor-not-allowed disabled:opacity-45"
+                  onClick={() => {
+                    setSelectedStage(entry.stage);
+                    setSelectedGroup(entry.groups[0]?.group ?? null);
+                  }}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
+                    activeStage === entry.stage
+                      ? "border-[rgba(138,91,36,0.22)] bg-[rgba(255,255,255,0.34)] text-[#2d1b19]"
+                      : "border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] text-[#5a433b] hover:border-[rgba(138,91,36,0.24)]",
+                  )}
                 >
-                  {question.question}
+                  {entry.meta.shortLabel}
                 </button>
               ))}
             </div>
 
-            {selectedQuestions.length > 5 ? (
-              <button
-                type="button"
-                onClick={() =>
-                  setExpandedGroups((current) => ({
-                    ...current,
-                    [selectedBucket.group]: !current[selectedBucket.group],
-                  }))
-                }
-                className="text-sm font-medium text-[#d6a653] transition-colors hover:text-[#f0d9a2]"
-              >
-                {expandedGroups[selectedBucket.group] ? "Show fewer questions" : `Show all ${selectedQuestions.length} questions`}
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {stageBucket?.groups.map((entry) => (
+                <button
+                  key={entry.group}
+                  type="button"
+                  onClick={() => setSelectedGroup(entry.group)}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
+                    activeGroup === entry.group
+                      ? "border-[rgba(138,91,36,0.22)] bg-[rgba(255,255,255,0.34)] text-[#2d1b19]"
+                      : "border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] text-[#5a433b] hover:border-[rgba(138,91,36,0.24)]",
+                  )}
+                >
+                  {entry.meta.label}
+                </button>
+              ))}
+            </div>
+
+            {selectedBucket ? (
+              <div className="grid gap-2">
+                {selectedBucket.questions.slice(0, 6).map((question) => (
+                  <button
+                    key={question.id}
+                    type="button"
+                    onClick={() => onAskQuestion(question.id)}
+                    disabled={isPending || remainingQuestions <= 0}
+                    className="rounded-[1rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(255,255,255,0.24)] px-4 py-3 text-left text-sm leading-6 text-[#2d1b19] transition-colors duration-150 hover:border-[rgba(138,91,36,0.24)] hover:bg-[rgba(255,255,255,0.34)] disabled:cursor-not-allowed disabled:opacity-45"
+                  >
+                    {question.question}
+                  </button>
+                ))}
+              </div>
             ) : null}
           </div>
         ) : null}

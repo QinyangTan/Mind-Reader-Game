@@ -2,9 +2,6 @@
 
 import { BrainCircuit, Library } from "lucide-react";
 
-import { MascotScene } from "@/components/brand/mascot-scene";
-import { entityById } from "@/lib/data/entities";
-import { isTeachEntityId } from "@/lib/game/teach";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { entityById } from "@/lib/data/entities";
+import { isTeachEntityId } from "@/lib/game/teach";
 import type { GameEntity } from "@/types/game";
 
 interface EntityGuessDialogProps {
@@ -47,50 +46,37 @@ export function EntityGuessDialog({
 
   return (
     <Dialog open={open}>
-      <DialogContent className="max-w-2xl overflow-hidden p-0">
-        <div className="p-7 sm:p-8">
-          <DialogHeader className="gap-4">
-            <div className="flex items-center gap-2 text-sm text-[#f0d9a2]">
+      <DialogContent className="max-w-2xl border-[rgba(241,226,193,0.24)] bg-[linear-gradient(180deg,rgba(14,10,20,0.98),rgba(9,6,14,0.98))] p-0">
+        <div className="relative overflow-hidden px-7 py-8 sm:px-9 sm:py-9">
+          <div className="absolute inset-x-[18%] top-0 h-32 bg-[radial-gradient(circle,rgba(240,217,162,0.16),transparent_70%)] blur-2xl" />
+          <div className="absolute inset-x-[25%] bottom-0 h-20 rounded-t-[50%] bg-[radial-gradient(circle,rgba(12,8,16,0.92),transparent_76%)]" />
+
+          <DialogHeader className="relative gap-5 text-center">
+            <div className="flex items-center justify-center gap-2 text-sm text-[#d7c596]">
               {fromTeachLibrary ? <Library className="h-4 w-4" /> : <BrainCircuit className="h-4 w-4" />}
               {fromTeachLibrary ? "Memory echo" : "Psychic declaration"}
             </div>
 
-            <div className="brand-paper rounded-[1.2rem] p-5 sm:p-6">
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1rem] border border-[rgba(138,91,36,0.18)] bg-white/35 text-4xl">
-                      {entity.imageEmoji}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[0.72rem] font-semibold tracking-[0.24em] text-[#8a5b24]">MORA SPEAKS</p>
-                      <DialogTitle className="mt-2 font-display text-4xl leading-[0.94] text-[#2b1a1e] sm:text-[2.7rem]">
-                        I see it now. Are you thinking of {entity.name}?
-                      </DialogTitle>
-                    </div>
-                  </div>
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-[rgba(241,226,193,0.18)] bg-[radial-gradient(circle,rgba(255,255,255,0.12),rgba(255,255,255,0)_72%)] text-6xl">
+              {entity.imageEmoji}
+            </div>
 
-                  <DialogDescription className="mt-4 text-sm leading-7 text-[#4b3430] sm:text-base">
-                    {entity.shortDescription}
-                  </DialogDescription>
-                </div>
-
-                <MascotScene
-                  compact
-                  state="confident"
-                  title="Mora steps forward."
-                  detail="The signal is strong enough for one clear yes-or-no answer."
-                />
-              </div>
+            <div className="space-y-3">
+              <DialogTitle className="font-display text-[3rem] leading-[0.9] text-[#f7efd9] sm:text-[3.8rem]">
+                Are you thinking of {entity.name}?
+              </DialogTitle>
+              <DialogDescription className="mx-auto max-w-xl text-base leading-7 text-[#ddd1ba]">
+                {entity.shortDescription}
+              </DialogDescription>
             </div>
           </DialogHeader>
 
-          <p className="mt-5 text-sm leading-6 text-[#dbcdb5]">
+          <div className="relative mt-7 rounded-[1.2rem] border border-[rgba(241,226,193,0.12)] bg-[rgba(255,255,255,0.04)] px-4 py-4 text-center text-sm text-[#d6cab5]">
             The chamber is roughly {Math.round(confidence * 100)}% certain. {guessesRemaining} guess
             {guessesRemaining === 1 ? "" : "es"} remain after this declaration.
-          </p>
+          </div>
 
-          <DialogFooter className="mt-8">
+          <DialogFooter className="relative mt-8 sm:justify-center">
             <Button variant="secondary" size="lg" onClick={onReject}>
               No
             </Button>

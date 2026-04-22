@@ -1,12 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BrainCircuit } from "lucide-react";
 
-import { MascotScene } from "@/components/brand/mascot-scene";
 import { MindChamberPanel } from "@/components/game/mind-chamber-panel";
 import { questionById } from "@/lib/data/questions";
-import { getMascotFacing, getQuestionMascotState } from "@/lib/game/mascot";
 import { cn } from "@/lib/utils/cn";
 import type { GameEntity, NormalizedAnswer, ReadMyMindSession } from "@/types/game";
 
@@ -20,31 +17,31 @@ const answerOptions: Array<{
     value: "yes",
     label: "Yes",
     response: "Yes, it is",
-    tone: "border-[#8bb19a]/34 bg-[rgba(22,41,33,0.8)] hover:bg-[rgba(33,55,44,0.88)]",
+    tone: "border-emerald-900/18 bg-[rgba(63,108,79,0.14)] hover:bg-[rgba(63,108,79,0.2)]",
   },
   {
     value: "probably",
     label: "Probably",
     response: "I think so",
-    tone: "border-[#8faeb8]/34 bg-[rgba(22,38,46,0.82)] hover:bg-[rgba(31,49,58,0.9)]",
+    tone: "border-sky-900/18 bg-[rgba(74,105,126,0.14)] hover:bg-[rgba(74,105,126,0.2)]",
   },
   {
     value: "unknown",
     label: "Unknown",
     response: "I can't tell",
-    tone: "border-[rgba(240,217,162,0.16)] bg-[rgba(21,12,28,0.82)] hover:bg-[rgba(29,16,38,0.9)]",
+    tone: "border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.06)] hover:bg-[rgba(84,49,35,0.12)]",
   },
   {
     value: "probably_not",
-    label: "Probably Not",
+    label: "Probably not",
     response: "Probably not",
-    tone: "border-[#8d729f]/32 bg-[rgba(36,24,51,0.82)] hover:bg-[rgba(47,31,65,0.9)]",
+    tone: "border-violet-900/16 bg-[rgba(104,73,121,0.14)] hover:bg-[rgba(104,73,121,0.2)]",
   },
   {
     value: "no",
     label: "No",
     response: "No, it isn't",
-    tone: "border-[#b7777d]/34 bg-[rgba(54,24,34,0.84)] hover:bg-[rgba(67,29,42,0.9)]",
+    tone: "border-rose-900/16 bg-[rgba(126,77,82,0.14)] hover:bg-[rgba(126,77,82,0.2)]",
   },
 ];
 
@@ -74,107 +71,85 @@ export function ReadMyMindBoard({
   onAnswer,
   isPending,
   isScanningGuess,
-  mascotReactionKey,
 }: ReadMyMindBoardProps) {
   const question = session.currentQuestionId ? questionById.get(session.currentQuestionId) : null;
   const remainingGuesses = session.config.maxGuesses - session.guessAttemptsUsed;
   const currentQuestionNumber = Math.min(session.asked.length + 1, session.config.maxQuestions);
-  const progress = (session.asked.length / session.config.maxQuestions) * 100;
-  const mascotState = getQuestionMascotState({
-    mode: "read-my-mind",
-    isPending,
-    isScanningGuess,
-  });
+  const progress = Math.max(8, (session.asked.length / session.config.maxQuestions) * 100);
   const spokenPrompt = question ? toSpokenPrompt(question.question, session.asked.length) : null;
 
   return (
-    <div className="mx-auto max-w-[880px] space-y-5">
-      <div className="rounded-[1.2rem] border border-[rgba(214,166,83,0.16)] bg-[rgba(14,10,21,0.58)] px-5 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#dbcdb5]">
-          <div>
-            <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">THE READING IS UNDERWAY</p>
-            <div className="mt-2 flex items-center gap-2">
-            <BrainCircuit className="h-4 w-4 text-[#d6a653]" />
-            <span>
-              Question {currentQuestionNumber} of {session.config.maxQuestions}
-            </span>
-          </div>
-          </div>
-          <span>{remainingGuesses} guesses left</span>
+    <div className="mx-auto max-w-[780px] space-y-4">
+      <MindChamberPanel
+        eyebrow={isScanningGuess ? "Mora has seen enough." : "Mora speaks"}
+        title={
+          isScanningGuess
+            ? "Be still. The answer is surfacing."
+            : spokenPrompt ?? "The next question is arriving."
+        }
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#5f463a]">
+          <span>
+            Question {currentQuestionNumber} of {session.config.maxQuestions}
+          </span>
+          <span>{remainingGuesses} guesses remain</span>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/8">
+
+        <div className="h-2 overflow-hidden rounded-full bg-[rgba(82,53,39,0.12)]">
           <motion.div
-            className="h-full rounded-full bg-[linear-gradient(90deg,#d6a653,#f0d9a2)]"
-            animate={{ width: `${Math.max(8, progress)}%` }}
+            className="h-full rounded-full bg-[linear-gradient(90deg,#8a5b24,#d6a653)]"
+            animate={{ width: `${progress}%` }}
             transition={{ duration: 0.28, ease: "easeOut" }}
           />
         </div>
-      </div>
 
-      <MindChamberPanel eyebrow="Dialogue" title={isScanningGuess ? "She reaches for the answer." : "Mora asks"}>
-        <div className="brand-paper rounded-[1.25rem] p-6 sm:p-7">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
-            <div>
-              <p className="text-[0.68rem] font-semibold tracking-[0.2em] text-[#8a5b24]">SPOKEN THROUGH THE CHAMBER</p>
-              <AnimatePresence mode="wait">
-                <motion.p
-                  key={isScanningGuess ? "scanning" : question?.id ?? session.asked.length}
-                  initial={{ opacity: 0, y: 14, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, y: -10, filter: "blur(3px)" }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                  className="mt-3 max-w-3xl font-display text-[2.1rem] leading-[0.97] text-[#2b1a1e] sm:text-5xl md:text-6xl"
+        <p className="max-w-2xl text-base leading-7 text-[#4f3830]">
+          {isScanningGuess
+            ? "She has stopped asking and started deciding. The next beat is a declaration."
+            : "Answer with the closest truth and let the chamber tighten around your thought."}
+        </p>
+
+        <AnimatePresence mode="wait">
+          {isScanningGuess ? (
+            <motion.div
+              key="scanning"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="rounded-[1.2rem] border border-[rgba(102,72,52,0.14)] bg-[rgba(84,49,35,0.08)] px-5 py-5 text-center"
+            >
+              <p className="text-lg font-semibold text-[#2f1d19]">The chamber is silent for one breath.</p>
+              <p className="mt-2 text-sm leading-6 text-[#5f463a]">Wait for Mora to step forward with her guess.</p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key={question?.id ?? session.asked.length}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="grid gap-3 md:grid-cols-2"
+            >
+              {answerOptions.map((option) => (
+                <motion.button
+                  key={option.value}
+                  type="button"
+                  onClick={() => onAnswer(option.value)}
+                  disabled={isPending || !session.currentQuestionId}
+                  whileTap={{ scale: 0.985 }}
+                  transition={{ duration: 0.12 }}
+                  className={cn(
+                    "rounded-[1.2rem] border px-4 py-4 text-left text-[#2f1d19] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45",
+                    option.tone,
+                    option.value === "unknown" ? "md:col-span-2" : "",
+                  )}
                 >
-                  {isScanningGuess
-                    ? "Be still. Mora is gathering everything you have confessed into one clear declaration."
-                    : spokenPrompt ?? "The next question is lining up."}
-                </motion.p>
-              </AnimatePresence>
-
-              <p className="mt-4 text-base leading-7 text-[#4b3430]">
-                {isScanningGuess
-                  ? "The chamber has stopped asking. Wait for the reveal."
-                  : "Reply with the closest truth and let her move to the next thread."}
-              </p>
-            </div>
-
-            <MascotScene
-              compact
-              state={mascotState}
-              mode="read-my-mind"
-              facing={getMascotFacing("read-my-mind")}
-              reactionKey={mascotReactionKey}
-              className="xl:hidden"
-              title={isScanningGuess ? "Mora has a theory." : "Mora watches your answer."}
-            />
-          </div>
-        </div>
-
-        {isScanningGuess ? (
-          <div className="rounded-[1.1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(14,10,21,0.58)] px-4 py-4 text-sm text-[#dbcdb5]">
-            Mora leans in. The next beat is a guess, not another question.
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {answerOptions.map((option) => (
-              <motion.button
-                key={option.value}
-                type="button"
-                onClick={() => onAnswer(option.value)}
-                disabled={isPending || !session.currentQuestionId}
-                whileTap={{ scale: 0.985 }}
-                transition={{ duration: 0.12 }}
-                className={cn(
-                  "rounded-[1.1rem] border px-4 py-4 text-left text-[#f7efd9] transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-45",
-                  option.tone,
-                )}
-              >
-                <p className="text-lg font-semibold">{option.label}</p>
-                <p className="mt-1 text-xs text-[#d4c7b4]">{option.response}</p>
-              </motion.button>
-            ))}
-          </div>
-        )}
+                  <p className="text-lg font-semibold">{option.label}</p>
+                  <p className="mt-1 text-sm text-[#6e5243]">{option.response}</p>
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </MindChamberPanel>
     </div>
   );

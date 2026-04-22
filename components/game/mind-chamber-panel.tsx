@@ -25,19 +25,19 @@ export function MindChamberPanel({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-[1.45rem] border border-[rgba(214,166,83,0.18)] bg-[linear-gradient(180deg,rgba(25,17,35,0.98),rgba(12,9,19,0.98))] p-5 shadow-[0_26px_54px_rgba(7,4,12,0.34)]",
+        "relative overflow-hidden rounded-[1.8rem] border border-[rgba(245,233,212,0.38)] bg-[linear-gradient(180deg,rgba(245,232,209,0.98),rgba(225,203,174,0.96))] p-6 text-[#2d1b19] shadow-[0_28px_80px_rgba(5,2,7,0.42)] sm:p-7",
         className,
       )}
       {...props}
     >
-      <div className="absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(240,217,162,0.46),transparent)]" />
-      <div className={cn("absolute left-6 top-6 h-2.5 w-2.5 rounded-full", toneStyles[tone])} />
-      <div className="absolute inset-3 rounded-[1.2rem] border border-[rgba(240,217,162,0.08)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.42),transparent_36%)]" />
+      <div className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(120,78,41,0.3),transparent)]" />
+      <div className={cn("absolute left-6 top-6 h-2.5 w-2.5 rounded-full opacity-75", toneStyles[tone])} />
       <div className="relative flex h-full flex-col gap-4">
         {(eyebrow || title) && (
-          <div className="space-y-1.5">
-            {eyebrow ? <p className="brand-tiny-label">{eyebrow}</p> : null}
-            {title ? <h2 className="font-display text-[2rem] leading-[0.94] text-[#f7efd9]">{title}</h2> : null}
+          <div className="space-y-2">
+            {eyebrow ? <p className="text-sm font-medium tracking-[0.08em] text-[#7d5838]">{eyebrow}</p> : null}
+            {title ? <h2 className="font-display text-[2.2rem] leading-[0.94] text-[#2d1b19] sm:text-[2.8rem]">{title}</h2> : null}
           </div>
         )}
         {children}
