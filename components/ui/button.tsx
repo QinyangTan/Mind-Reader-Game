@@ -7,17 +7,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[1rem] border text-sm font-semibold tracking-[0.03em] transition-[background-color,border-color,color,box-shadow,transform] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6a653]/70 disabled:pointer-events-none disabled:opacity-40",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[0.9rem] border text-sm font-semibold tracking-[0.02em] transition-[background-color,border-color,color,box-shadow] duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6a653]/70 disabled:pointer-events-none disabled:opacity-40",
   {
     variants: {
       variant: {
         primary:
-          "border-[#f0d9a2] bg-[linear-gradient(180deg,#f3d590,#d6a653)] text-[#2b1a1e] shadow-[0_10px_20px_rgba(21,10,18,0.22)] hover:bg-[linear-gradient(180deg,#f7dfaa,#deb26b)] hover:-translate-y-0.5",
+          "border-[#e7c977] bg-[#d6a653] text-[#241816] shadow-[0_10px_20px_rgba(12,7,12,0.2)] hover:bg-[#deb56a]",
         secondary:
-          "border-[rgba(214,166,83,0.32)] bg-[linear-gradient(180deg,rgba(61,24,60,0.98),rgba(26,14,35,0.98))] text-[#f4e7c8] hover:border-[rgba(240,217,162,0.42)] hover:bg-[linear-gradient(180deg,rgba(74,30,70,0.98),rgba(31,17,40,0.98))]",
-        ghost: "border-transparent bg-transparent text-[#e4d8bf] hover:bg-[rgba(240,217,162,0.08)] hover:text-white",
+          "border-[rgba(214,166,83,0.24)] bg-[rgba(22,14,31,0.94)] text-[#f4e7c8] hover:border-[rgba(240,217,162,0.34)] hover:bg-[rgba(31,20,43,0.96)]",
+        ghost: "border-transparent bg-transparent text-[#e4d8bf] hover:bg-[rgba(240,217,162,0.06)] hover:text-white",
         danger:
-          "border-[#f0c6c8] bg-[linear-gradient(180deg,#e7a5ad,#bf6273)] text-[#2b1a1e] hover:bg-[linear-gradient(180deg,#efb1b8,#cc7482)]",
+          "border-[#f0c6c8] bg-[#bf6273] text-[#261516] hover:bg-[#ca7281]",
       },
       size: {
         default: "h-11 px-4.5",

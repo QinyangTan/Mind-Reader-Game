@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
 :root {
-  --background: #160c20;
-  --foreground: #f7efd9;
-  --paper: #f1e2bf;
-  --paper-strong: #e4ce9e;
-  --ink: #2b1a1e;
+  --background: #100b17;
+  --foreground: #f7eed7;
+  --paper: #f0e4c6;
+  --paper-strong: #dec89a;
+  --ink: #2c1d1d;
   --gold: #d6a653;
   --gold-deep: #8a5b24;
-  --velvet: #2b142b;
-  --velvet-deep: #180d21;
-  --teal: #6ca7a1;
-  --rose: #b66a74;
+  --velvet: #241729;
+  --velvet-deep: #120d18;
+  --teal: #6f9da6;
+  --rose: #b16f80;
 }
 
 @theme inline {
@@ -31,15 +31,12 @@ html {
 
 body {
   background:
-    radial-gradient(circle at 50% 0%, rgba(241, 226, 191, 0.16), transparent 22%),
-    radial-gradient(circle at 15% 16%, rgba(137, 55, 84, 0.3), transparent 25%),
-    radial-gradient(circle at 85% 18%, rgba(94, 74, 143, 0.24), transparent 20%),
-    repeating-linear-gradient(
-      90deg,
-      rgba(72, 25, 49, 0.7) 0 72px,
-      rgba(49, 20, 43, 0.94) 72px 144px
-    ),
-    linear-gradient(180deg, #311726 0%, #1a1024 45%, #0c0712 100%);
+    radial-gradient(circle at 50% 0%, rgba(241, 226, 191, 0.1), transparent 18%),
+    radial-gradient(circle at 50% 18%, rgba(90, 116, 170, 0.2), transparent 24%),
+    radial-gradient(circle at 14% 22%, rgba(98, 41, 62, 0.22), transparent 26%),
+    radial-gradient(circle at 86% 18%, rgba(76, 64, 121, 0.18), transparent 24%),
+    linear-gradient(90deg, rgba(43, 18, 33, 0.62) 0 10%, transparent 18% 82%, rgba(43, 18, 33, 0.62) 90% 100%),
+    linear-gradient(180deg, #251523 0%, #17111f 40%, #0d0a14 78%, #09070d 100%);
   color: var(--foreground);
   font-family: var(--font-alegreya-sans), sans-serif;
   text-rendering: optimizeLegibility;
@@ -50,25 +47,25 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.16;
+  opacity: 0.12;
   background-image:
-    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.35) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 78% 14%, rgba(255, 255, 255, 0.3) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 38% 82%, rgba(255, 255, 255, 0.25) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 62% 28%, rgba(255, 255, 255, 0.22) 0 1px, transparent 1.5px),
-    radial-gradient(circle at 12% 64%, rgba(255, 255, 255, 0.22) 0 1px, transparent 1.5px);
-  background-size: 240px 240px, 280px 280px, 320px 320px, 300px 300px, 340px 340px;
+    radial-gradient(circle at 16% 18%, rgba(255, 255, 255, 0.28) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 78% 14%, rgba(255, 255, 255, 0.24) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 38% 82%, rgba(255, 255, 255, 0.18) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 62% 28%, rgba(255, 255, 255, 0.16) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 12% 64%, rgba(255, 255, 255, 0.16) 0 1px, transparent 1.5px);
+  background-size: 280px 280px, 320px 320px, 360px 360px, 300px 300px, 340px 340px;
 }
 
 body::after {
   content: "";
   position: fixed;
   inset: auto 0 0;
-  height: 32vh;
+  height: 34vh;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at center top, rgba(241, 226, 191, 0.08), transparent 48%),
-    linear-gradient(180deg, rgba(8, 4, 9, 0), rgba(8, 4, 9, 0.76) 64%, rgba(5, 3, 6, 0.94));
+    radial-gradient(ellipse at center top, rgba(241, 226, 191, 0.06), transparent 46%),
+    linear-gradient(180deg, rgba(8, 4, 9, 0), rgba(8, 4, 9, 0.78) 58%, rgba(5, 3, 6, 0.96));
 }
 
 ::selection {
@@ -109,18 +106,18 @@ img {
   border: 1px solid rgba(122, 77, 45, 0.34);
   box-shadow:
     inset 0 1px rgba(255, 255, 255, 0.4),
-    0 12px 24px rgba(14, 7, 10, 0.16);
+    0 10px 20px rgba(14, 7, 10, 0.12);
   color: var(--ink);
 }
 
 .brand-velvet {
-  background: linear-gradient(180deg, rgba(55, 22, 50, 0.98), rgba(25, 13, 31, 0.98));
-  border: 1px solid rgba(214, 166, 83, 0.24);
+  background: linear-gradient(180deg, rgba(35, 22, 43, 0.96), rgba(16, 11, 22, 0.98));
+  border: 1px solid rgba(214, 166, 83, 0.18);
 }
 
 .brand-inset {
-  border: 1px solid rgba(240, 217, 162, 0.14);
-  background: rgba(18, 10, 24, 0.52);
+  border: 1px solid rgba(240, 217, 162, 0.12);
+  background: rgba(15, 10, 21, 0.62);
 }
 
 .brand-tiny-label {

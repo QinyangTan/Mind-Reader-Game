@@ -102,20 +102,20 @@ export function QuestionBrowser({
 
   if (ranked.length === 0) {
     return (
-      <div className="rounded-[1.2rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.44)] px-4 py-5 text-sm text-[#af9c83]">
-        The question archive is spent for this round. It’s time to make a guess.
+      <div className="rounded-[1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.56)] px-4 py-5 text-sm text-[#af9c83]">
+        The strongest lines of questioning are spent. It’s time to make your guess.
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.2rem] border border-[rgba(214,166,83,0.18)] bg-[rgba(18,10,24,0.42)] p-4">
+      <div className="rounded-[1rem] border border-[rgba(214,166,83,0.16)] bg-[rgba(15,10,21,0.56)] p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">RECOMMENDED NEXT</p>
+            <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">BEST NEXT QUESTIONS</p>
             <p className="mt-1 text-sm text-[#cbbda5]">
-              Start with the chamber’s sharpest splits before browsing deeper.
+              Start with the most revealing questions before opening the deeper archive.
             </p>
           </div>
           <p className="text-xs text-[#9e8e79]">{remainingQuestions} clues left</p>
@@ -136,7 +136,7 @@ export function QuestionBrowser({
               onClick={() => onAskQuestion(question.id)}
               disabled={isPending || remainingQuestions <= 0}
               whileTap={{ scale: 0.985 }}
-              className="rounded-[1.15rem] border border-[rgba(240,217,162,0.16)] bg-[rgba(31,16,39,0.82)] px-4 py-3 text-left transition-colors duration-150 hover:border-[rgba(240,217,162,0.26)] hover:bg-[rgba(40,20,50,0.92)] disabled:cursor-not-allowed disabled:opacity-45"
+              className="rounded-[1rem] border border-[rgba(240,217,162,0.16)] bg-[rgba(24,14,33,0.82)] px-4 py-3 text-left transition-colors duration-150 hover:border-[rgba(240,217,162,0.26)] hover:bg-[rgba(32,18,42,0.92)] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
@@ -152,11 +152,11 @@ export function QuestionBrowser({
         </div>
       </div>
 
-      <div className="space-y-3 rounded-[1.2rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.44)] p-4">
+      <div className="space-y-3 rounded-[1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.5)] p-4">
         <div>
-          <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">QUESTION LAYERS</p>
+          <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">DEEPER ARCHIVE</p>
           <p className="mt-1 text-sm text-[#cbbda5]">
-            Move from broad layers to finer ones instead of scrolling one giant list.
+            Open broader or narrower layers only when you need them.
           </p>
         </div>
 
@@ -173,7 +173,7 @@ export function QuestionBrowser({
                 "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
                 activeStage === entry.stage
                   ? "brand-paper"
-                  : "border-[rgba(240,217,162,0.16)] bg-[rgba(25,13,33,0.68)] text-[#dbcdb5] hover:border-[rgba(240,217,162,0.28)]",
+                  : "border-[rgba(240,217,162,0.16)] bg-[rgba(20,13,28,0.68)] text-[#dbcdb5] hover:border-[rgba(240,217,162,0.28)]",
               )}
             >
               {entry.meta.shortLabel} ({entry.groups.reduce((sum, group) => sum + group.questions.length, 0)})
@@ -191,7 +191,7 @@ export function QuestionBrowser({
                 "rounded-full border px-3 py-2 text-sm transition-colors duration-150",
                 activeGroup === entry.group
                   ? "brand-paper"
-                  : "border-[rgba(240,217,162,0.16)] bg-[rgba(25,13,33,0.68)] text-[#dbcdb5] hover:border-[rgba(240,217,162,0.28)]",
+                  : "border-[rgba(240,217,162,0.16)] bg-[rgba(20,13,28,0.68)] text-[#dbcdb5] hover:border-[rgba(240,217,162,0.28)]",
               )}
             >
               {entry.meta.label} ({entry.questions.length})
@@ -200,7 +200,7 @@ export function QuestionBrowser({
         </div>
 
         {selectedBucket ? (
-          <div className="space-y-3 rounded-[1.05rem] border border-[rgba(240,217,162,0.12)] bg-[rgba(24,12,31,0.58)] p-4">
+          <div className="space-y-3 rounded-[1rem] border border-[rgba(240,217,162,0.12)] bg-[rgba(20,12,29,0.62)] p-4">
             <div className="space-y-1">
               {stageBucket ? (
                 <p className="text-xs tracking-[0.16em] text-[#d6a653]">{stageBucket.meta.label}</p>
@@ -219,7 +219,7 @@ export function QuestionBrowser({
                   type="button"
                   onClick={() => onAskQuestion(question.id)}
                   disabled={isPending || remainingQuestions <= 0}
-                  className="rounded-[1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.64)] px-4 py-3 text-left text-sm leading-6 text-[#f7efd9] transition-colors duration-150 hover:border-[rgba(240,217,162,0.26)] hover:bg-[rgba(30,16,40,0.9)] disabled:cursor-not-allowed disabled:opacity-45"
+                  className="rounded-[0.95rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.72)] px-4 py-3 text-left text-sm leading-6 text-[#f7efd9] transition-colors duration-150 hover:border-[rgba(240,217,162,0.26)] hover:bg-[rgba(27,16,36,0.92)] disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {question.question}
                 </button>

@@ -27,6 +27,14 @@ const emotionMap: Record<
     blush: string;
   }
 > = {
+  welcome: {
+    mouth: "M127 139c9 7 18 7 27 0",
+    leftEye: "M112 116c4-5 10-5 14 0",
+    rightEye: "M141 116c4-5 10-5 14 0",
+    leftPupil: { x: 0, y: 0 },
+    rightPupil: { x: 0, y: 0 },
+    blush: "opacity-60",
+  },
   idle: {
     mouth: "M127 139c9 7 18 7 27 0",
     leftEye: "M112 116c4-5 10-5 14 0",
@@ -34,6 +42,14 @@ const emotionMap: Record<
     leftPupil: { x: 0, y: 0 },
     rightPupil: { x: 0, y: 0 },
     blush: "opacity-55",
+  },
+  observing: {
+    mouth: "M128 141c7 4 16 4 23 0",
+    leftEye: "M112 117c5-4 10-4 14 0",
+    rightEye: "M141 117c5-4 10-4 14 0",
+    leftPupil: { x: 1, y: -1 },
+    rightPupil: { x: 2, y: -1 },
+    blush: "opacity-32",
   },
   thinking: {
     mouth: "M128 142c7 3 15 3 22 0",
@@ -58,6 +74,14 @@ const emotionMap: Record<
     leftPupil: { x: 1, y: -1 },
     rightPupil: { x: 2, y: -1 },
     blush: "opacity-70",
+  },
+  teasing: {
+    mouth: "M127 141c9 6 20 8 30 1",
+    leftEye: "M111 116c5-5 10-5 15 0",
+    rightEye: "M141 115c5-6 10-6 15 0",
+    leftPupil: { x: 2, y: -1 },
+    rightPupil: { x: 3, y: -1 },
+    blush: "opacity-62",
   },
   celebration: {
     mouth: "M124 139c12 11 24 11 36 0",
@@ -103,6 +127,21 @@ const motionProfiles: Record<
     blinkDelay: number;
   }
 > = {
+  welcome: {
+    floatY: [0, -5, 0],
+    floatRotate: [0, 0.8, 0],
+    haloScale: [1, 1.05, 1],
+    haloOpacity: [0.38, 0.5, 0.38],
+    leftWingRotate: [-1, -4, -1],
+    rightWingRotate: [1, 4, 1],
+    leftArmRotate: [-6, -10, -6],
+    rightArmRotate: [6, 10, 6],
+    bodyRotate: [0, 0.8, 0],
+    bodyY: [0, -1.5, 0],
+    shadowScale: [1, 1.04, 1],
+    blinkDuration: 4.6,
+    blinkDelay: 1.8,
+  },
   idle: {
     floatY: [0, -5, 0],
     floatRotate: [0, 0.8, 0],
@@ -208,6 +247,36 @@ const motionProfiles: Record<
     blinkDuration: 4.1,
     blinkDelay: 1.4,
   },
+  observing: {
+    floatY: [0, -3, 0],
+    floatRotate: [0, -0.9, 0],
+    haloScale: [1, 1.02, 1],
+    haloOpacity: [0.32, 0.4, 0.32],
+    leftWingRotate: [-1, -4, -1],
+    rightWingRotate: [1, 4, 1],
+    leftArmRotate: [-10, -14, -10],
+    rightArmRotate: [4, 1, 4],
+    bodyRotate: [0, -1.2, 0],
+    bodyY: [0, -1.5, 0],
+    shadowScale: [1, 1.02, 1],
+    blinkDuration: 4.3,
+    blinkDelay: 1.2,
+  },
+  teasing: {
+    floatY: [0, -5, 0],
+    floatRotate: [0, 1.2, -0.8, 0],
+    haloScale: [1, 1.06, 1],
+    haloOpacity: [0.38, 0.5, 0.38],
+    leftWingRotate: [-2, -6, -2],
+    rightWingRotate: [2, 6, 2],
+    leftArmRotate: [-18, -14, -18],
+    rightArmRotate: [12, 16, 12],
+    bodyRotate: [0, 1.4, -0.8, 0],
+    bodyY: [0, -2, 0],
+    shadowScale: [1, 1.05, 1],
+    blinkDuration: 4.7,
+    blinkDelay: 2.2,
+  },
 };
 
 export function OracleMascot({
@@ -253,12 +322,30 @@ export function OracleMascot({
             y: [0, -8, 0],
             rotate: [0, -2.8, 2.2, 0],
           }
+        : resolvedState === "welcome"
+          ? {
+              scale: [1, 1.04, 1],
+              y: [0, -4, 0],
+              rotate: [0, -1.2, 1, 0],
+            }
         : resolvedState === "confident"
           ? {
               scale: [1, 1.05, 1],
               y: [0, -6, 0],
               rotate: [0, -1.2, 1.2, 0],
             }
+          : resolvedState === "teasing"
+            ? {
+                scale: [1, 1.05, 1],
+                y: [0, -5, 0],
+                rotate: [0, -2.2, 1.8, 0],
+              }
+            : resolvedState === "observing"
+              ? {
+                  scale: [1, 1.02, 1],
+                  y: [0, -3, 0],
+                  rotate: [0, -1.8, 0.6, 0],
+                }
           : resolvedState === "surprised"
             ? {
                 scale: [1, 1.03, 1],
@@ -499,7 +586,7 @@ export function OracleMascot({
               />
             </motion.g>
 
-            {resolvedState === "thinking" ? (
+            {resolvedState === "thinking" || resolvedState === "observing" ? (
               <motion.g
                 animate={{ opacity: [0.85, 1, 0.85], y: [0, -2, 0] }}
                 transition={{ duration: 2.3, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
@@ -510,7 +597,7 @@ export function OracleMascot({
               </motion.g>
             ) : null}
 
-            {resolvedState === "asking" ? (
+            {resolvedState === "asking" || resolvedState === "welcome" ? (
               <motion.g
                 animate={{ opacity: [0.7, 1, 0.7], x: [0, 3, 0] }}
                 transition={{ duration: 2.4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
@@ -520,7 +607,7 @@ export function OracleMascot({
               </motion.g>
             ) : null}
 
-            {resolvedState === "confident" ? (
+            {resolvedState === "confident" || resolvedState === "teasing" ? (
               <motion.g
                 animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.08, 1] }}
                 transition={{ duration: 1.8, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
@@ -528,6 +615,16 @@ export function OracleMascot({
               >
                 <path d="M218 58c8 6 14 14 17 24" stroke="#F0D9A2" strokeWidth="4" strokeLinecap="round" />
                 <path d="M226 40l5 10 10 5-10 4-5 10-4-10-10-4 10-5 4-10Z" fill="#F0D9A2" />
+              </motion.g>
+            ) : null}
+
+            {resolvedState === "teasing" ? (
+              <motion.g
+                animate={{ opacity: [0.4, 0.7, 0.4], x: [0, 2, 0] }}
+                transition={{ duration: 2.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+              >
+                <path d="M40 110c14-1 23 6 30 16" stroke="#D58A94" strokeWidth="4" strokeLinecap="round" />
+                <circle cx="82" cy="134" r="4" fill="#D58A94" />
               </motion.g>
             ) : null}
 

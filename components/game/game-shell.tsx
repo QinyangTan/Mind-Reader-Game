@@ -15,6 +15,7 @@ import { GuessMyMindBoard } from "@/components/game/guess-my-mind-board";
 import { PlaySetup, type SetupStep } from "@/components/game/play-setup";
 import { ReadMyMindBoard } from "@/components/game/read-my-mind-board";
 import { ResultScreen } from "@/components/game/result-screen";
+import { SceneCaption } from "@/components/game/scene-caption";
 import { StageHostRail } from "@/components/game/stage-host-rail";
 import { StatsPanel } from "@/components/game/stats-panel";
 import { Button } from "@/components/ui/button";
@@ -88,6 +89,94 @@ function pickValue<T extends string>(allowed: readonly T[], value: string | unde
 
 function resolveEntity(extraEntities: GameEntity[], id: string) {
   return entityById.get(id) ?? extraEntities.find((entity) => entity.id === id);
+}
+
+function buildSceneCopy(options: {
+  screen: ScreenState;
+  mode: StoredSettings["mode"];
+  setupStep: SetupStep;
+  isGuessScanning: boolean;
+  isRevealing: boolean;
+  result: GameResult | null;
+}) {
+  if (options.screen === "setup") {
+    switch (options.setupStep) {
+      case "mode":
+        return {
+          id: "setup-mode",
+          eyebrow: "Threshold scene",
+          title: "A ritual waits to be chosen",
+          detail: "Mora has opened the chamber. Pick the kind of mind-reading contest that will shape the rest of the night.",
+        };
+      case "category":
+        return {
+          id: "setup-category",
+          eyebrow: "Focus scene",
+          title: "The room asks what kind of thought you carry",
+          detail: "Name the domain, and the chamber will begin to narrow its questions around that single thread.",
+        };
+      case "difficulty":
+        return {
+          id: "setup-difficulty",
+          eyebrow: "Pressure scene",
+          title: "The stakes settle into place",
+          detail: "Set how much room either side gets to recover once the ritual sharpens.",
+        };
+      case "review":
+        return {
+          id: "setup-review",
+          eyebrow: "Invocation scene",
+          title: "The circle is almost closed",
+          detail: "Everything important is chosen. One final action starts the reading.",
+        };
+    }
+  }
+
+  if (options.screen === "play") {
+    if (options.mode === "read-my-mind") {
+      if (options.isGuessScanning || options.isRevealing) {
+        return {
+          id: "play-read-reveal",
+          eyebrow: "Revelation scene",
+          title: "The chamber falls silent around her answer",
+          detail: "Mora has stopped asking and started deciding. The next beat is a declaration.",
+        };
+      }
+
+      return {
+        id: "play-read-question",
+        eyebrow: "Reading scene",
+        title: "Mora listens for the shape of your thought",
+        detail: "Each reply becomes part of the ritual. Keep the truth simple and let her tighten the pattern.",
+      };
+    }
+
+    return {
+      id: "play-guess-question",
+      eyebrow: "Contest scene",
+      title: "You question the psychic while she guards her secret",
+      detail: "Pull one clue at a time. Her answers are calm on the surface, but the pattern still leaks through.",
+    };
+  }
+
+  if (options.result?.teachable && options.result.winner === "player") {
+    return {
+      id: "result-teach",
+      eyebrow: "Aftermath scene",
+      title: "The chamber pauses to learn what escaped",
+      detail: "A missed thought is not the end of the ritual. You can teach Mora what slipped beyond her reach.",
+    };
+  }
+
+  return {
+    id: options.result?.winner === "player" ? "result-player" : "result-system",
+    eyebrow: "Aftermath scene",
+    title:
+      options.result?.winner === "player"
+        ? "The veil breaks and the room gives the point to you"
+        : "Mora holds the room with the certainty of a finished reveal",
+    detail: "The ritual is over. Take in the result, then decide whether to step back into the circle.",
+  };
 }
 
 export function GameShell({ initialMode, initialCategory, initialDifficulty }: GameShellProps) {
@@ -540,79 +629,87 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const stageHostTitle =
     screen === "setup"
       ? setupStep === "mode"
-        ? "Curtain up."
+        ? "The chamber wakes."
         : setupStep === "category"
-          ? "The cast narrows."
+          ? "Choose the focus."
           : setupStep === "difficulty"
-            ? "Pressure rises."
-            : "Mora is ready."
+            ? "Decide the stakes."
+            : "The circle is set."
       : screen === "play"
         ? settings.mode === "read-my-mind"
           ? isGuessScanning || isRevealing
-            ? "The guess is forming."
-            : "One answer at a time."
-          : "Pull one clue."
+            ? "Her answer is forming."
+            : "Let her read you."
+          : "Read her, if you can."
         : result?.winner === "player"
-          ? "The room reacts."
+          ? "You broke the veil."
           : "Mora takes the bow.";
   const stageHostCue =
     screen === "setup"
       ? setupStep === "mode"
-        ? "Choose the ritual you want me to run. Once that is set, the rest of the room falls into place."
+        ? "Choose which ritual you want to begin. Once that is decided, the rest of the chamber falls into place."
         : setupStep === "category"
-          ? "Now pick the cast. I only need one category before the round can sharpen."
+          ? "Name the kind of thought we are hunting. One focus is enough to sharpen everything that follows."
           : setupStep === "difficulty"
-            ? "Decide how much pressure you want. Higher pressure means fewer chances to recover."
-            : "Everything is locked. Start the round when you want the chamber to speak."
+            ? "Decide how much pressure you want in the room. More pressure means fewer recoveries."
+            : "Everything is in place. Start when you are ready to let the chamber speak."
       : screen === "play"
         ? settings.mode === "read-my-mind"
           ? isGuessScanning || isRevealing
-            ? "Stay still for one beat. I’m turning your answers into a single clear reveal."
-            : "Keep your eyes on the center question and answer with the closest fit."
-          : "Pull one clue from the center list. When the pattern feels tight enough, switch to a guess."
+            ? "Stay still for one breath. Mora is drawing your answers into a single declaration."
+            : "Keep your eyes on her question and answer with the closest truth."
+          : "Ask one clear question, listen to her reply, and move to a guess only when the pattern truly narrows."
         : result?.teachable
           ? teachSaved
-            ? "I’ve tucked that lesson away. You can start another round whenever you like."
-            : "If this round slipped, teach me the missing pattern after you take in the result."
-          : "Take the result, then decide whether you want another round.";
+            ? "That lesson is tucked safely into memory. Another ritual can begin whenever you like."
+            : "If this ritual slipped, teach Mora what she missed after you take in the result."
+          : "Take the result, then decide whether you want to step back into the chamber.";
   const stageHostNextAction =
     screen === "setup"
       ? setupStep === "mode"
-        ? "Select one ritual"
+        ? "Choose one ritual"
         : setupStep === "category"
           ? "Choose one category"
-          : setupStep === "difficulty"
+        : setupStep === "difficulty"
             ? "Choose one pressure level"
-            : "Press the main start button"
+            : "Begin the ritual"
       : screen === "play"
         ? settings.mode === "read-my-mind"
           ? isGuessScanning || isRevealing
             ? "Wait for the reveal"
             : "Use the answer buttons below"
-          : "Pick one clue or switch to a guess"
+          : "Ask one question or make your guess"
         : result?.teachable && !teachSaved
           ? "Play again or teach Mora"
           : "Play again";
   const stageHostDetail =
     screen === "setup"
       ? setupStep === "mode"
-        ? "Start with the ritual. The center panel stays focused so the first decision feels obvious."
+        ? "The chamber starts with a single story choice, not a wall of controls."
         : setupStep === "category"
-          ? "Now narrow the cast. Only the category choice stays in view while the host rail keeps the context."
+          ? "Only the focus domain stays in front of you while Mora holds the rest of the atmosphere."
           : setupStep === "difficulty"
-            ? "Set the pressure, then let the room commit. Limits are clear without turning the setup into a dashboard."
-            : "The choices are locked. One primary button starts the round and everything else steps back."
+            ? "Choose the pressure, then let the room commit. Limits stay clear without turning this into a dashboard."
+            : "One main button starts the ritual. Everything else steps politely back."
       : screen === "play"
         ? settings.mode === "read-my-mind"
-          ? "The prompt stays central while Mora tracks the signal from the left rail."
-          : "The clue list stays short, the guess stays separate, and the sponsor rail never overruns the stage."
+          ? "The spoken question stays central while Mora studies you from the left side of the room."
+          : "The clue flow stays conversational, and the guessing move stays separate so the path never blurs."
         : result?.teachable
-          ? "The round resolves cleanly first. Corrections and memory work stay demoted until you ask for them."
-          : "A result should land fast, read fast, and hand you one obvious next move.";
+          ? "The ritual resolves first. Corrections and memory work only come forward after the reveal lands."
+          : "The result lands quickly, reads quickly, and gives you one clear next move.";
   const activeLimits =
     settings.mode === "read-my-mind"
       ? difficultyConfig[settings.difficulty].readMyMind
       : difficultyConfig[settings.difficulty].guessMyMind;
+  const sceneCopy = buildSceneCopy({
+    screen,
+    mode: settings.mode,
+    setupStep,
+    isGuessScanning,
+    isRevealing,
+    result,
+  });
 
   return (
     <div className="relative min-h-screen overflow-hidden text-[#f7efd9]">
@@ -627,24 +724,26 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
                 {screen === "setup" ? <p className="text-sm text-[#dbcdb5]">{setupSubtitle}</p> : null}
                 {screen === "play" ? (
                   <p className="text-sm text-[#dbcdb5]">
-                    {settings.mode === "read-my-mind" ? "Answer the current probe." : "Pick a clue or switch to a guess."}
+                    {settings.mode === "read-my-mind"
+                      ? "Stay in the exchange and answer her cleanly."
+                      : "Follow the conversation until you are ready to confront her with a guess."}
                   </p>
                 ) : null}
-                {screen === "result" ? <p className="text-sm text-[#dbcdb5]">Round complete.</p> : null}
+                {screen === "result" ? <p className="text-sm text-[#dbcdb5]">The ritual has resolved.</p> : null}
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
                 {screen === "setup" ? (
-                  <Button variant="secondary" onClick={() => setStatsOpen(true)}>
+                  <Button size="sm" variant="ghost" onClick={() => setStatsOpen(true)}>
                     <BookHeart className="h-4 w-4" />
-                    Archive
+                    Chamber memory
                   </Button>
                 ) : null}
 
                 {screen === "play" ? (
-                  <Button variant="ghost" onClick={handleBackToSetup}>
+                  <Button size="sm" variant="ghost" onClick={handleBackToSetup}>
                     <ArrowLeft className="h-4 w-4" />
-                    Leave round
+                    Step out
                   </Button>
                 ) : null}
               </div>
@@ -653,8 +752,8 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             <div className="hidden lg:block xl:hidden">
               <AdSlot
                 size="leaderboard"
-                label="Stage sponsor"
-                title="Reserved top banner"
+                label="Chamber notice"
+                title="Reserved upper banner"
                 fallbackVariant={screen === "result" ? "featured" : "supporter"}
               >
                 <MediaAdCard
@@ -678,7 +777,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             nextAction={stageHostNextAction}
           >
             <div className="rounded-[1.15rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.46)] px-4 py-4 text-sm text-[#dbcdb5]">
-              <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">ROUND SUMMARY</p>
+              <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">RITUAL SUMMARY</p>
               <div className="mt-3 space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <span>Ritual</span>
@@ -707,15 +806,15 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
           <div className="space-y-3">
             <div className="rounded-[1.05rem] border border-[rgba(240,217,162,0.12)] bg-[rgba(18,10,24,0.52)] px-4 py-3 text-xs text-[#cbbda5] sm:text-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>Mind Reader keeps the action in the center, the host on the left, and sponsor space out of the way.</span>
-                <span className="text-[#f0d9a2]">Local-first. Ad-aware. One decision at a time.</span>
+                <span>The chamber keeps the ritual in the center, Mora on the left, and everything secondary at the edges.</span>
+                <span className="text-[#f0d9a2]">Local-first. Story-led. One decision at a time.</span>
               </div>
             </div>
 
             <div className="xl:hidden">
               <AdSlot
                 size="mobile"
-                label="Stage sponsor"
+                label="Chamber notice"
                 title="Reserved mobile banner"
                 fallbackVariant={screen === "play" ? "nightly-challenge" : "supporter"}
               >
@@ -729,85 +828,94 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
           </div>
         }
       >
-        <AnimatePresence mode="wait">
-          {screen === "setup" ? (
-            <motion.div
-              key="setup"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <PlaySetup
-                settings={settings}
-                onChange={updateSettings}
-                onStart={() => launchSession(settings)}
-                isPending={isPending}
-                teachCaseCount={teachCasesForCategory}
-                onStepChange={setSetupStep}
-              />
-            </motion.div>
-          ) : null}
+        <div className="space-y-5">
+          <SceneCaption
+            sceneId={sceneCopy.id}
+            eyebrow={sceneCopy.eyebrow}
+            title={sceneCopy.title}
+            detail={sceneCopy.detail}
+          />
 
-          {screen === "play" && settings.mode === "read-my-mind" && readSession ? (
-            <motion.div
-              key={`play-read-${readSession.startedAt}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <ReadMyMindBoard
-                session={readSession}
-                onAnswer={handleReadAnswer}
-                isPending={isPending || isRevealing}
-                isScanningGuess={isGuessScanning || isRevealing}
-                teachEntities={activeTeachEntityById}
-                mascotReactionKey={mascotReactionKey}
-              />
-            </motion.div>
-          ) : null}
+          <AnimatePresence mode="wait" initial={false}>
+            {screen === "setup" ? (
+              <motion.div
+                key="setup"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <PlaySetup
+                  settings={settings}
+                  onChange={updateSettings}
+                  onStart={() => launchSession(settings)}
+                  isPending={isPending}
+                  teachCaseCount={teachCasesForCategory}
+                  onStepChange={setSetupStep}
+                />
+              </motion.div>
+            ) : null}
 
-          {screen === "play" && settings.mode === "guess-my-mind" && guessSession ? (
-            <motion.div
-              key={`play-guess-${guessSession.startedAt}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <GuessMyMindBoard
-                session={guessSession}
-                onAskQuestion={handleAskQuestion}
-                onSubmitGuess={handleSubmitGuess}
-                isPending={isPending || isRevealing}
-                teachEntities={activeTeachEntityById}
-                mascotReactionKey={mascotReactionKey}
-                inferenceModel={learnedStore.model}
-              />
-            </motion.div>
-          ) : null}
+            {screen === "play" && settings.mode === "read-my-mind" && readSession ? (
+              <motion.div
+                key={`play-read-${readSession.startedAt}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <ReadMyMindBoard
+                  session={readSession}
+                  onAnswer={handleReadAnswer}
+                  isPending={isPending || isRevealing}
+                  isScanningGuess={isGuessScanning || isRevealing}
+                  teachEntities={activeTeachEntityById}
+                  mascotReactionKey={mascotReactionKey}
+                />
+              </motion.div>
+            ) : null}
 
-          {screen === "result" && result ? (
-            <motion.div
-              key={`result-${result.id}`}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <ResultScreen
-                result={result}
-                onPlayAgain={handlePlayAgain}
-                onBackToSetup={handleBackToSetup}
-                onTeach={handleTeach}
-                teachSaved={teachSaved}
-                teachEntities={activeTeachEntityById}
-                teachTrail={readTrailSnapshot}
-              />
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
+            {screen === "play" && settings.mode === "guess-my-mind" && guessSession ? (
+              <motion.div
+                key={`play-guess-${guessSession.startedAt}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <GuessMyMindBoard
+                  session={guessSession}
+                  onAskQuestion={handleAskQuestion}
+                  onSubmitGuess={handleSubmitGuess}
+                  isPending={isPending || isRevealing}
+                  teachEntities={activeTeachEntityById}
+                  mascotReactionKey={mascotReactionKey}
+                  inferenceModel={learnedStore.model}
+                />
+              </motion.div>
+            ) : null}
+
+            {screen === "result" && result ? (
+              <motion.div
+                key={`result-${result.id}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <ResultScreen
+                  result={result}
+                  onPlayAgain={handlePlayAgain}
+                  onBackToSetup={handleBackToSetup}
+                  onTeach={handleTeach}
+                  teachSaved={teachSaved}
+                  teachEntities={activeTeachEntityById}
+                  teachTrail={readTrailSnapshot}
+                />
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+        </div>
       </ParlorStage>
 
       <EntityGuessDialog

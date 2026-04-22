@@ -1,8 +1,11 @@
 export const mascotStates = [
+  "welcome",
   "idle",
+  "observing",
   "thinking",
   "asking",
   "confident",
+  "teasing",
   "celebration",
   "surprised",
   "learning",

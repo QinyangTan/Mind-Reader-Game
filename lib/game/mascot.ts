@@ -6,15 +6,15 @@ export type SetupMascotStep = "mode" | "category" | "difficulty" | "review";
 export function getSetupMascotState(step: SetupMascotStep): MascotState {
   switch (step) {
     case "mode":
-      return "idle";
+      return "welcome";
     case "category":
       return "asking";
     case "difficulty":
-      return "thinking";
+      return "observing";
     case "review":
       return "confident";
     default:
-      return "idle";
+      return "welcome";
   }
 }
 
@@ -31,7 +31,7 @@ export function getQuestionMascotState(options: {
     return "thinking";
   }
 
-  return options.mode === "guess-my-mind" ? "asking" : "asking";
+  return options.mode === "guess-my-mind" ? "teasing" : "asking";
 }
 
 export function getResultMascotState(options: {
@@ -47,7 +47,7 @@ export function getResultMascotState(options: {
     return options.result.winner === "system" ? "celebration" : "surprised";
   }
 
-  return options.result.winner === "player" ? "celebration" : "confident";
+  return options.result.winner === "player" ? "celebration" : "teasing";
 }
 
 export function getMascotFacing(mode?: GameMode, reverse = false): MascotFacing {
@@ -61,47 +61,64 @@ export function getMascotFacing(mode?: GameMode, reverse = false): MascotFacing 
 
 export function getMascotCopy(state: MascotState, mode?: GameMode) {
   const readPrompt =
-    mode === "guess-my-mind" ? "Pick a clue, then name the pattern." : "One answer at a time. Mora keeps up.";
+    mode === "guess-my-mind"
+      ? "Ask one clear clue, listen to her answer, then decide whether to press your guess."
+      : "Hold your thought steady. Mora will pull the pattern forward one question at a time.";
 
   switch (state) {
+    case "welcome":
+      return {
+        title: "The chamber opens.",
+        detail: "Mora waits in the candlelight, ready to lead you into a single clean choice.",
+      };
     case "idle":
       return {
-        title: "Mora is ready.",
-        detail: "Quiet wings, clear choices, and one clean path into the parlor.",
+        title: "The room is listening.",
+        detail: "Nothing moves until you choose the next ritual step.",
+      };
+    case "observing":
+      return {
+        title: "She studies the room.",
+        detail: "The next move is still yours, but Mora is already weighing the shape of it.",
       };
     case "thinking":
       return {
-        title: "Reading the room.",
-        detail: "A better hint is forming. Hold the stage for one beat.",
+        title: "She goes quiet.",
+        detail: "The answer is forming beneath the surface. Give the chamber one short beat.",
       };
     case "asking":
       return {
-        title: "Follow the signal.",
+        title: "Answer her clearly.",
         detail: readPrompt,
       };
     case "confident":
       return {
-        title: "The pattern is sharp.",
-        detail: "Mora leans in when the next reveal feels strong enough to matter.",
+        title: "She sees the thread.",
+        detail: "Mora only leans in when the pattern feels sharp enough for a real reveal.",
+      };
+    case "teasing":
+      return {
+        title: "She knows more than she says.",
+        detail: "In this ritual the psychic guards the secret, but every answer still gives something away.",
       };
     case "celebration":
       return {
-        title: "That landed.",
-        detail: "The room rewards a clean reveal with one quick spark and no extra noise.",
+        title: "The chamber approves.",
+        detail: "A clean reveal lands with a bright pulse, then gives the stage back to you.",
       };
     case "surprised":
       return {
         title: "The signal slipped.",
-        detail: "A miss is still useful. Mora remembers where the pattern broke.",
+        detail: "Even a miss becomes part of the chamber’s memory if you choose to teach it.",
       };
     case "learning":
       return {
-        title: "Commit it to memory.",
-        detail: "Teach one useful trait and the parlor carries it into the next round.",
+        title: "Teach the chamber.",
+        detail: "Name what escaped and Mora will carry that lesson into the next ritual.",
       };
     default:
       return {
-        title: "Mora is ready.",
+        title: "The chamber opens.",
         detail: "One clear decision at a time.",
       };
   }

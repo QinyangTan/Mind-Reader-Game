@@ -16,7 +16,7 @@ interface OracleStageProps {
 
 export function OracleStage({
   mood = "idle",
-  label = "Moon Moth Parlor",
+  label = "The Psychic Chamber",
   title,
   description,
   note,

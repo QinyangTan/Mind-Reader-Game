@@ -36,22 +36,51 @@ export function StageHostRail({
 }: StageHostRailProps) {
   const copy = getMascotCopy(state, mode);
   const resolvedCue = cue ?? copy.detail;
-  const bubbleTone =
-    state === "celebration"
-      ? "border-[rgba(214,166,83,0.24)] bg-[rgba(241,227,188,0.96)] text-[#3d2a24]"
-      : state === "confident"
-        ? "border-[rgba(214,166,83,0.24)] bg-[rgba(241,227,188,0.96)] text-[#3d2a24]"
-        : "border-[rgba(214,166,83,0.18)] bg-[rgba(241,227,188,0.94)] text-[#3f2b25]";
+  const stateLabel =
+    state === "welcome"
+      ? "welcoming"
+      : state === "observing"
+        ? "observing"
+        : state === "thinking"
+          ? "listening"
+          : state === "asking"
+            ? "asking"
+            : state === "teasing"
+              ? "guarding"
+              : state === "confident"
+                ? "revealing"
+                : state === "celebration"
+                  ? "radiant"
+                  : state === "learning"
+                    ? "learning"
+                    : "surprised";
+  const speechTone =
+    state === "celebration" || state === "confident" || state === "teasing"
+      ? "border-[rgba(214,166,83,0.22)] bg-[rgba(246,233,204,0.94)] text-[#2f221d]"
+      : "border-[rgba(214,166,83,0.18)] bg-[rgba(238,227,202,0.92)] text-[#352822]";
 
   return (
     <aside className={cn("sticky top-5 space-y-4", className)}>
-      <div className="overflow-hidden rounded-[1.35rem] border border-[rgba(214,166,83,0.24)] bg-[linear-gradient(180deg,rgba(44,18,43,0.98),rgba(20,10,28,0.98))] p-4 shadow-[0_18px_44px_rgba(12,7,18,0.3)]">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-[0.68rem] tracking-[0.24em] text-[#d6a653]">HOST STAGE</p>
-          <span className="h-2.5 w-2.5 rounded-full bg-[#d6a653]" />
+      <div className="relative overflow-hidden rounded-[1.5rem] border border-[rgba(214,166,83,0.22)] bg-[linear-gradient(180deg,rgba(24,16,34,0.98),rgba(12,8,18,0.98))] p-4 shadow-[0_28px_54px_rgba(7,4,12,0.42)]">
+        <div className="absolute inset-x-8 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(240,217,162,0.5),transparent)]" />
+        <div className="absolute inset-x-5 top-16 h-40 rounded-[48%] bg-[radial-gradient(circle,rgba(105,130,176,0.16),transparent_62%)]" />
+        <div className="absolute inset-x-6 bottom-5 h-28 rounded-[40%] border border-[rgba(240,217,162,0.08)] bg-[linear-gradient(180deg,rgba(31,17,40,0),rgba(10,7,16,0.5))]" />
+
+        <div className="relative flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[0.64rem] tracking-[0.28em] text-[#d6a653]">CHAMBER GUIDE</p>
+            <p className="mt-1 text-xs text-[#a89986]">Mora, the hooded seer</p>
+          </div>
+          <span className="rounded-full border border-[rgba(240,217,162,0.18)] bg-[rgba(240,217,162,0.06)] px-2.5 py-1 text-[0.62rem] tracking-[0.18em] text-[#f0d9a2]">
+            {stateLabel}
+          </span>
         </div>
 
-        <OracleMascot state={state} facing={facing} reactionKey={reactionKey} className="mx-auto mt-4 max-w-[11.5rem]" />
+        <div className="relative mt-4 overflow-hidden rounded-[1.35rem] border border-[rgba(240,217,162,0.12)] bg-[linear-gradient(180deg,rgba(21,14,31,0.64),rgba(9,7,15,0.92))] px-3 pb-3 pt-4">
+          <div className="absolute inset-x-8 top-3 h-24 rounded-full bg-[radial-gradient(circle,rgba(240,217,162,0.18),transparent_66%)] blur-xl" />
+          <div className="absolute bottom-0 left-1/2 h-16 w-[82%] -translate-x-1/2 rounded-[50%] bg-[radial-gradient(circle,rgba(18,10,24,0.78),transparent_74%)]" />
+          <OracleMascot state={state} facing={facing} reactionKey={reactionKey} className="relative mx-auto mt-1 max-w-[12.5rem]" />
+        </div>
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -60,9 +89,9 @@ export function StageHostRail({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className={cn("relative mt-4 rounded-[1.1rem] border px-4 py-3 shadow-[0_10px_28px_rgba(12,7,18,0.18)]", bubbleTone)}
+            className={cn("relative mt-4 rounded-[1.15rem] border px-4 py-3 shadow-[0_12px_24px_rgba(10,7,14,0.16)]", speechTone)}
           >
-            <div className={cn("absolute left-8 top-0 h-3.5 w-3.5 -translate-y-1/2 rotate-45 border-l border-t", bubbleTone)} />
+            <div className={cn("absolute left-8 top-0 h-3.5 w-3.5 -translate-y-1/2 rotate-45 border-l border-t", speechTone)} />
 
             <div className="flex items-center justify-between gap-3">
               <p className="text-[0.64rem] font-semibold tracking-[0.24em] text-[#8a5b24]">MORA SAYS</p>
@@ -89,8 +118,8 @@ export function StageHostRail({
         </AnimatePresence>
 
         <div className="mt-4 space-y-2">
-          <h2 className="font-display text-[2rem] leading-none text-[#f7efd9]">{title ?? copy.title}</h2>
-          <p className="text-sm leading-6 text-[#dbcdb5]">{detail ?? copy.detail}</p>
+          <h2 className="font-display text-[2.2rem] leading-[0.92] text-[#f7efd9]">{title ?? copy.title}</h2>
+          <p className="text-sm leading-6 text-[#cdbfa8]">{detail ?? copy.detail}</p>
         </div>
       </div>
 

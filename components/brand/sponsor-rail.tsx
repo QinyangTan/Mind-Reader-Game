@@ -20,9 +20,9 @@ export function SponsorRail({ context = "landing", className }: SponsorRailProps
 
   return (
     <aside className={cn("space-y-4", className)}>
-      <div className="rounded-[1.4rem] border border-[rgba(214,166,83,0.22)] bg-[rgba(18,10,24,0.58)] px-4 py-3 text-sm leading-6 text-[#dbcdb5]">
-        <p className="text-[0.68rem] tracking-[0.26em] text-[#d6a653]">SPONSOR RAIL</p>
-        Poster and video placeholders live here by default, with house creatives ready as a fallback if media is unavailable.
+      <div className="rounded-[1.15rem] border border-[rgba(214,166,83,0.18)] bg-[rgba(14,10,21,0.58)] px-4 py-3 text-sm leading-6 text-[#dbcdb5]">
+        <p className="text-[0.68rem] tracking-[0.26em] text-[#d6a653]">NOTICE BOARD</p>
+        Framed sponsor and house notices stay on the chamber wall so the center ritual remains dominant.
       </div>
 
       <AdSlot size="rectangle" title="Poster sponsor" fallbackVariant={variants[0]}>

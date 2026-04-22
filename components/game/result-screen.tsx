@@ -114,16 +114,16 @@ export function ResultScreen({
 
   return (
     <div className="mx-auto max-w-[900px] space-y-5">
-      <MindChamberPanel title={result.title}>
-        <div className="relative overflow-hidden rounded-[1.7rem] border border-[rgba(214,166,83,0.22)] bg-[rgba(18,10,24,0.48)] p-6 sm:p-7">
+      <MindChamberPanel eyebrow="Aftermath" title={result.title}>
+        <div className="relative overflow-hidden rounded-[1.3rem] border border-[rgba(214,166,83,0.18)] bg-[rgba(14,10,21,0.58)] p-6 sm:p-7">
           <div className="absolute inset-x-0 top-0 h-px bg-[rgba(240,217,162,0.5)]" />
 
           <div className="flex items-center gap-2 text-sm text-[#f0d9a2]">
             {isPlayerWin ? <Trophy className="h-4 w-4" /> : <BrainCircuit className="h-4 w-4" />}
-            {isPlayerWin ? "Player win" : "System win"}
+            {isPlayerWin ? "Your victory" : "Mora's victory"}
             {revealedFromTeachLibrary ? (
               <span className="rounded-md border border-[rgba(214,166,83,0.22)] bg-[rgba(240,217,162,0.1)] px-2 py-0.5 text-xs text-[#f0d9a2]">
-                Teach memory
+                Learned memory
               </span>
             ) : null}
           </div>
@@ -134,7 +134,7 @@ export function ResultScreen({
                 <div className="flex items-center gap-5">
                   <motion.div
                     aria-hidden
-                    className="brand-paper flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.3rem] text-4xl sm:h-24 sm:w-24 sm:text-5xl"
+                    className="brand-paper flex h-20 w-20 shrink-0 items-center justify-center rounded-[1rem] text-4xl sm:h-24 sm:w-24 sm:text-5xl"
                     initial={{ scale: 0.7, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
@@ -168,12 +168,12 @@ export function ResultScreen({
               mode={result.mode}
               facing={getMascotFacing(result.mode)}
               className="xl:hidden"
-              title={teachOpen || teachSaved ? "Mora is learning." : undefined}
+              title={teachOpen || teachSaved ? "Mora listens closely." : undefined}
             />
           </div>
         </div>
 
-        <div className="rounded-[1.3rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.46)] px-4 py-4 text-sm text-[#dbcdb5]">
+        <div className="rounded-[1.05rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(14,10,21,0.56)] px-4 py-4 text-sm text-[#dbcdb5]">
           <span className="text-[#f7efd9]">{result.questionsUsed}</span> of {limits.maxQuestions} questions used
           <span className="mx-2 text-[#8e7860]">•</span>
           <span className="text-[#f7efd9]">{result.guessesUsed}</span> of {limits.maxGuesses} guesses used
@@ -182,8 +182,8 @@ export function ResultScreen({
         </div>
 
         {result.strongestQuestion ? (
-          <div className="brand-paper rounded-[1.3rem] px-4 py-4">
-            <p className="text-[0.72rem] font-semibold tracking-[0.22em] text-[#8a5b24]">STRONGEST NARROWING</p>
+          <div className="brand-paper rounded-[1.05rem] px-4 py-4">
+            <p className="text-[0.72rem] font-semibold tracking-[0.22em] text-[#8a5b24]">TURNING POINT</p>
             <p className="mt-2 text-sm leading-6 text-[#4b3430]">{result.strongestQuestion.questionPrompt}</p>
             <p className="mt-2 text-xs text-[#7a5b46]">
               {result.strongestQuestion.questionLabel} · {result.strongestQuestion.answer.replace("_", " ")}
@@ -203,11 +203,11 @@ export function ResultScreen({
         </div>
 
         {result.teachable ? (
-          <div className="space-y-4 rounded-[1.35rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.44)] p-4">
+          <div className="space-y-4 rounded-[1.15rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(14,10,21,0.56)] p-4">
             {!teachOpen && !teachSaved ? (
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm leading-6 text-[#dbcdb5]">
-                  Want to teach Mora what escaped this round?
+                  If she missed the thought, you can teach Mora what escaped this ritual.
                 </p>
                 <Button type="button" variant="ghost" onClick={() => setTeachOpen(true)}>
                   Teach Mora
@@ -223,26 +223,26 @@ export function ResultScreen({
                   state="learning"
                   mode={result.mode}
                   facing={getMascotFacing(result.mode, true)}
-                  title={teachSaved ? "Mora remembers this one." : "Teach the missing pattern."}
+                  title={teachSaved ? "Mora remembers this one." : "Name the thought she missed."}
                 />
 
                 <Input
                   value={entityName}
                   onChange={(event) => setEntityName(event.target.value)}
-                  placeholder="Correct entity name"
+                  placeholder="What were you really thinking of?"
                   disabled={teachSaved}
                 />
                 <textarea
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
-                  placeholder="One useful note"
+                  placeholder="One useful note Mora should remember next time"
                   rows={4}
                   disabled={teachSaved}
-                  className="w-full rounded-[1rem] border border-[rgba(214,166,83,0.28)] bg-[rgba(24,12,28,0.82)] px-4 py-3 text-sm text-[#f7efd9] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#af9c83] focus:border-[#e7c977] focus:bg-[rgba(32,16,38,0.96)] focus:ring-2 focus:ring-[#d6a653]/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-[0.95rem] border border-[rgba(214,166,83,0.24)] bg-[rgba(18,12,24,0.88)] px-4 py-3 text-sm text-[#f7efd9] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#af9c83] focus:border-[#e7c977] focus:bg-[rgba(26,17,34,0.96)] focus:ring-2 focus:ring-[#d6a653]/20 disabled:cursor-not-allowed disabled:opacity-60"
                 />
 
                 {remainingAttributes.length > 0 ? (
-                  <div className="rounded-[1.2rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.48)]">
+                  <div className="rounded-[1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(14,10,21,0.6)]">
                     <button
                       type="button"
                       onClick={() => setRefineOpen((open) => !open)}
@@ -263,7 +263,7 @@ export function ResultScreen({
                           return (
                             <div
                               key={key}
-                              className="brand-inset flex items-center justify-between gap-3 rounded-lg px-3 py-2"
+                              className="brand-inset flex items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2"
                             >
                               <span className="text-sm text-[#f7efd9]">{getAttributeLabel(key, result.category)}</span>
                               <div className="flex items-center gap-1">
@@ -281,7 +281,7 @@ export function ResultScreen({
                                         }))
                                       }
                                       className={cn(
-                                        "rounded-md border px-3 py-1 text-xs transition duration-150 disabled:cursor-not-allowed disabled:opacity-60",
+                                        "rounded-[0.75rem] border px-3 py-1 text-xs transition duration-150 disabled:cursor-not-allowed disabled:opacity-60",
                                         isActive
                                           ? choice.tone
                                           : "border-[rgba(240,217,162,0.14)] bg-[rgba(24,12,28,0.82)] text-[#dbcdb5] hover:border-[rgba(240,217,162,0.24)]",
@@ -319,8 +319,8 @@ export function ResultScreen({
                 </div>
 
                 {teachSaved ? (
-                  <div className="rounded-[1.2rem] border border-[rgba(214,166,83,0.2)] bg-[rgba(240,217,162,0.12)] px-4 py-4 text-sm text-[#f0d9a2]">
-                    Saved. The parlor now remembers this escape in local storage.
+                  <div className="rounded-[1rem] border border-[rgba(214,166,83,0.2)] bg-[rgba(240,217,162,0.12)] px-4 py-4 text-sm text-[#f0d9a2]">
+                    Saved. The chamber will remember this lesson in future rituals.
                   </div>
                 ) : null}
               </div>

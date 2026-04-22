@@ -48,26 +48,24 @@ export function EntityGuessDialog({
   return (
     <Dialog open={open}>
       <DialogContent className="max-w-2xl overflow-hidden p-0">
-        <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#f0d9a2,#d6a653,#f0d9a2)]" />
-
         <div className="p-7 sm:p-8">
           <DialogHeader className="gap-4">
             <div className="flex items-center gap-2 text-sm text-[#f0d9a2]">
               {fromTeachLibrary ? <Library className="h-4 w-4" /> : <BrainCircuit className="h-4 w-4" />}
-              {fromTeachLibrary ? "Memory vault guess" : "Psychic guess"}
+              {fromTeachLibrary ? "Memory echo" : "Psychic declaration"}
             </div>
 
-            <div className="brand-paper rounded-[1.5rem] p-5 sm:p-6">
+            <div className="brand-paper rounded-[1.2rem] p-5 sm:p-6">
               <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
                 <div className="min-w-0">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] border border-[rgba(138,91,36,0.18)] bg-white/35 text-4xl">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1rem] border border-[rgba(138,91,36,0.18)] bg-white/35 text-4xl">
                       {entity.imageEmoji}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[0.72rem] font-semibold tracking-[0.24em] text-[#8a5b24]">FINAL REVEAL</p>
-                      <DialogTitle className="mt-2 font-display text-4xl leading-none text-[#2b1a1e] sm:text-[2.7rem]">
-                        Are you thinking of {entity.name}?
+                      <p className="text-[0.72rem] font-semibold tracking-[0.24em] text-[#8a5b24]">MORA SPEAKS</p>
+                      <DialogTitle className="mt-2 font-display text-4xl leading-[0.94] text-[#2b1a1e] sm:text-[2.7rem]">
+                        I see it now. Are you thinking of {entity.name}?
                       </DialogTitle>
                     </div>
                   </div>
@@ -81,15 +79,15 @@ export function EntityGuessDialog({
                   compact
                   state="confident"
                   title="Mora steps forward."
-                  detail="The signal is strong enough for one clear yes-or-no reveal."
+                  detail="The signal is strong enough for one clear yes-or-no answer."
                 />
               </div>
             </div>
           </DialogHeader>
 
           <p className="mt-5 text-sm leading-6 text-[#dbcdb5]">
-            Roughly {Math.round(confidence * 100)}% confidence. {guessesRemaining} guess
-            {guessesRemaining === 1 ? "" : "es"} remain after this reveal.
+            The chamber is roughly {Math.round(confidence * 100)}% certain. {guessesRemaining} guess
+            {guessesRemaining === 1 ? "" : "es"} remain after this declaration.
           </p>
 
           <DialogFooter className="mt-8">

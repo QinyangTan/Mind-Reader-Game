@@ -33,7 +33,7 @@ export function BrandLogo({
               Mind Reader
             </p>
             <p className={cn("text-xs tracking-[0.26em]", tone === "light" ? "text-[#d5b06a]" : "text-[#936522]")}>
-              MOON MOTH PARLOR
+              THE PSYCHIC CHAMBER
             </p>
           </div>
         ) : null}
@@ -65,7 +65,7 @@ export function BrandLogo({
             tone === "light" ? "text-[#d5b06a]" : "text-[#936522]",
           )}
         >
-          THE MOON MOTH PARLOR
+          THE PSYCHIC CHAMBER
         </p>
         <div
           className={cn(
@@ -74,7 +74,7 @@ export function BrandLogo({
           )}
         />
         <p className={cn("mt-3 text-sm sm:text-base", tone === "light" ? "text-[#d8cab1]" : "text-[#4f334a]")}>
-          A theatrical browser game of impossible hunches and hidden identities.
+          A cinematic browser ritual of hidden thoughts, spoken clues, and impossible guesses.
         </p>
       </div>
     </div>

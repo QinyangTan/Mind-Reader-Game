@@ -24,6 +24,12 @@ interface PlaySetupProps {
 export type SetupStep = "mode" | "category" | "difficulty" | "review";
 
 const stepOrder: SetupStep[] = ["mode", "category", "difficulty", "review"];
+const stepRoman: Record<SetupStep, string> = {
+  mode: "I",
+  category: "II",
+  difficulty: "III",
+  review: "IV",
+};
 
 const stepCopy: Record<
   SetupStep,
@@ -34,24 +40,24 @@ const stepCopy: Record<
   }
 > = {
   mode: {
-    eyebrow: "Step 1",
+    eyebrow: "First scene",
     title: "Choose the ritual",
-    description: "Pick how this round should work.",
+    description: "Decide whether Mora will read your hidden thought, or hide one of her own for you to uncover.",
   },
   category: {
-    eyebrow: "Step 2",
-    title: "Choose the focus",
-    description: "Narrow the cast before the round begins.",
+    eyebrow: "Focus domain",
+    title: "Name the kind of thought",
+    description: "Give the chamber one clear domain so the questioning can stay sharp from the first exchange.",
   },
   difficulty: {
-    eyebrow: "Step 3",
-    title: "Choose the pressure",
-    description: "Set how long the room has to get there.",
+    eyebrow: "Stakes",
+    title: "Set the pressure",
+    description: "More pressure means fewer chances to recover once the ritual begins.",
   },
   review: {
-    eyebrow: "Step 4",
-    title: "Start the round",
-    description: "Check the setup, then begin.",
+    eyebrow: "Circle closed",
+    title: "Begin the ritual",
+    description: "Everything is set. Start when you are ready to let the chamber speak.",
   },
 };
 
@@ -83,6 +89,14 @@ export function PlaySetup({
       : selectedDifficulty.guessMyMind;
 
   const stepIndex = stepOrder.indexOf(step) + 1;
+  const stepPhaseLabel =
+    step === "mode"
+      ? "The veil opens"
+      : step === "category"
+        ? "The focus settles"
+        : step === "difficulty"
+          ? "The stakes are named"
+          : "The circle closes";
 
   const selectionSummary = useMemo(
     () => [
@@ -120,15 +134,18 @@ export function PlaySetup({
   return (
     <div className="mx-auto max-w-[860px]">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="space-y-4"
       >
         <div className="flex items-center justify-between gap-3 text-sm text-[#dbcdb5]">
-          <p>
-            Step {stepIndex} of {stepOrder.length}
-          </p>
+          <div>
+            <p>
+              Scene {stepRoman[step]} of {stepOrder.length}
+            </p>
+            <p className="mt-1 text-xs text-[#a99b88]">{stepPhaseLabel}</p>
+          </div>
           <div className="flex items-center gap-2">
             {stepOrder.map((entry, index) => (
               <span
@@ -136,8 +153,8 @@ export function PlaySetup({
                 className={cn(
                   "h-2.5 w-8 rounded-full border transition-colors duration-150",
                   index < stepIndex
-                    ? "border-[rgba(214,166,83,0.38)] bg-[#d6a653]"
-                    : "border-[rgba(240,217,162,0.16)] bg-[rgba(18,10,24,0.48)]",
+                    ? "border-[rgba(214,166,83,0.34)] bg-[#d6a653]"
+                    : "border-[rgba(240,217,162,0.14)] bg-[rgba(16,10,22,0.68)]",
                 )}
               />
             ))}
@@ -153,21 +170,21 @@ export function PlaySetup({
             className="xl:hidden"
             title={
               step === "mode"
-                ? "Mora opens the curtain."
+                ? "Mora lifts the veil."
                 : step === "review"
                   ? "Mora is ready to begin."
                   : undefined
             }
           />
 
-          <p className="max-w-2xl text-sm leading-6 text-[#dbcdb5]">{stepCopy[step].description}</p>
+          <p className="max-w-2xl text-sm leading-6 text-[#cdbfa8]">{stepCopy[step].description}</p>
 
           {visibleSummary.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {visibleSummary.map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-full border border-[rgba(240,217,162,0.16)] bg-[rgba(18,10,24,0.38)] px-3 py-2 text-sm text-[#e6dcc7]"
+                  className="rounded-full border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.58)] px-3 py-2 text-sm text-[#e6dcc7]"
                 >
                   <span className="mr-2 text-[0.68rem] font-semibold tracking-[0.18em] text-[#d6a653]">
                     {item.label}
@@ -189,11 +206,14 @@ export function PlaySetup({
                     type="button"
                     onClick={() => handleStepChoice({ mode: id as StoredSettings["mode"] })}
                     className={cn(
-                      "rounded-[1.25rem] border px-5 py-5 text-left transition-colors duration-150",
+                      "rounded-[1.1rem] border px-5 py-5 text-left transition-colors duration-150",
                       active ? "brand-paper" : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
                     )}
                   >
-                    <h3 className={cn("font-display text-4xl leading-none", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>
+                    <p className={cn("text-[0.68rem] tracking-[0.2em]", active ? "text-[#8a5b24]" : "text-[#d6a653]")}>
+                      {id === "read-my-mind" ? "Psychic reads you" : "You read the psychic"}
+                    </p>
+                    <h3 className={cn("mt-2 font-display text-[2.4rem] leading-[0.92]", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>
                       {meta.label}
                     </h3>
                     <p className={cn("mt-3 text-sm leading-6", active ? "text-[#4b3430]" : "text-[#d8ceb8]")}>
@@ -216,7 +236,7 @@ export function PlaySetup({
                     type="button"
                     onClick={() => handleStepChoice({ category: id as StoredSettings["category"] })}
                     className={cn(
-                      "rounded-[1.25rem] border px-5 py-5 text-left transition-colors duration-150",
+                      "rounded-[1.1rem] border px-5 py-5 text-left transition-colors duration-150",
                       active ? "brand-paper" : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
                     )}
                   >
@@ -244,15 +264,15 @@ export function PlaySetup({
                     type="button"
                     onClick={() => handleStepChoice({ difficulty: id as StoredSettings["difficulty"] })}
                     className={cn(
-                      "rounded-[1.25rem] border px-4 py-5 text-left transition-colors duration-150",
+                      "rounded-[1.1rem] border px-4 py-5 text-left transition-colors duration-150",
                       active ? "brand-paper" : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
                     )}
                   >
-                    <h3 className={cn("text-xl font-semibold", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>{config.label}</h3>
-                    <p className={cn("mt-3 text-sm leading-6", active ? "text-[#4b3430]" : "text-[#d8ceb8]")}>{config.description}</p>
-                    <p className={cn("mt-4 text-sm", active ? "text-[#8a5b24]" : "text-[#bba98e]")}>
-                      {modeLimits.maxQuestions} questions • {modeLimits.maxGuesses} guesses
+                    <p className={cn("text-[0.68rem] tracking-[0.2em]", active ? "text-[#8a5b24]" : "text-[#d6a653]")}>
+                      {modeLimits.maxQuestions} questions · {modeLimits.maxGuesses} guesses
                     </p>
+                    <h3 className={cn("mt-2 text-xl font-semibold", active ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>{config.label}</h3>
+                    <p className={cn("mt-3 text-sm leading-6", active ? "text-[#4b3430]" : "text-[#d8ceb8]")}>{config.description}</p>
                   </button>
                 );
               })}
@@ -263,15 +283,15 @@ export function PlaySetup({
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-3">
                 {selectionSummary.map((item) => (
-                  <div key={item.label} className="brand-paper rounded-[1.1rem] px-4 py-4">
+                  <div key={item.label} className="brand-paper rounded-[1rem] px-4 py-4">
                     <p className="text-[0.68rem] font-semibold tracking-[0.22em] text-[#8a5b24]">{item.label}</p>
                     <p className="mt-2 text-lg font-semibold text-[#2b1a1e]">{item.value}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="brand-inset rounded-[1.1rem] px-4 py-4 text-sm text-[#dbcdb5]">
-                {limits.maxQuestions} questions · {limits.maxGuesses} guesses
+              <div className="brand-inset rounded-[1rem] px-4 py-4 text-sm text-[#dbcdb5]">
+                The circle will allow {limits.maxQuestions} questions and {limits.maxGuesses} guesses in this ritual.
               </div>
 
               {settings.mode === "read-my-mind" ? (
@@ -279,7 +299,7 @@ export function PlaySetup({
                   type="button"
                   onClick={() => onChange({ useTeachCases: !settings.useTeachCases })}
                   className={cn(
-                    "flex w-full items-start justify-between gap-4 rounded-[1.2rem] border px-4 py-4 text-left transition-colors duration-150",
+                    "flex w-full items-start justify-between gap-4 rounded-[1rem] border px-4 py-4 text-left transition-colors duration-150",
                     settings.useTeachCases
                       ? "brand-paper"
                       : "brand-velvet hover:border-[rgba(240,217,162,0.28)]",
@@ -289,13 +309,13 @@ export function PlaySetup({
                     <div className="flex items-center gap-2">
                       <Library className={cn("h-4 w-4", settings.useTeachCases ? "text-[#8a5b24]" : "text-[#d6a653]")} />
                       <p className={cn("font-semibold", settings.useTeachCases ? "text-[#2b1a1e]" : "text-[#f7efd9]")}>
-                        Use past teach cases
+                        Let learned memories join the ritual
                       </p>
                     </div>
                     <p className={cn("text-sm leading-6", settings.useTeachCases ? "text-[#4b3430]" : "text-[#d8ceb8]")}>
                       {teachCaseCount > 0
-                        ? `${teachCaseCount} stored memory${teachCaseCount === 1 ? "" : "ies"} can join the candidate pool.`
-                        : "No stored memories for this category yet."}
+                        ? `${teachCaseCount} stored memory${teachCaseCount === 1 ? "" : "ies"} can join the chamber’s candidate pool.`
+                        : "No stored memories for this focus yet."}
                     </p>
                   </div>
                   <span className={cn("text-sm", settings.useTeachCases ? "text-[#8a5b24]" : "text-[#bba98e]")}>
@@ -305,7 +325,7 @@ export function PlaySetup({
               ) : null}
 
               <Button size="lg" className="w-full sm:w-auto" onClick={onStart} disabled={isPending}>
-                {selectedMode.cta}
+                Begin the ritual
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -319,7 +339,7 @@ export function PlaySetup({
               </Button>
             )}
 
-            {step !== "review" ? <p className="text-sm text-[#cbbda5]">Select one option to continue</p> : null}
+            {step !== "review" ? <p className="text-sm text-[#cbbda5]">Choose one option to move deeper into the chamber</p> : null}
           </div>
         </MindChamberPanel>
       </motion.div>

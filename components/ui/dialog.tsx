@@ -26,7 +26,7 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
   return (
     <DialogPrimitive.Overlay
       className={cn(
-        "fixed inset-0 z-50 bg-[radial-gradient(circle_at_top,rgba(241,226,191,0.14),transparent_28%),rgba(8,4,10,0.82)]",
+        "fixed inset-0 z-50 bg-[radial-gradient(circle_at_top,rgba(115,135,176,0.12),transparent_24%),rgba(7,4,10,0.86)] backdrop-blur-[2px]",
         className,
       )}
       {...props}
@@ -40,14 +40,14 @@ function DialogContent({ className, children, ...props }: React.ComponentProps<t
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.8rem] border border-[rgba(214,166,83,0.28)] bg-[linear-gradient(180deg,rgba(54,23,51,0.98),rgba(21,12,28,0.98))] p-6 shadow-[0_26px_72px_rgba(9,4,12,0.56)]",
+          "fixed left-1/2 top-1/2 z-50 w-[min(92vw,720px)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[1.45rem] border border-[rgba(214,166,83,0.24)] bg-[linear-gradient(180deg,rgba(28,18,39,0.98),rgba(13,9,20,0.98))] p-6 shadow-[0_28px_72px_rgba(9,4,12,0.52)]",
           className,
         )}
         {...props}
       >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#f0d9a2,#d6a653,#f0d9a2)]" />
+        <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-[linear-gradient(90deg,transparent,#f0d9a2,transparent)]" />
         {children}
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-xl border border-[rgba(214,166,83,0.24)] bg-[rgba(24,12,28,0.86)] p-2 text-[#f0e2bf] transition-colors duration-150 hover:bg-[rgba(43,20,49,0.96)] hover:text-white">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-[0.85rem] border border-[rgba(214,166,83,0.2)] bg-[rgba(19,12,25,0.9)] p-2 text-[#f0e2bf] transition-colors duration-150 hover:bg-[rgba(30,18,38,0.96)] hover:text-white">
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

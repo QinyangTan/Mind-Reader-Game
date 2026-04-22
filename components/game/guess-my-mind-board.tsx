@@ -66,17 +66,20 @@ export function GuessMyMindBoard({
 
   return (
     <div className="mx-auto max-w-[940px] space-y-5">
-      <div className="rounded-[1.4rem] border border-[rgba(214,166,83,0.18)] bg-[rgba(18,10,24,0.52)] px-5 py-4">
+      <div className="rounded-[1.2rem] border border-[rgba(214,166,83,0.16)] bg-[rgba(14,10,21,0.58)] px-5 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-[#dbcdb5]">
-          <div className="flex items-center gap-2">
+          <div>
+            <p className="text-[0.68rem] tracking-[0.22em] text-[#d6a653]">THE PSYCHIC HOLDS HER SECRET</p>
+            <div className="mt-2 flex items-center gap-2">
             <MessageSquareText className="h-4 w-4 text-[#d6a653]" />
             <span>{remainingQuestions} questions left</span>
+          </div>
           </div>
           <span>{remainingGuesses} guesses left</span>
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         {activePanelMode === "ask" ? (
           <motion.div
             key="ask-mode"
@@ -85,19 +88,30 @@ export function GuessMyMindBoard({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <MindChamberPanel title="Pick one clue">
+            <MindChamberPanel eyebrow="Dialogue" title="Question the psychic">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
-                {latestReply ? (
-                  <div className="rounded-[1.1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.44)] px-4 py-3 text-sm text-[#dbcdb5]">
-                    Latest reply: <span className="text-[#f7efd9]">{latestReply.prompt}</span>
-                    <span className="mx-2 text-[#7c6f62]">·</span>
-                    <span className="text-[#d6a653]">{formatAnswer(latestReply)}</span>
-                  </div>
-                ) : (
+                <div className="space-y-3">
                   <p className="text-sm leading-6 text-[#dbcdb5]">
-                    Start with one clue. The chamber answers after every question.
+                    Ask Mora one clear question at a time. She will answer in character until you think you know what
+                    she is hiding.
                   </p>
-                )}
+
+                  {recentAnswers.length > 0 ? (
+                    <div className="space-y-2 rounded-[1.05rem] border border-[rgba(240,217,162,0.12)] bg-[rgba(15,10,21,0.56)] px-4 py-4">
+                      <p className="text-[0.68rem] tracking-[0.2em] text-[#d6a653]">RECENT EXCHANGE</p>
+                      {recentAnswers.map((entry) => (
+                        <div key={entry.questionId} className="space-y-1 text-sm text-[#dbcdb5]">
+                          <p className="text-[#f7efd9]">You: {entry.prompt}</p>
+                          <p className="text-[#d6a653]">Mora: {formatAnswer(entry)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-[1.05rem] border border-[rgba(240,217,162,0.12)] bg-[rgba(15,10,21,0.56)] px-4 py-4 text-sm text-[#dbcdb5]">
+                      Mora is waiting for your first question.
+                    </div>
+                  )}
+                </div>
 
                 <MascotScene
                   compact
@@ -106,7 +120,7 @@ export function GuessMyMindBoard({
                   facing={getMascotFacing("guess-my-mind")}
                   reactionKey={mascotReactionKey}
                   className="xl:hidden"
-                  title={latestReply ? "Mora answers." : undefined}
+                  title={latestReply ? "Mora answers." : "Mora keeps her secret."}
                 />
               </div>
 
@@ -128,10 +142,10 @@ export function GuessMyMindBoard({
                   onClick={() => setPanelMode("guess")}
                   disabled={remainingGuesses <= 0}
                 >
-                  Make a guess
+                  Name her thought
                   <Crosshair className="h-4 w-4" />
                 </Button>
-                <p className="self-center text-sm text-[#cbbda5]">Ask one clue, then decide whether to guess.</p>
+                <p className="self-center text-sm text-[#cbbda5]">When the pattern feels narrow enough, move to a guess.</p>
               </div>
             </MindChamberPanel>
           </motion.div>
@@ -143,10 +157,10 @@ export function GuessMyMindBoard({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
           >
-            <MindChamberPanel title="Make your guess">
+            <MindChamberPanel eyebrow="Confrontation" title="Name what she is thinking">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
                 <p className="text-sm leading-6 text-[#dbcdb5]">
-                  Search the cast, choose one entity, and commit to the reveal.
+                  Search the cast, choose one answer, and say it aloud to the chamber.
                 </p>
 
                 <MascotScene
@@ -156,7 +170,7 @@ export function GuessMyMindBoard({
                   facing={getMascotFacing("guess-my-mind")}
                   reactionKey={mascotReactionKey}
                   className="xl:hidden"
-                  title="The cast is narrowing."
+                  title="She gives nothing away."
                 />
               </div>
 
@@ -169,8 +183,8 @@ export function GuessMyMindBoard({
               />
 
               {session.wrongGuessIds.length > 0 ? (
-                <div className="rounded-[1.2rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(18,10,24,0.46)] px-4 py-4 text-sm text-[#dbcdb5]">
-                  {session.wrongGuessIds.length} wrong guess{session.wrongGuessIds.length === 1 ? "" : "es"} already burned in this round.
+                <div className="rounded-[1rem] border border-[rgba(240,217,162,0.14)] bg-[rgba(15,10,21,0.56)] px-4 py-4 text-sm text-[#dbcdb5]">
+                  {session.wrongGuessIds.length} wrong guess{session.wrongGuessIds.length === 1 ? "" : "es"} already burned in this ritual.
                 </div>
               ) : null}
 
@@ -188,7 +202,7 @@ export function GuessMyMindBoard({
                     setSelectedGuessId(null);
                   }}
                 >
-                  Submit guess
+                  Speak the guess
                   <SearchCheck className="h-4 w-4" />
                 </Button>
                 <Button
@@ -198,7 +212,7 @@ export function GuessMyMindBoard({
                   className={cn("sm:order-1", remainingQuestions <= 0 ? "hidden sm:hidden" : "")}
                   onClick={() => setPanelMode("ask")}
                 >
-                  Back to clues
+                  Back to questions
                 </Button>
               </div>
             </MindChamberPanel>

@@ -18,7 +18,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "Mind Reader",
   description:
-    "A theatrical browser mind-reading game set inside the Moon Moth Parlor, with mirrored modes, local persistence, and original branding.",
+    "A cinematic browser mind-reading ritual set inside a psychic chamber, with mirrored modes, local persistence, and original branding.",
 };
 
 export default function RootLayout({

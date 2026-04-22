@@ -60,9 +60,9 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
       <DialogContent className="max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <BrandLogo compact withTagline className="mb-2" />
-          <DialogTitle>Psychic Archive</DialogTitle>
+          <DialogTitle>Chamber Memory</DialogTitle>
           <DialogDescription>
-            Persistent parlor memory, streaks, and the latest entities that escaped or were exposed.
+            A quiet ledger of past rituals, streaks, and the thoughts Mora had to be taught by hand.
           </DialogDescription>
         </DialogHeader>
 
@@ -116,7 +116,7 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
 
           <MindChamberPanel eyebrow="Inference" title="Scoreboard" tone="cyan">
             <div className="grid gap-3">
-              <div className="rounded-xl border border-white/10 bg-slate-950/56 p-4">
+              <div className="rounded-[1rem] border border-white/10 bg-slate-950/56 p-4">
                 <div className="flex items-center gap-2 text-sm text-cyan-100/78">
                   <Gauge className="h-3.5 w-3.5" />
                   Avg. questions before guess
@@ -136,7 +136,7 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-slate-950/56 p-4">
+              <div className="rounded-[1rem] border border-white/10 bg-slate-950/56 p-4">
                 <div className="flex items-center gap-2 text-sm text-cyan-100/78">
                   <Target className="h-3.5 w-3.5" />
                   Guess accuracy
@@ -163,7 +163,7 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-slate-950/56 p-4">
+              <div className="rounded-[1rem] border border-white/10 bg-slate-950/56 p-4">
                 <div className="flex items-center gap-2 text-sm text-cyan-100/78">
                   <Trophy className="h-3.5 w-3.5" />
                   Wins by category
@@ -186,7 +186,7 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-slate-950/56 p-4">
+              <div className="rounded-[1rem] border border-white/10 bg-slate-950/56 p-4">
                 <div className="flex items-center gap-2 text-sm text-cyan-100/78">
                   <BrainCircuit className="h-3.5 w-3.5" />
                   Pressure breakdown
@@ -217,13 +217,13 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
         <div className="mt-4 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
           <MindChamberPanel eyebrow="Taught memory" title="Escaped entities" tone="violet">
             {learnedEntities.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-white/10 bg-slate-950/56 px-4 py-6 text-sm text-slate-400">
-                The chamber has not been taught any misses yet.
+              <div className="rounded-[1rem] border border-dashed border-white/10 bg-slate-950/56 px-4 py-6 text-sm text-slate-400">
+                Mora has not been taught any escaped thoughts yet.
               </div>
             ) : (
               <div className="space-y-3">
                 {learnedEntities.slice(0, 6).map((memory) => (
-                  <div key={memory.id} className="rounded-xl border border-white/8 bg-slate-950/56 p-4">
+                  <div key={memory.id} className="rounded-[1rem] border border-white/8 bg-slate-950/56 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-medium text-white">{memory.entityName}</p>
                       <span className="text-xs text-fuchsia-100/78">
@@ -239,8 +239,8 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
 
           <MindChamberPanel eyebrow="Recent rounds" title="Session timeline" tone="emerald">
             {history.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-white/10 bg-slate-950/56 px-4 py-6 text-sm text-slate-400">
-                Your archive is still blank. Run a session and the chamber will start keeping score.
+              <div className="rounded-[1rem] border border-dashed border-white/10 bg-slate-950/56 px-4 py-6 text-sm text-slate-400">
+                Your archive is still blank. Complete a ritual and the chamber will start keeping record.
               </div>
             ) : (
               <div className="space-y-3">
