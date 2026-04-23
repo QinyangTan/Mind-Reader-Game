@@ -4,7 +4,6 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } f
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookHeart } from "lucide-react";
 
-import { BrandLogo } from "@/components/brand/brand-logo";
 import { ChamberSceneShell } from "@/components/game/chamber-scene-shell";
 import { EncounterScene } from "@/components/game/encounter-scene";
 import { EntityGuessDialog } from "@/components/game/entity-guess-dialog";
@@ -634,7 +633,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       mood={stageMascotState}
       header={
         <div className="mx-auto flex w-full max-w-[1320px] items-start justify-between gap-4 pt-1">
-          <div className="flex min-w-[9rem] flex-col items-start gap-2">
+          <div className="flex flex-col items-start gap-2">
             {screen !== "profile" && screen !== "memory" && screen !== "world-rank" ? (
               <>
               <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-82" onClick={handleOpenMemory}>
@@ -649,11 +648,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             ) : null}
           </div>
 
-          <div className="flex justify-center pt-1 opacity-75">
-            <BrandLogo compact className="scale-[0.82]" />
-          </div>
-
-          <div className="flex min-w-[8rem] justify-end">
+          <div className="flex justify-end">
             {screen === "memory" ? (
               <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-80" onClick={handleCloseMemory}>
                 <ArrowLeft className="h-4 w-4" />

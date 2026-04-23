@@ -25,6 +25,13 @@ export const metadata: Metadata = {
     "A cinematic browser mind-reading ritual with Mora, personal scores, local learning, and public-rank-ready gameplay.",
   applicationName: "Mind Reader",
   authors: [{ name: "Mind Reader" }],
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/favicon.ico",
+  },
   openGraph: {
     title: "Mind Reader",
     description:

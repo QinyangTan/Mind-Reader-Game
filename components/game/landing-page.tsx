@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
-import { BrandLogo } from "@/components/brand/brand-logo";
 import { ChamberSceneShell } from "@/components/game/chamber-scene-shell";
 import { PromptPlaque } from "@/components/game/scene-surfaces";
 
@@ -13,11 +12,6 @@ export function LandingPage() {
       scene="landing"
       mood="welcome"
       contentClassName="items-center justify-center"
-      header={
-        <div className="flex items-center justify-center pt-2">
-          <BrandLogo compact className="opacity-90" />
-        </div>
-      }
     >
       <div className="mx-auto flex min-h-[76vh] w-full max-w-[820px] flex-col items-center justify-between px-2 pb-4 pt-[12vh] text-center sm:pt-[16vh]">
         <div />
