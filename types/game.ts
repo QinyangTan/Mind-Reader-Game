@@ -32,6 +32,9 @@ export const attributeKeys = [
   "associated_with_magic",
   "associated_with_school",
   "famous_worldwide",
+  "robot_or_ai",
+  "pirate_or_sailor",
+  "alien_or_otherworldly",
   "mammal",
   "bird",
   "reptile",
@@ -49,6 +52,10 @@ export const attributeKeys = [
   "dangerous",
   "farm_animal",
   "nocturnal",
+  "lives_in_trees",
+  "has_shell",
+  "venomous",
+  "cold_climate",
   "object",
   "food",
   "historical_figure",
@@ -68,6 +75,9 @@ export const attributeKeys = [
   "powered",
   "has_screen",
   "has_wheels",
+  "container",
+  "sharp",
+  "writes_or_records",
   "sweet",
   "savory",
   "served_hot",
@@ -81,6 +91,9 @@ export const attributeKeys = [
   "drinkable",
   "dessert",
   "spicy",
+  "grain_based",
+  "seafood",
+  "breakfast_food",
   "deceased",
   "ancient",
   "medieval",
@@ -99,6 +112,9 @@ export const attributeKeys = [
   "explorer",
   "inventor",
   "reformer",
+  "rights_activist",
+  "astronomer",
+  "ruler_or_emperor",
 ] as const;
 
 export type AttributeKey = (typeof attributeKeys)[number];
@@ -126,6 +142,9 @@ export const fictionalAttributeKeys: AttributeKey[] = [
   "associated_with_magic",
   "associated_with_school",
   "famous_worldwide",
+  "robot_or_ai",
+  "pirate_or_sailor",
+  "alien_or_otherworldly",
 ];
 
 export const animalAttributeKeys: AttributeKey[] = [
@@ -149,6 +168,10 @@ export const animalAttributeKeys: AttributeKey[] = [
   "dangerous",
   "farm_animal",
   "nocturnal",
+  "lives_in_trees",
+  "has_shell",
+  "venomous",
+  "cold_climate",
 ];
 
 export const objectAttributeKeys: AttributeKey[] = [
@@ -170,6 +193,9 @@ export const objectAttributeKeys: AttributeKey[] = [
   "powered",
   "has_screen",
   "has_wheels",
+  "container",
+  "sharp",
+  "writes_or_records",
   "large",
   "small",
 ];
@@ -191,6 +217,9 @@ export const foodAttributeKeys: AttributeKey[] = [
   "drinkable",
   "dessert",
   "spicy",
+  "grain_based",
+  "seafood",
+  "breakfast_food",
   "used_daily",
 ];
 
@@ -219,6 +248,9 @@ export const historicalFigureAttributeKeys: AttributeKey[] = [
   "explorer",
   "inventor",
   "reformer",
+  "rights_activist",
+  "astronomer",
+  "ruler_or_emperor",
   "royal",
   "famous_worldwide",
 ];

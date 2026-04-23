@@ -49,6 +49,11 @@ export function GuessMyMindBoard({
   const recentAnswers = useMemo(() => session.asked.slice(-3).reverse(), [session.asked]);
   const activePanelMode: PanelMode = remainingQuestions <= 0 ? "guess" : panelMode;
   const latestReply = recentAnswers[0] ?? null;
+  const earlierReplies = recentAnswers.slice(1);
+  const guessUnlocked =
+    session.asked.length >= 2 ||
+    remainingQuestions <= Math.ceil(session.config.maxQuestions / 2) ||
+    remainingQuestions <= 0;
   const candidateRankings = useMemo(
     () => rankCandidates(session.category, session.asked, session.wrongGuessIds, extraEntities, inferenceModel),
     [extraEntities, inferenceModel, session.asked, session.category, session.wrongGuessIds],
@@ -85,6 +90,19 @@ export function GuessMyMindBoard({
                         <p className="font-display text-[1.45rem] leading-[1.05] text-[#f6e7bf] sm:text-[1.8rem]">
                           {formatAnswer(latestReply)}
                         </p>
+                        {earlierReplies.length > 0 ? (
+                          <div className="mx-auto grid max-w-[30rem] gap-1 border-t border-[rgba(214,174,98,0.12)] pt-3 text-left">
+                            {earlierReplies.map((entry) => (
+                              <div
+                                key={entry.questionId}
+                                className="flex items-center justify-between gap-3 text-xs text-[#bdaf8f]"
+                              >
+                                <span className="truncate">{entry.prompt}</span>
+                                <span className="shrink-0 text-[#eadbb3]">{formatAnswer(entry)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     ) : (
                       <p className="text-sm leading-6 text-[#d7c7a4]">
@@ -106,17 +124,23 @@ export function GuessMyMindBoard({
                 />
 
                 <div className="flex flex-col items-center gap-3 pt-1 sm:flex-row sm:justify-between">
-                  <p className="text-sm text-[#d7c7a4]">When the shape feels narrow, declare the answer aloud.</p>
-                  <SurfacePillButton
-                    tone="accent"
-                    surface="choice"
-                    className="px-6 py-3 text-base"
-                    onClick={() => setPanelMode("guess")}
-                    disabled={remainingGuesses <= 0}
-                  >
-                    Name her thought
-                    <Crosshair className="h-4 w-4" />
-                  </SurfacePillButton>
+                  <p className="text-sm text-[#d7c7a4]">
+                    {guessUnlocked
+                      ? "The shape is narrowing. You can keep probing or name the hidden thought."
+                      : "Ask a couple of clues before making the declaration."}
+                  </p>
+                  {guessUnlocked ? (
+                    <SurfacePillButton
+                      tone="accent"
+                      surface="choice"
+                      className="px-6 py-3 text-base"
+                      onClick={() => setPanelMode("guess")}
+                      disabled={remainingGuesses <= 0}
+                    >
+                      Name her thought
+                      <Crosshair className="h-4 w-4" />
+                    </SurfacePillButton>
+                  ) : null}
                 </div>
               </div>
             </InquirySurface>

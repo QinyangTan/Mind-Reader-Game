@@ -25,6 +25,14 @@ describe("scene flow regression guards", () => {
     expect(gameShell).toMatch(/screen === "world-rank"[\s\S]*<WorldRankPanel/);
   });
 
+  it("only shows Chamber Memory and World Rank on the mode-selection stage", () => {
+    const gameShell = source("components/game/game-shell.tsx");
+
+    expect(gameShell).toContain('const showModeUtilities = screen === "setup" && setupStep === "mode";');
+    expect(gameShell).toContain("showModeUtilities ? (");
+    expect(gameShell).toContain('setSetupStep("mode")');
+  });
+
   it("does not auto-advance when a category is clicked", () => {
     const setup = source("components/game/play-setup.tsx");
     const categoryClick = setup.match(/onClick=\{\(\) => \{\s*const category[\s\S]*?\}\}/);

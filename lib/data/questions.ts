@@ -1,4 +1,5 @@
 import { animalQuestions } from "@/lib/data/question-bank/animals";
+import { expandedQuestions } from "@/lib/data/question-bank/expanded";
 import { fictionalQuestions } from "@/lib/data/question-bank/fictional";
 import { foodQuestions } from "@/lib/data/question-bank/foods";
 import { historicalFigureQuestions } from "@/lib/data/question-bank/historical";
@@ -14,6 +15,7 @@ export const allQuestions: readonly QuestionDefinition[] = Object.freeze([
   ...objectQuestions,
   ...foodQuestions,
   ...historicalFigureQuestions,
+  ...expandedQuestions,
 ]);
 
 export const questionById = new Map(allQuestions.map((question) => [question.id, question]));

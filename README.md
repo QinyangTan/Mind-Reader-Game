@@ -5,7 +5,7 @@ Mind Reader is a cinematic, local-first browser guessing game set inside Mora's 
 - **Psychic Reads You** — think of an entity, answer Mora's questions, and try to survive her guesses.
 - **You Read the Psychic** — Mora secretly picks an entity, you ask structured clue questions, and you try to solve her thought.
 
-Seeded knowledge base: **347 entities** across **5 categories** and **91 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
+Seeded knowledge base: **389 entities** across **5 categories** and **107 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
 
 ## Version Highlights
 
@@ -16,6 +16,7 @@ Seeded knowledge base: **347 entities** across **5 categories** and **91 layered
 - **Balanced scoring.** Both modes now compute deterministic scores used by results, Chamber Memory, history, and World Rank.
 - **Historical Figures category.** Historical Figures now fill the fifth playable slot and include era, region, leadership, science, art, writing, philosophy, religion, exploration, invention, reform, royal, and gender question families.
 - **Larger data set.** Supplemental seed files expand Fictional Characters, Animals, Objects, Foods, and Historical Figures while validation prevents malformed entries and duplicate shipped ids.
+- **Guided Guess My Mind.** Reverse mode now uses layered inquiry: Broad Openers, Identity Split, Profile, Specialist, and Fine Detail. The player sees one active layer, up to four paths, and only 3-5 recommended questions at a time.
 - **Category preview fix.** Category hover/focus/tap previews now update the description without advancing. Only the explicit Continue / Begin action moves the setup forward.
 - **Ad-ready layout.** Top, left, and right sponsor slots render sample media, stay outside the safe gameplay area, and can be closed after an exact 15-second countdown. No third-party ad code is included.
 
@@ -138,6 +139,7 @@ lib/data/foods.ts
 lib/data/historical-figures.ts
 lib/data/content-expansion.ts
 lib/data/content-expansion-v2.ts
+lib/data/content-expansion-v3.ts
 lib/data/question-bank/*.ts
 ```
 
@@ -158,11 +160,11 @@ Run `npm run validate` to check:
 - left side slot
 - right side slot
 
-Each slot is non-blocking, closes only after a visible 15-second countdown, and stays hidden for the browser session once dismissed. Side ads are desktop-only; smaller screens preserve the gameplay area. Sample media sources are documented in [docs/AD_SOURCES.md](docs/AD_SOURCES.md).
+Each slot is non-blocking and closes only after a visible 15-second countdown. Dismissal is page-lifecycle only, so sponsor slots reappear on a full page refresh as expected for a public web game. Side ads are desktop-only; smaller screens preserve the gameplay area. Sample media sources are documented in [docs/AD_SOURCES.md](docs/AD_SOURCES.md).
 
 ## Production Notes
 
 - No account system is required; player profiles are anonymous display-name profiles.
 - The leaderboard service is adapter-based: local fallback for development, remote HTTP adapter for production.
 - The app has production metadata, social preview metadata, `.env.example`, deterministic score tests, profile tests, storage migration tests, domain tests, and seed validation.
-- Deploy as a normal Next.js app. If you enable a real backend, implement the endpoints in [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md) and set `NEXT_PUBLIC_MIND_READER_BACKEND_URL`.
+- Deploy as a normal Next.js app. If you enable a real backend, implement the endpoints in [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md), set `NEXT_PUBLIC_MIND_READER_BACKEND_URL`, and follow the production checklist in [docs/PUBLIC_DEPLOYMENT.md](docs/PUBLIC_DEPLOYMENT.md).

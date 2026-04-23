@@ -434,28 +434,28 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   }
 
   function handleOpenMemory() {
-    const returnTarget: ReturnableScreenState =
-      screen === "memory" || screen === "world-rank" || screen === "profile"
-        ? memoryReturnScreen
-        : screen;
-    setMemoryReturnScreen(returnTarget);
+    setSetupStep("mode");
+    setMemoryReturnScreen("setup");
     setScreen("memory");
   }
 
   function handleCloseMemory() {
+    if (memoryReturnScreen === "setup") {
+      setSetupStep("mode");
+    }
     setScreen(memoryReturnScreen);
   }
 
   function handleOpenWorldRank() {
-    const returnTarget: ReturnableScreenState =
-      screen === "memory" || screen === "world-rank" || screen === "profile"
-        ? memoryReturnScreen
-        : screen;
-    setMemoryReturnScreen(returnTarget);
+    setSetupStep("mode");
+    setMemoryReturnScreen("setup");
     setScreen("world-rank");
   }
 
   function handleCloseWorldRank() {
+    if (memoryReturnScreen === "setup") {
+      setSetupStep("mode");
+    }
     setScreen(memoryReturnScreen);
   }
 
@@ -625,7 +625,9 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
                 : "guess-my-mind"
             : result?.teachable && !teachSaved
               ? "teach-flow"
-              : "result";
+            : "result";
+  const showModeUtilities = screen === "setup" && setupStep === "mode";
+
   return (
     <>
     <ChamberSceneShell
@@ -634,7 +636,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       header={
         <div className="mx-auto flex w-full max-w-[1320px] items-start justify-between gap-4 pt-1">
           <div className="flex flex-col items-start gap-2">
-            {screen !== "profile" && screen !== "memory" && screen !== "world-rank" ? (
+            {showModeUtilities ? (
               <>
               <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-82" onClick={handleOpenMemory}>
                 <BookHeart className="h-4 w-4" />

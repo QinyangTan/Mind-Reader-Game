@@ -24,14 +24,6 @@ const placementClasses: Record<TimedAdPlacement, string> = {
   right: "w-[128px] min-h-[220px]",
 };
 
-function sessionKey(id: string) {
-  return `mind-reader.ad-closed.${id}`;
-}
-
-function isSessionClosed(id: string) {
-  return typeof window !== "undefined" && window.sessionStorage.getItem(sessionKey(id)) === "1";
-}
-
 export function TimedAdSlot({
   id,
   placement,
@@ -39,25 +31,36 @@ export function TimedAdSlot({
   className,
 }: TimedAdSlotProps) {
   const creative = adCreatives[creativeId];
-  const [secondsLeft, setSecondsLeft] = useState(CLOSE_DELAY_SECONDS);
-  const [closed, setClosed] = useState(false);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      setClosed(isSessionClosed(id));
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [id]);
+  const [timerState, setTimerState] = useState({
+    id,
+    secondsLeft: CLOSE_DELAY_SECONDS,
+  });
+  const [closedAdId, setClosedAdId] = useState<string | null>(null);
+  const closed = closedAdId === id;
+  const secondsLeft = timerState.id === id ? timerState.secondsLeft : CLOSE_DELAY_SECONDS;
 
   useEffect(() => {
     if (closed || secondsLeft <= 0) {
       return;
     }
 
-    const timer = window.setTimeout(() => setSecondsLeft((current) => Math.max(0, current - 1)), 1000);
+    const timer = window.setTimeout(() => {
+      setTimerState((current) => {
+        if (current.id !== id) {
+          return {
+            id,
+            secondsLeft: CLOSE_DELAY_SECONDS - 1,
+          };
+        }
+
+        return {
+          id,
+          secondsLeft: Math.max(0, current.secondsLeft - 1),
+        };
+      });
+    }, 1000);
     return () => window.clearTimeout(timer);
-  }, [closed, secondsLeft]);
+  }, [closed, id, secondsLeft]);
 
   if (closed) {
     return null;
@@ -85,8 +88,7 @@ export function TimedAdSlot({
           type="button"
           disabled={secondsLeft > 0}
           onClick={() => {
-            window.sessionStorage.setItem(sessionKey(id), "1");
-            setClosed(true);
+            setClosedAdId(id);
           }}
           className="flex h-7 min-w-7 items-center justify-center border border-[rgba(226,192,118,0.24)] bg-[rgba(9,5,13,0.7)] px-2 text-[0.65rem] text-[#eadbb3] disabled:cursor-not-allowed disabled:opacity-70"
           aria-label={secondsLeft > 0 ? `Ad can be closed in ${secondsLeft} seconds` : "Close ad"}

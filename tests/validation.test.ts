@@ -16,6 +16,19 @@ describe("validateSeeds (shipped data)", () => {
 
     expect(report.errors).toEqual([]);
   });
+
+  it("ships the expanded five-category content set without vehicles", () => {
+    expect(entities).toHaveLength(389);
+    expect(allQuestions).toHaveLength(107);
+    expect(entities.some((entity) => entity.category === "historical_figures")).toBe(true);
+    expect(entities.some((entity) => (entity.category as string) === "vehicles")).toBe(false);
+    expect(allQuestions.some((question) => question.supportedCategories.includes("historical_figures"))).toBe(true);
+    expect(
+      allQuestions.some((question) =>
+        question.supportedCategories.some((category) => (category as string) === "vehicles"),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("validateSeeds (fixtures)", () => {

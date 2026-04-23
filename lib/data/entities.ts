@@ -11,6 +11,13 @@ import {
   foodExpansionV2,
   objectExpansionV2,
 } from "@/lib/data/content-expansion-v2";
+import {
+  animalExpansionV3,
+  fictionalCharactersExpansionV3,
+  foodExpansionV3,
+  historicalFiguresExpansionV3,
+  objectExpansionV3,
+} from "@/lib/data/content-expansion-v3";
 import { foods } from "@/lib/data/foods";
 import { fictionalCharacters } from "@/lib/data/fictional-characters";
 import { historicalFigures } from "@/lib/data/historical-figures";
@@ -59,22 +66,37 @@ function freezeMapMutation<K, V>(map: Map<K, V>): ReadonlyMap<K, V> {
 
 export const entities: readonly GameEntity[] = Object.freeze([
   ...appendUniqueEntities(
-    appendUniqueEntities(fictionalCharacters, fictionalCharactersExpansion),
-    fictionalCharactersExpansionV2,
+    appendUniqueEntities(
+      appendUniqueEntities(fictionalCharacters, fictionalCharactersExpansion),
+      fictionalCharactersExpansionV2,
+    ),
+    fictionalCharactersExpansionV3,
   ),
   ...appendUniqueEntities(
-    appendUniqueEntities(animals, animalExpansion),
-    animalExpansionV2,
+    appendUniqueEntities(
+      appendUniqueEntities(animals, animalExpansion),
+      animalExpansionV2,
+    ),
+    animalExpansionV3,
   ),
   ...appendUniqueEntities(
-    appendUniqueEntities(objects, objectExpansion),
-    objectExpansionV2,
+    appendUniqueEntities(
+      appendUniqueEntities(objects, objectExpansion),
+      objectExpansionV2,
+    ),
+    objectExpansionV3,
   ),
   ...appendUniqueEntities(
-    appendUniqueEntities(foods, foodExpansion),
-    foodExpansionV2,
+    appendUniqueEntities(
+      appendUniqueEntities(foods, foodExpansion),
+      foodExpansionV2,
+    ),
+    foodExpansionV3,
   ),
-  ...historicalFigures,
+  ...appendUniqueEntities(
+    historicalFigures,
+    historicalFiguresExpansionV3,
+  ),
 ]);
 
 export const entityById: ReadonlyMap<string, GameEntity> = freezeMapMutation(
