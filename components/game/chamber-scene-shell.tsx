@@ -92,7 +92,7 @@ const sceneLayouts: Record<
   },
   archive: {
     stage: "px-4 pb-6 pt-4 sm:px-6 lg:px-10",
-    content: "min-h-[calc(100vh-2rem)] items-center justify-center pt-[14vh] pb-[8vh]",
+    content: "min-h-[calc(100vh-2rem)] items-start justify-center pt-[12vh] pb-[8vh]",
     shell: "max-w-[1100px]",
     support: "hidden",
   },
@@ -112,7 +112,13 @@ export function ChamberSceneShell({
   const layout = sceneLayouts[scene];
 
   return (
-    <div className={cn("relative min-h-screen overflow-hidden bg-[#050309] text-[#f7efd9]", className)}>
+    <div
+      className={cn(
+        "relative min-h-screen bg-[#050309] text-[#f7efd9]",
+        scene === "archive" ? "overflow-x-hidden overflow-y-auto" : "overflow-hidden",
+        className,
+      )}
+    >
       <ReferenceSceneBackdrop scene={scene} mood={mood} />
 
       <div className="pointer-events-none absolute inset-0">

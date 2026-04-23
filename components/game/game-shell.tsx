@@ -69,7 +69,8 @@ import {
   type TeachCase,
 } from "@/types/game";
 
-type ScreenState = "encounter" | "setup" | "play" | "result";
+type ScreenState = "encounter" | "setup" | "play" | "result" | "memory";
+type ReturnableScreenState = Exclude<ScreenState, "memory">;
 
 interface GameShellProps {
   initialMode?: string;
@@ -84,6 +85,13 @@ function pickValue<T extends string>(allowed: readonly T[], value: string | unde
 function resolveEntity(extraEntities: GameEntity[], id: string) {
   return entityById.get(id) ?? extraEntities.find((entity) => entity.id === id);
 }
+
+const sceneTransitionProps = {
+  initial: { opacity: 0, y: 22, scale: 0.985, filter: "blur(8px)" },
+  animate: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+  exit: { opacity: 0, y: -18, scale: 0.99, filter: "blur(8px)" },
+  transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] },
+} as const;
 
 export function GameShell({ initialMode, initialCategory, initialDifficulty }: GameShellProps) {
   const queryOverrides = {
@@ -104,7 +112,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [readSession, setReadSession] = useState<ReadMyMindSession | null>(null);
   const [guessSession, setGuessSession] = useState<GuessMyMindSession | null>(null);
   const [result, setResult] = useState<GameResult | null>(null);
-  const [statsOpen, setStatsOpen] = useState(false);
+  const [memoryReturnScreen, setMemoryReturnScreen] = useState<ReturnableScreenState>("encounter");
   const [guessDialogOpen, setGuessDialogOpen] = useState(false);
   const [guessDialogCandidateId, setGuessDialogCandidateId] = useState<string | null>(null);
   const [teachSaved, setTeachSaved] = useState(false);
@@ -406,6 +414,16 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     });
   }
 
+  function handleOpenMemory() {
+    const returnTarget: ReturnableScreenState = screen === "memory" ? memoryReturnScreen : screen;
+    setMemoryReturnScreen(returnTarget);
+    setScreen("memory");
+  }
+
+  function handleCloseMemory() {
+    setScreen(memoryReturnScreen);
+  }
+
   function handlePlayAgain() {
     if (!result) {
       launchSession();
@@ -505,7 +523,9 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const isGuessScanning =
     screen === "play" && settings.mode === "read-my-mind" && !!readSession?.queuedGuessId && !guessDialogOpen;
   const stageMascotState =
-    guessDialogOpen
+    screen === "memory"
+      ? "observing"
+      : guessDialogOpen
       ? "confident"
       : screen === "result" && result
         ? getResultMascotState({ result, teachSaved })
@@ -519,7 +539,9 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             ? "welcome"
             : getSetupMascotState(setupStep);
   const shellScene =
-    guessDialogOpen
+    screen === "memory"
+      ? "archive"
+      : guessDialogOpen
       ? "reveal"
       : screen === "encounter"
         ? "encounter"
@@ -537,7 +559,9 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
               ? "teach-flow"
               : "result";
   const sponsorContext =
-    screen === "play"
+    screen === "memory"
+      ? "setup"
+      : screen === "play"
       ? settings.mode === "read-my-mind"
         ? "read"
         : "guess"
@@ -553,8 +577,8 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       header={
         <div className="mx-auto flex w-full max-w-[1320px] items-start justify-between gap-4 pt-1">
           <div className="flex min-w-[8rem] justify-start">
-            {(screen === "encounter" || screen === "setup") ? (
-              <SurfacePillButton tone="default" className="px-3 py-1.5 text-[0.68rem] opacity-80" onClick={() => setStatsOpen(true)}>
+            {screen === "encounter" || screen === "setup" ? (
+              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-80" onClick={handleOpenMemory}>
                 <BookHeart className="h-4 w-4" />
                 Chamber memory
               </SurfacePillButton>
@@ -566,8 +590,13 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
           </div>
 
           <div className="flex min-w-[8rem] justify-end">
-            {screen === "play" || screen === "result" ? (
-              <SurfacePillButton tone="default" className="px-3 py-1.5 text-[0.68rem] opacity-80" onClick={handleBackToSetup}>
+            {screen === "memory" ? (
+              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-80" onClick={handleCloseMemory}>
+                <ArrowLeft className="h-4 w-4" />
+                Return
+              </SurfacePillButton>
+            ) : screen === "play" || screen === "result" ? (
+              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-80" onClick={handleBackToSetup}>
                 <ArrowLeft className="h-4 w-4" />
                 Leave ritual
               </SurfacePillButton>
@@ -581,10 +610,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         {screen === "encounter" ? (
           <motion.div
             key="encounter"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            {...sceneTransitionProps}
           >
             <EncounterScene onContinue={() => setScreen("setup")} />
           </motion.div>
@@ -593,10 +619,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         {screen === "setup" ? (
           <motion.div
             key="setup"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            {...sceneTransitionProps}
           >
             <PlaySetup
               settings={settings}
@@ -612,10 +635,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         {screen === "play" && settings.mode === "read-my-mind" && readSession ? (
           <motion.div
             key={`play-read-${readSession.startedAt}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            {...sceneTransitionProps}
           >
             <ReadMyMindBoard
               session={readSession}
@@ -629,10 +649,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         {screen === "play" && settings.mode === "guess-my-mind" && guessSession ? (
           <motion.div
             key={`play-guess-${guessSession.startedAt}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            {...sceneTransitionProps}
           >
             <GuessMyMindBoard
               session={guessSession}
@@ -648,10 +665,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         {screen === "result" && result ? (
           <motion.div
             key={`result-${result.id}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            {...sceneTransitionProps}
           >
             <ResultScreen
               result={result}
@@ -661,6 +675,20 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
               teachSaved={teachSaved}
               teachEntities={activeTeachEntityById}
               teachTrail={readTrailSnapshot}
+            />
+          </motion.div>
+        ) : null}
+
+        {screen === "memory" ? (
+          <motion.div
+            key="memory"
+            {...sceneTransitionProps}
+          >
+            <StatsPanel
+              onClose={handleCloseMemory}
+              stats={vault.stats}
+              history={vault.history}
+              learnedEntities={learnedStore.entries}
             />
           </motion.div>
         ) : null}
@@ -677,13 +705,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         teachEntities={activeTeachEntityById}
       />
 
-      <StatsPanel
-        open={statsOpen}
-        onOpenChange={setStatsOpen}
-        stats={vault.stats}
-        history={vault.history}
-        learnedEntities={learnedStore.entries}
-      />
     </>
   );
 }

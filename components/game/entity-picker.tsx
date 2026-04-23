@@ -67,7 +67,11 @@ export function EntityPicker({
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search the playbill..."
-          className="flex h-12 w-full rounded-[999px] border border-[rgba(214,174,98,0.28)] bg-[linear-gradient(180deg,rgba(45,24,62,0.92),rgba(21,12,30,0.96))] pl-11 pr-4 text-sm text-[#f6e7bf] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#a99976] focus:border-[rgba(242,226,181,0.56)] focus:shadow-[0_0_20px_rgba(177,119,219,0.18)]"
+          className="flex h-12 w-full border border-[rgba(214,174,98,0.34)] bg-[linear-gradient(180deg,rgba(45,24,62,0.94),rgba(21,12,30,0.98))] pl-11 pr-4 text-sm text-[#f6e7bf] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#a99976] focus:border-[rgba(242,226,181,0.62)] focus:shadow-[0_0_20px_rgba(177,119,219,0.18)]"
+          style={{
+            clipPath:
+              "polygon(16px 0, calc(100% - 16px) 0, 100% 30%, 100% 70%, calc(100% - 16px) 100%, 16px 100%, 0 70%, 0 30%)",
+          }}
         />
       </label>
 
@@ -81,12 +85,23 @@ export function EntityPicker({
               type="button"
               onClick={() => onSelect(entity.id)}
               className={cn(
-                "flex items-center justify-between rounded-[1.2rem] border px-4 py-3 text-left transition-[transform,border-color,background-color,color,box-shadow] duration-150",
+                "relative flex items-center justify-between overflow-hidden border px-4 py-3 text-left transition-[transform,border-color,background-color,color,box-shadow] duration-200",
                 active
-                  ? "border-[rgba(242,226,181,0.62)] bg-[linear-gradient(180deg,rgba(145,86,196,0.54),rgba(70,39,99,0.94))] text-[#f7ebcb] shadow-[0_0_24px_rgba(177,119,219,0.18)]"
-                  : "border-[rgba(214,174,98,0.24)] bg-[linear-gradient(180deg,rgba(45,24,62,0.82),rgba(21,12,30,0.94))] text-[#e6d4a8] hover:-translate-y-[1px] hover:border-[rgba(239,218,163,0.42)]",
+                  ? "border-[rgba(242,226,181,0.68)] bg-[linear-gradient(180deg,rgba(145,86,196,0.58),rgba(70,39,99,0.96))] text-[#f7ebcb] shadow-[0_0_28px_rgba(177,119,219,0.2)]"
+                  : "border-[rgba(214,174,98,0.28)] bg-[linear-gradient(180deg,rgba(45,24,62,0.9),rgba(21,12,30,0.98))] text-[#e6d4a8] hover:-translate-y-[2px] hover:border-[rgba(239,218,163,0.48)]",
               )}
+              style={{
+                clipPath:
+                  "polygon(16px 0, calc(100% - 16px) 0, 100% 30%, 100% 70%, calc(100% - 16px) 100%, 16px 100%, 0 70%, 0 30%)",
+              }}
             >
+              <div
+                className="pointer-events-none absolute inset-[4px] border border-[rgba(242,226,181,0.14)]"
+                style={{
+                  clipPath:
+                    "polygon(16px 0, calc(100% - 16px) 0, 100% 30%, 100% 70%, calc(100% - 16px) 100%, 16px 100%, 0 70%, 0 30%)",
+                }}
+              />
               <div className="min-w-0">
                 <p className={cn("truncate font-medium", active ? "text-[#f7ebcb]" : "text-[#f6e7bf]")}>
                   <span className="mr-2">{entity.imageEmoji}</span>

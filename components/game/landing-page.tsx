@@ -30,10 +30,24 @@ export function LandingPage() {
               </p>
               <Link
                 href="/play"
-                className="inline-flex min-w-[16rem] items-center justify-center gap-2 rounded-[999px] border border-[rgba(238,219,170,0.7)] bg-[linear-gradient(180deg,rgba(175,114,220,0.58),rgba(83,45,115,0.96))] px-7 py-3.5 text-base font-semibold text-[#f7ebcb] shadow-[0_0_22px_rgba(177,118,217,0.22)] transition-[transform,border-color,box-shadow] duration-150 hover:-translate-y-[1px] hover:border-[rgba(246,235,203,0.82)]"
+                className="group relative inline-flex min-w-[16rem] items-center justify-center gap-2 overflow-hidden border border-[rgba(238,219,170,0.76)] bg-[linear-gradient(180deg,rgba(175,114,220,0.62),rgba(83,45,115,0.98))] px-7 py-3.5 text-base font-semibold text-[#f7ebcb] shadow-[0_0_24px_rgba(177,118,217,0.24)] transition-[transform,border-color,box-shadow] duration-200 hover:-translate-y-[2px] hover:border-[rgba(246,235,203,0.86)] hover:shadow-[0_0_30px_rgba(177,118,217,0.28)]"
+                style={{
+                  clipPath:
+                    "polygon(18px 0, calc(100% - 18px) 0, 100% 34%, 100% 66%, calc(100% - 18px) 100%, 18px 100%, 0 66%, 0 34%)",
+                }}
               >
-                Enter the chamber
-                <ArrowRight className="h-4 w-4" />
+                <span
+                  className="pointer-events-none absolute inset-[4px] border border-[rgba(249,234,196,0.2)]"
+                  style={{
+                    clipPath:
+                      "polygon(18px 0, calc(100% - 18px) 0, 100% 34%, 100% 66%, calc(100% - 18px) 100%, 18px 100%, 0 66%, 0 34%)",
+                  }}
+                />
+                <span className="pointer-events-none absolute inset-x-[16%] top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(249,234,196,0.82),transparent)]" />
+                <span className="relative z-10 inline-flex items-center justify-center gap-2">
+                  Enter the chamber
+                  <ArrowRight className="h-4 w-4" />
+                </span>
               </Link>
             </div>
           </PromptPlaque>

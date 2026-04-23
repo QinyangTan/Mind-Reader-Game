@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { cn } from "@/lib/utils/cn";
 import type { MascotState } from "@/types/mascot";
@@ -34,48 +34,48 @@ const sceneArt: Record<
   }
 > = {
   landing: {
-    src: "/scene-pack/landing.png",
+    src: "/scene-pack/clean/landing.png",
     position: "object-center",
     priority: true,
   },
   encounter: {
-    src: "/scene-pack/encounter.png",
+    src: "/scene-pack/clean/encounter.png",
     position: "object-center",
   },
   "mode-selection": {
-    src: "/scene-pack/mode-selection.png",
+    src: "/scene-pack/clean/mode-selection.png",
     position: "object-center",
   },
   "category-selection": {
-    src: "/scene-pack/category-selection.png",
+    src: "/scene-pack/clean/category-selection.png",
     position: "object-center",
   },
   "read-my-mind": {
-    src: "/scene-pack/read-my-mind.png",
+    src: "/scene-pack/clean/read-my-mind.png",
     position: "object-center",
   },
   "guess-my-mind": {
-    src: "/scene-pack/guess-my-mind.png",
+    src: "/scene-pack/clean/guess-my-mind.png",
     position: "object-center",
   },
   "clue-browser": {
-    src: "/scene-pack/clue-browser.png",
+    src: "/scene-pack/clean/clue-browser.png",
     position: "object-center",
   },
   reveal: {
-    src: "/scene-pack/reveal.png",
+    src: "/scene-pack/clean/reveal.png",
     position: "object-center",
   },
   result: {
-    src: "/scene-pack/result.png",
+    src: "/scene-pack/clean/result.png",
     position: "object-center",
   },
   "teach-flow": {
-    src: "/scene-pack/teach-flow.png",
+    src: "/scene-pack/clean/teach-flow.png",
     position: "object-center",
   },
   archive: {
-    src: "/scene-pack/archive.png",
+    src: "/scene-pack/clean/archive.png",
     position: "object-center",
   },
 };
@@ -130,28 +130,37 @@ export function ReferenceSceneBackdrop({
 
   return (
     <div className={cn("absolute inset-0 overflow-hidden", className)}>
-      <motion.div
-        className="absolute inset-0"
-        animate={{
-          scale: [1.02, 1.05, 1.02],
-          x: [0, -6, 0],
-          y: [0, 5, 0],
-        }}
-        transition={{
-          duration: shouldPulse ? 8 : 18,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "easeInOut",
-        }}
-      >
-        <Image
-          src={art.src}
-          alt=""
-          fill
-          priority={art.priority}
-          sizes="100vw"
-          className={cn("select-none object-cover opacity-[0.96]", art.position)}
-        />
-      </motion.div>
+      <AnimatePresence mode="sync" initial={false}>
+        <motion.div
+          key={art.src}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.08, filter: "blur(8px)" }}
+          animate={{
+            opacity: 1,
+            scale: [1.02, 1.05, 1.02],
+            x: [0, -6, 0],
+            y: [0, 5, 0],
+            filter: "blur(0px)",
+          }}
+          exit={{ opacity: 0, scale: 1.04, filter: "blur(8px)" }}
+          transition={{
+            opacity: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+            scale: { duration: shouldPulse ? 8 : 18, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+            x: { duration: shouldPulse ? 8 : 18, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+            y: { duration: shouldPulse ? 8 : 18, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
+            filter: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+          }}
+        >
+          <Image
+            src={art.src}
+            alt=""
+            fill
+            priority={art.priority}
+            sizes="100vw"
+            className={cn("select-none object-cover opacity-[0.96]", art.position)}
+          />
+        </motion.div>
+      </AnimatePresence>
 
       <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,2,8,0.68),rgba(7,4,10,0.2)_28%,rgba(10,7,12,0.06)_52%,rgba(7,4,10,0.7)_100%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(248,228,188,0.16),transparent_16%),radial-gradient(circle_at_50%_92%,rgba(5,2,8,0.9),transparent_35%)]" />

@@ -54,7 +54,7 @@ export function EntityGuessDialog({
               transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
             >
               <Image
-                src="/scene-pack/reveal.png"
+                src="/scene-pack/clean/reveal.png"
                 alt=""
                 fill
                 sizes="100vw"
@@ -94,11 +94,11 @@ export function EntityGuessDialog({
                 </ResponseWell>
 
                 <div className="flex flex-col justify-center gap-3 sm:flex-row">
-                  <SurfacePillButton tone="default" className="min-w-[11rem] px-6 py-3 text-base" onClick={onReject}>
-                    No
+                  <SurfacePillButton tone="default" surface="choice" className="min-w-[14rem] px-6 py-3 text-base" onClick={onReject}>
+                    No, that’s not it
                   </SurfacePillButton>
-                  <SurfacePillButton tone="accent" className="min-w-[11rem] px-6 py-3 text-base" onClick={onConfirm}>
-                    Yes
+                  <SurfacePillButton tone="accent" surface="choice" className="min-w-[14rem] px-6 py-3 text-base" onClick={onConfirm}>
+                    Yes, that’s correct
                   </SurfacePillButton>
                 </div>
               </div>

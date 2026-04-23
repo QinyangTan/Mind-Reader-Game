@@ -95,6 +95,7 @@ export function ReadMyMindBoard({
                   <SurfacePillButton
                     key={option.value}
                     tone={option.tone}
+                    surface="choice"
                     className="min-w-[9rem] px-4 py-3 text-base"
                     disabled={isPending || !session.currentQuestionId}
                     onClick={() => onAnswer(option.value)}

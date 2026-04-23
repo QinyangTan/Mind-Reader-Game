@@ -1,13 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { BrainCircuit, History, Sparkles, Target, Trophy, X } from "lucide-react";
 
 import { ChamberMemorySurface, ResponseWell, SurfacePillButton } from "@/components/game/scene-surfaces";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
 import { categoryMeta, difficultyConfig, modeMeta } from "@/lib/game/game-config";
 import {
   averageQuestionsForMode,
@@ -27,8 +22,7 @@ import {
 } from "@/types/game";
 
 interface StatsPanelProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   stats: GameStats;
   history: HistoryEntry[];
   learnedEntities: TeachCase[];
@@ -48,40 +42,25 @@ function formatAverage(value: number, hasData: boolean) {
   return value.toFixed(1);
 }
 
-export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities }: StatsPanelProps) {
+export function StatsPanel({ onClose, stats, history, learnedEntities }: StatsPanelProps) {
   const systemAccuracyHas = stats.systemGuessAttempts > 0;
   const playerAccuracyHas = stats.playerGuessAttempts > 0;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[100vw] border-none bg-transparent p-0 shadow-none">
-        <div className="fixed inset-0 z-50 bg-[rgba(4,2,8,0.84)]">
-          <div className="absolute inset-0 overflow-hidden">
-            <Image
-              src="/scene-pack/archive.png"
-              alt=""
-              fill
-              sizes="100vw"
-              className="object-cover object-center opacity-82"
-            />
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,3,8,0.74),rgba(6,3,8,0.34)_35%,rgba(6,3,8,0.78)_100%)]" />
-          </div>
+    <div className="relative mx-auto w-full max-w-[1080px]">
+      <ChamberMemorySurface
+        eyebrow="Chamber memory"
+        title="The ledger of past rituals"
+        description="A record of victories, escapes, learned truths, and the questions that shaped them."
+      >
+        <div className="absolute right-0 top-0">
+          <SurfacePillButton tone="default" surface="compact" className="px-4 py-2" onClick={onClose}>
+            <X className="h-4 w-4" />
+            Close
+          </SurfacePillButton>
+        </div>
 
-          <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1380px] items-center justify-center px-4 py-6 sm:px-6 lg:px-8">
-            <div className="relative w-full max-w-[1080px]">
-              <ChamberMemorySurface
-                eyebrow="Chamber memory"
-                title="The ledger of past rituals"
-                description="A record of victories, escapes, learned truths, and the questions that shaped them."
-              >
-                <div className="absolute right-0 top-0">
-                  <SurfacePillButton tone="default" className="px-4 py-2" onClick={() => onOpenChange(false)}>
-                    <X className="h-4 w-4" />
-                    Close
-                  </SurfacePillButton>
-                </div>
-
-                <div className="grid gap-6">
+        <div className="grid gap-6">
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <ResponseWell tone="muted">
                       <p className="text-[0.68rem] uppercase tracking-[0.16em] text-[#d8b36a]">Rituals played</p>
@@ -257,12 +236,8 @@ export function StatsPanel({ open, onOpenChange, stats, history, learnedEntities
                       </div>
                     </section>
                   </div>
-                </div>
-              </ChamberMemorySurface>
-            </div>
-          </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ChamberMemorySurface>
+    </div>
   );
 }

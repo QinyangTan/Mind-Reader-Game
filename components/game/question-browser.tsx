@@ -1,6 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  Brain,
+  Compass,
+  Eye,
+  Feather,
+  MoonStar,
+  UserRoundSearch,
+} from "lucide-react";
 
 import { SurfacePillButton } from "@/components/game/scene-surfaces";
 import { rankAvailableQuestions } from "@/lib/game/question-selection";
@@ -30,31 +38,38 @@ const familyMeta: Record<
   {
     label: string;
     description: string;
+    icon: typeof UserRoundSearch;
   }
 > = {
   identity: {
     label: "Identity",
     description: "Big early clues that split the thought quickly.",
+    icon: UserRoundSearch,
   },
   nature: {
     label: "Nature",
     description: "Living, habitat, use, and what kind of thing it is.",
+    icon: Feather,
   },
   appearance: {
     label: "Appearance",
     description: "Body, scale, surface, and visible form.",
+    icon: Eye,
   },
   behavior: {
     label: "Behavior",
     description: "Abilities, movement, purpose, and repeated actions.",
+    icon: Brain,
   },
   origin: {
     label: "Origin",
     description: "Where it comes from or what world it belongs to.",
+    icon: Compass,
   },
   advanced: {
     label: "Advanced Clues",
     description: "Sharper disambiguators once the field is narrow.",
+    icon: MoonStar,
   },
 };
 
@@ -142,17 +157,24 @@ export function QuestionBrowser({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-center gap-2">
-        {grouped.map((entry) => (
-          <SurfacePillButton
-            key={entry.family}
-            active={resolvedFamily === entry.family}
-            tone={resolvedFamily === entry.family ? "accent" : "default"}
-            className="px-4 py-2.5"
-            onClick={() => setActiveFamily(entry.family)}
-          >
-            {familyMeta[entry.family].label}
-          </SurfacePillButton>
-        ))}
+        {grouped.map((entry) => {
+          const Icon = familyMeta[entry.family].icon;
+          return (
+            <SurfacePillButton
+              key={entry.family}
+              active={resolvedFamily === entry.family}
+              tone={resolvedFamily === entry.family ? "accent" : "default"}
+              surface="tab"
+              className="min-w-[8.6rem] px-4 py-2.5"
+              onClick={() => setActiveFamily(entry.family)}
+            >
+              <div className="flex items-center justify-center gap-2.5">
+                <Icon className="h-4 w-4" />
+                <span>{familyMeta[entry.family].label}</span>
+              </div>
+            </SurfacePillButton>
+          );
+        })}
       </div>
 
       <div className="space-y-4">
@@ -173,7 +195,8 @@ export function QuestionBrowser({
               <SurfacePillButton
                 key={question.id}
                 tone={recommendedQuestion ? "accent" : "default"}
-                className="min-w-[11rem] px-4 py-3 text-sm leading-5"
+                surface="choice"
+                className="min-w-[11rem] px-4 py-2.5 text-[0.95rem] leading-5"
                 disabled={isPending || remainingQuestions <= 0}
                 onClick={() => onAskQuestion(question.id)}
               >

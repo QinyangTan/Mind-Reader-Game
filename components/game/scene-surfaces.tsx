@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from "react";
+import type { CSSProperties, ComponentProps, ReactNode } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
@@ -25,6 +25,7 @@ interface SurfaceHeadingProps {
 interface SurfacePillButtonProps extends ComponentProps<"button"> {
   active?: boolean;
   tone?: "default" | "soft" | "accent";
+  surface?: "compact" | "choice" | "tab";
 }
 
 interface RitualProgressProps {
@@ -263,33 +264,95 @@ export function SurfaceHeading({
 export function SurfacePillButton({
   active = false,
   tone = "default",
+  surface = "choice",
   className,
   children,
+  disabled,
+  type = "button",
+  style,
   ...props
 }: SurfacePillButtonProps) {
+  const clipPath =
+    surface === "compact"
+      ? "polygon(12px 0, calc(100% - 12px) 0, 100% 32%, 100% 68%, calc(100% - 12px) 100%, 12px 100%, 0 68%, 0 32%)"
+      : surface === "tab"
+        ? "polygon(10px 0, calc(100% - 10px) 0, 100% 22%, 100% 100%, 0 100%, 0 22%)"
+        : "polygon(18px 0, calc(100% - 18px) 0, 100% 34%, 100% 66%, calc(100% - 18px) 100%, 18px 100%, 0 66%, 0 34%)";
+
+  const shapeClass =
+    surface === "compact"
+      ? "min-h-[2.45rem] min-w-[7rem] px-3.5 py-2 text-xs font-medium"
+      : surface === "tab"
+        ? "min-h-[3.1rem] min-w-[8rem] px-4 py-2.5 text-sm font-medium leading-5"
+        : "min-h-[3.55rem] min-w-[8.5rem] px-5 py-3 text-sm font-medium leading-5 sm:text-base";
   const toneClass =
-    tone === "accent"
+    surface === "tab"
       ? active
-        ? "border-[rgba(238,219,170,0.7)] bg-[linear-gradient(180deg,rgba(175,114,220,0.62),rgba(81,43,112,0.96))] text-[#f7ebcb] shadow-[0_0_24px_rgba(181,122,225,0.26)]"
-        : "border-[rgba(219,182,102,0.34)] bg-[linear-gradient(180deg,rgba(81,43,112,0.9),rgba(39,20,55,0.96))] text-[#f0dcaf] hover:border-[rgba(239,218,163,0.54)]"
+        ? "border-[rgba(244,225,177,0.74)] bg-[linear-gradient(180deg,rgba(88,48,120,0.94),rgba(40,22,57,0.98))] text-[#f7ecc8] shadow-[0_0_24px_rgba(180,124,226,0.18)]"
+        : "border-[rgba(214,174,98,0.32)] bg-[linear-gradient(180deg,rgba(42,23,57,0.92),rgba(21,12,30,0.98))] text-[#dcc9a0] hover:border-[rgba(242,226,181,0.48)] hover:bg-[linear-gradient(180deg,rgba(52,29,70,0.94),rgba(25,14,34,0.98))]"
+      : tone === "accent"
+      ? active
+        ? "border-[rgba(243,225,182,0.82)] bg-[linear-gradient(180deg,rgba(156,95,214,0.9),rgba(79,39,108,0.98))] text-[#f8eecf] shadow-[0_0_32px_rgba(189,132,230,0.34)]"
+        : "border-[rgba(225,187,107,0.44)] bg-[linear-gradient(180deg,rgba(86,45,118,0.96),rgba(42,22,58,0.98))] text-[#f0dcaf] hover:border-[rgba(244,227,184,0.68)] hover:shadow-[0_0_24px_rgba(188,131,229,0.2)]"
       : tone === "soft"
         ? active
-          ? "border-[rgba(238,219,170,0.56)] bg-[rgba(93,53,126,0.9)] text-[#f7ebcb]"
-          : "border-[rgba(219,182,102,0.24)] bg-[rgba(40,22,55,0.72)] text-[#d8c49a] hover:border-[rgba(239,218,163,0.42)]"
+          ? "border-[rgba(239,220,177,0.64)] bg-[linear-gradient(180deg,rgba(107,62,145,0.94),rgba(53,30,74,0.98))] text-[#f8eecf]"
+          : "border-[rgba(217,177,98,0.3)] bg-[linear-gradient(180deg,rgba(55,31,74,0.94),rgba(29,18,40,0.98))] text-[#dbcaa3] hover:border-[rgba(240,218,170,0.5)]"
         : active
-          ? "border-[rgba(238,219,170,0.62)] bg-[linear-gradient(180deg,rgba(144,89,194,0.52),rgba(70,39,99,0.94))] text-[#f7ebcb]"
-          : "border-[rgba(219,182,102,0.28)] bg-[linear-gradient(180deg,rgba(52,29,72,0.9),rgba(27,16,39,0.94))] text-[#e6d4a8] hover:border-[rgba(239,218,163,0.46)]";
-
+          ? "border-[rgba(240,220,177,0.72)] bg-[linear-gradient(180deg,rgba(126,76,171,0.88),rgba(63,35,89,0.98))] text-[#f8eecf] shadow-[0_0_24px_rgba(168,116,214,0.24)]"
+          : "border-[rgba(218,179,100,0.36)] bg-[linear-gradient(180deg,rgba(58,32,80,0.96),rgba(28,17,40,0.98))] text-[#ead8af] hover:border-[rgba(240,220,177,0.58)]";
+  const insetClass =
+    surface === "tab"
+      ? active
+        ? "border-[rgba(248,236,207,0.3)]"
+        : "border-[rgba(233,207,145,0.16)]"
+      : tone === "accent"
+      ? active
+        ? "border-[rgba(248,236,207,0.36)]"
+        : "border-[rgba(233,207,145,0.22)]"
+      : tone === "soft"
+        ? "border-[rgba(228,198,133,0.2)]"
+        : active
+          ? "border-[rgba(244,228,192,0.28)]"
+          : "border-[rgba(228,198,133,0.18)]";
+  const ornamentClass =
+    tone === "accent" || active
+      ? "bg-[radial-gradient(circle,rgba(246,222,170,0.82),rgba(205,150,74,0))]"
+      : "bg-[radial-gradient(circle,rgba(236,208,149,0.5),rgba(205,150,74,0))]";
   return (
     <button
+      type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-[999px] border px-4 py-2 text-sm font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-150 hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-40",
+        "group relative isolate inline-flex items-center justify-center gap-2 overflow-hidden border text-center transition-[border-color,box-shadow,color,transform,background-color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgba(244,228,192,0.44)] focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:scale-100 disabled:active:translate-y-0 disabled:active:scale-100",
+        surface === "tab"
+          ? "hover:-translate-y-[1px] hover:scale-[1.005] active:translate-y-[1px] active:scale-[0.992]"
+          : "hover:-translate-y-[2px] hover:scale-[1.015] active:translate-y-[1px] active:scale-[0.985]",
+        shapeClass,
         toneClass,
         className,
       )}
+      style={{ ...(style as CSSProperties | undefined), clipPath }}
+      disabled={disabled}
       {...props}
     >
-      {children}
+      <span
+        className="pointer-events-none absolute inset-[2px] border border-[rgba(250,236,198,0.18)]"
+        style={{ clipPath }}
+      />
+      <span
+        className={cn("pointer-events-none absolute inset-[5px] border opacity-80", insetClass)}
+        style={{ clipPath }}
+      />
+      <span className="pointer-events-none absolute inset-x-[14%] top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(249,234,196,0.86),transparent)]" />
+      <span className="pointer-events-none absolute inset-x-[14%] bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(225,184,99,0.58),transparent)]" />
+      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,245,220,0.14),transparent_42%)] opacity-80" />
+      {surface === "choice" ? (
+        <>
+          <span className={cn("pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 opacity-70 blur-[0.5px]", ornamentClass)} />
+          <span className={cn("pointer-events-none absolute right-3 top-1/2 h-5 w-5 -translate-y-1/2 opacity-70 blur-[0.5px]", ornamentClass)} />
+        </>
+      ) : null}
+      <span className="relative z-10 inline-flex items-center justify-center gap-2">{children}</span>
     </button>
   );
 }
@@ -306,13 +369,25 @@ export function ResponseWell({
   return (
     <div
       className={cn(
-        "rounded-[1.5rem] border px-5 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+        "relative overflow-hidden border px-5 py-4 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
         tone === "muted"
           ? "border-[rgba(221,189,113,0.22)] bg-[linear-gradient(180deg,rgba(35,18,49,0.72),rgba(21,12,31,0.94))] text-[#d7c7a4]"
           : "border-[rgba(226,192,118,0.34)] bg-[linear-gradient(180deg,rgba(42,20,58,0.86),rgba(23,12,33,0.98))] text-[#ecdcb3]",
         className,
       )}
+      style={{
+        clipPath:
+          "polygon(16px 0, calc(100% - 16px) 0, 100% 30%, 100% 70%, calc(100% - 16px) 100%, 16px 100%, 0 70%, 0 30%)",
+      }}
     >
+      <div
+        className="pointer-events-none absolute inset-[5px] border border-[rgba(238,219,170,0.14)]"
+        style={{
+          clipPath:
+            "polygon(16px 0, calc(100% - 16px) 0, 100% 30%, 100% 70%, calc(100% - 16px) 100%, 16px 100%, 0 70%, 0 30%)",
+        }}
+      />
+      <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(239,217,161,0.42),transparent)]" />
       {children}
     </div>
   );
@@ -324,9 +399,9 @@ export function RitualProgress({ label, value }: RitualProgressProps) {
       <p className="text-[0.9rem] text-[#ecdcb3]">{label}</p>
       {typeof value === "number" ? (
         <div className="w-full">
-          <div className="relative h-1.5 overflow-hidden rounded-full bg-[rgba(226,192,118,0.18)]">
+          <div className="relative h-2 overflow-hidden rounded-full border border-[rgba(226,192,118,0.18)] bg-[rgba(18,10,27,0.74)]">
             <div
-              className="absolute inset-y-0 left-0 rounded-full bg-[linear-gradient(90deg,#e5c782,#f6e8bc)] shadow-[0_0_16px_rgba(229,199,130,0.32)]"
+              className="absolute inset-y-[1px] left-[1px] rounded-full bg-[linear-gradient(90deg,#c99a4a,#f6e8bc,#d09d53)] shadow-[0_0_16px_rgba(229,199,130,0.32)]"
               style={{ width: `${Math.max(6, Math.min(100, value))}%` }}
             />
           </div>

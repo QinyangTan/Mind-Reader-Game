@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Crosshair, SearchCheck } from "lucide-react";
 
 import { EntityPicker } from "@/components/game/entity-picker";
-import { InquirySurface, RitualProgress, SurfacePillButton } from "@/components/game/scene-surfaces";
+import { InquirySurface, ResponseWell, RitualProgress, SurfacePillButton } from "@/components/game/scene-surfaces";
 import { QuestionBrowser } from "@/components/game/question-browser";
 import { rankCandidates } from "@/lib/game/scoring";
 import type {
@@ -78,18 +78,20 @@ export function GuessMyMindBoard({
               <div className="space-y-5">
                 <div className="space-y-2 text-center">
                   <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">Response</p>
-                  {latestReply ? (
-                    <>
-                      <p className="text-sm leading-6 text-[#d7c7a4]">{latestReply.prompt}</p>
-                      <p className="font-display text-[1.8rem] capitalize leading-none text-[#f6e7bf] sm:text-[2.2rem]">
-                        {formatAnswer(latestReply)}
+                  <ResponseWell className="mx-auto max-w-[38rem]">
+                    {latestReply ? (
+                      <div className="space-y-3">
+                        <p className="text-sm leading-6 text-[#d7c7a4]">{latestReply.prompt}</p>
+                        <p className="font-display text-[1.45rem] leading-[1.05] text-[#f6e7bf] sm:text-[1.8rem]">
+                          {formatAnswer(latestReply)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-6 text-[#d7c7a4]">
+                        Mora’s thought is hidden. Ask a first clue and let her answer in her own way.
                       </p>
-                    </>
-                  ) : (
-                    <p className="text-sm leading-6 text-[#d7c7a4]">
-                      Mora’s thought is hidden. Ask a first clue and let her answer in her own way.
-                    </p>
-                  )}
+                    )}
+                  </ResponseWell>
                 </div>
 
                 <QuestionBrowser
@@ -107,6 +109,7 @@ export function GuessMyMindBoard({
                   <p className="text-sm text-[#d7c7a4]">When the shape feels narrow, declare the answer aloud.</p>
                   <SurfacePillButton
                     tone="accent"
+                    surface="choice"
                     className="px-6 py-3 text-base"
                     onClick={() => setPanelMode("guess")}
                     disabled={remainingGuesses <= 0}
@@ -146,7 +149,7 @@ export function GuessMyMindBoard({
 
                 <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
                   {remainingQuestions > 0 ? (
-                    <SurfacePillButton tone="default" className="px-5 py-3" onClick={() => setPanelMode("ask")}>
+                    <SurfacePillButton tone="default" surface="choice" className="px-5 py-3" onClick={() => setPanelMode("ask")}>
                       Return to questions
                     </SurfacePillButton>
                   ) : (
@@ -155,6 +158,7 @@ export function GuessMyMindBoard({
 
                   <SurfacePillButton
                     tone="accent"
+                    surface="choice"
                     className="px-6 py-3 text-base"
                     disabled={!selectedGuessId || isPending || remainingGuesses <= 0}
                     onClick={() => {

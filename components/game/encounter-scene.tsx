@@ -24,7 +24,7 @@ export function EncounterScene({ onContinue }: EncounterSceneProps) {
       </PromptPlaque>
 
       <div className="flex justify-center">
-        <SurfacePillButton tone="accent" className="min-w-[13rem] px-7 py-3.5 text-base" onClick={onContinue}>
+        <SurfacePillButton tone="accent" surface="choice" className="min-w-[13rem] px-7 py-3.5 text-base" onClick={onContinue}>
           Continue
           <ArrowRight className="h-4 w-4" />
         </SurfacePillButton>

@@ -125,12 +125,12 @@ export function ResultScreen({
           ) : null}
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <SurfacePillButton tone="accent" className="min-w-[14rem] px-6 py-3 text-base" onClick={onPlayAgain}>
+            <SurfacePillButton tone="accent" surface="choice" className="min-w-[14rem] px-6 py-3 text-base" onClick={onPlayAgain}>
               Play again
               <RotateCcw className="h-4 w-4" />
             </SurfacePillButton>
-            <SurfacePillButton tone="default" className="min-w-[14rem] px-6 py-3 text-base" onClick={onBackToSetup}>
-              Change ritual
+            <SurfacePillButton tone="default" surface="choice" className="min-w-[14rem] px-6 py-3 text-base" onClick={onBackToSetup}>
+              Choose another ritual
               <Sparkles className="h-4 w-4" />
             </SurfacePillButton>
           </div>
@@ -150,7 +150,11 @@ export function ResultScreen({
                 onChange={(event) => setEntityName(event.target.value)}
                 placeholder="What were you really thinking of?"
                 disabled={teachSaved}
-                className="flex h-12 w-full rounded-[999px] border border-[rgba(214,174,98,0.28)] bg-[linear-gradient(180deg,rgba(45,24,62,0.92),rgba(21,12,30,0.96))] px-5 text-sm text-[#f6e7bf] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#a99976] focus:border-[rgba(242,226,181,0.56)] focus:shadow-[0_0_20px_rgba(177,119,219,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-12 w-full border border-[rgba(214,174,98,0.32)] bg-[linear-gradient(180deg,rgba(45,24,62,0.94),rgba(21,12,30,0.98))] px-5 text-sm text-[#f6e7bf] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#a99976] focus:border-[rgba(242,226,181,0.58)] focus:shadow-[0_0_20px_rgba(177,119,219,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  clipPath:
+                    "polygon(16px 0, calc(100% - 16px) 0, 100% 30%, 100% 70%, calc(100% - 16px) 100%, 16px 100%, 0 70%, 0 30%)",
+                }}
               />
 
               <textarea
@@ -159,7 +163,11 @@ export function ResultScreen({
                 placeholder="One clear clue Mora should remember next time"
                 rows={4}
                 disabled={teachSaved}
-                className="w-full rounded-[1.8rem] border border-[rgba(214,174,98,0.24)] bg-[linear-gradient(180deg,rgba(38,20,53,0.92),rgba(21,12,30,0.96))] px-5 py-4 text-sm text-[#f6e7bf] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#a99976] focus:border-[rgba(242,226,181,0.56)] focus:shadow-[0_0_20px_rgba(177,119,219,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full border border-[rgba(214,174,98,0.28)] bg-[linear-gradient(180deg,rgba(38,20,53,0.94),rgba(21,12,30,0.98))] px-5 py-4 text-sm text-[#f6e7bf] outline-none transition-[border-color,background-color,box-shadow] duration-150 placeholder:text-[#a99976] focus:border-[rgba(242,226,181,0.58)] focus:shadow-[0_0_20px_rgba(177,119,219,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  clipPath:
+                    "polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px)",
+                }}
               />
             </div>
 
@@ -170,15 +178,27 @@ export function ResultScreen({
                   return (
                     <div
                       key={key}
-                      className="rounded-[1.6rem] border border-[rgba(214,174,98,0.2)] bg-[rgba(22,12,31,0.54)] px-4 py-4"
+                      className="relative overflow-hidden border border-[rgba(214,174,98,0.22)] bg-[rgba(22,12,31,0.58)] px-4 py-4"
+                      style={{
+                        clipPath:
+                          "polygon(16px 0, calc(100% - 16px) 0, 100% 24%, 100% 76%, calc(100% - 16px) 100%, 16px 100%, 0 76%, 0 24%)",
+                      }}
                     >
-                      <p className="text-sm font-medium text-[#f6e7bf]">{getAttributeLabel(key, result.category)}</p>
-                      <div className="mt-3 flex flex-wrap gap-2">
+                      <div
+                        className="pointer-events-none absolute inset-[4px] border border-[rgba(242,226,181,0.12)]"
+                        style={{
+                          clipPath:
+                            "polygon(16px 0, calc(100% - 16px) 0, 100% 24%, 100% 76%, calc(100% - 16px) 100%, 16px 100%, 0 76%, 0 24%)",
+                        }}
+                      />
+                      <p className="relative text-sm font-medium text-[#f6e7bf]">{getAttributeLabel(key, result.category)}</p>
+                      <div className="relative mt-3 flex flex-wrap gap-2">
                         {(["yes", "no", "skip"] as const).map((option) => (
                           <SurfacePillButton
                             key={option}
                             tone={choice === option ? "accent" : "default"}
-                            className="px-3 py-2 text-xs"
+                            surface="compact"
+                            className="px-3 py-2"
                             disabled={teachSaved}
                             onClick={() =>
                               setExtraChoiceByKey((current) => ({
@@ -201,6 +221,7 @@ export function ResultScreen({
               {!teachSaved ? (
                 <SurfacePillButton
                   tone="accent"
+                  surface="choice"
                   className="min-w-[15rem] px-6 py-3 text-base"
                   disabled={!entityName.trim()}
                   onClick={() => onTeach(entityName.trim(), note.trim(), collectExtras())}

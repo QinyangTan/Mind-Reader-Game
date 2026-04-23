@@ -65,15 +65,18 @@ function previousStep(step: SetupStep) {
 
 function ritualOption(active: boolean) {
   return active
-    ? "border-[rgba(242,226,181,0.72)] bg-[linear-gradient(180deg,rgba(145,86,196,0.58),rgba(72,39,100,0.96))] text-[#f6e7bf] shadow-[0_0_28px_rgba(177,119,219,0.22)]"
-    : "border-[rgba(214,174,98,0.26)] bg-[linear-gradient(180deg,rgba(52,29,72,0.88),rgba(27,16,39,0.94))] text-[#e6d4a8] hover:border-[rgba(239,218,163,0.42)] hover:-translate-y-[1px]";
+    ? "border-[rgba(242,226,181,0.74)] bg-[linear-gradient(180deg,rgba(145,86,196,0.66),rgba(72,39,100,0.98))] text-[#f6e7bf] shadow-[0_0_32px_rgba(177,119,219,0.28)]"
+    : "border-[rgba(214,174,98,0.3)] bg-[linear-gradient(180deg,rgba(52,29,72,0.94),rgba(27,16,39,0.98))] text-[#e6d4a8] hover:border-[rgba(239,218,163,0.5)] hover:-translate-y-[2px] hover:shadow-[0_0_22px_rgba(177,119,219,0.16)]";
 }
 
 function medallion(active: boolean) {
   return active
-    ? "border-[rgba(242,226,181,0.72)] bg-[radial-gradient(circle,rgba(164,100,221,0.62),rgba(66,34,94,0.96))] text-[#f7ebcb] shadow-[0_0_24px_rgba(177,119,219,0.2)]"
-    : "border-[rgba(214,174,98,0.24)] bg-[radial-gradient(circle,rgba(63,35,87,0.94),rgba(27,16,39,0.98))] text-[#e6d4a8] hover:border-[rgba(239,218,163,0.42)] hover:-translate-y-[1px]";
+    ? "border-[rgba(242,226,181,0.74)] bg-[radial-gradient(circle,rgba(164,100,221,0.68),rgba(66,34,94,0.98))] text-[#f7ebcb] shadow-[0_0_28px_rgba(177,119,219,0.24)]"
+    : "border-[rgba(214,174,98,0.28)] bg-[radial-gradient(circle,rgba(63,35,87,0.98),rgba(27,16,39,0.98))] text-[#e6d4a8] hover:border-[rgba(239,218,163,0.48)] hover:-translate-y-[2px] hover:shadow-[0_0_20px_rgba(177,119,219,0.14)]";
 }
+
+const ritualTileClip =
+  "polygon(22px 0, calc(100% - 22px) 0, 100% 26%, 100% 74%, calc(100% - 22px) 100%, 22px 100%, 0 74%, 0 26%)";
 
 export function PlaySetup({
   settings,
@@ -129,15 +132,17 @@ export function PlaySetup({
             )}
 
             <div className="flex items-center justify-between gap-3 text-sm text-[#d1c09a]">
-              <button
+              <SurfacePillButton
                 type="button"
+                tone="default"
+                surface="compact"
                 onClick={() => setStep((current) => previousStep(current))}
                 disabled={step === "mode"}
-                className="inline-flex items-center gap-2 transition-colors hover:text-[#f4e7c7] disabled:pointer-events-none disabled:opacity-35"
+                className="px-3 py-2"
               >
-                <ArrowLeft className="h-4 w-4" />
+                <ArrowLeft className="h-3.5 w-3.5" />
                 Back
-              </button>
+              </SurfacePillButton>
               <p>{step === "review" ? "Begin when the chamber feels aligned." : "Choose one path to continue."}</p>
             </div>
           </div>
@@ -154,14 +159,20 @@ export function PlaySetup({
                   type="button"
                   onClick={() => choose({ mode: id as StoredSettings["mode"] })}
                   className={cn(
-                    "rounded-[2rem] border px-6 py-5 text-left transition-[transform,border-color,background-color,color,box-shadow] duration-150",
+                    "group relative overflow-hidden border px-6 py-5 text-left transition-[transform,border-color,background-color,color,box-shadow] duration-200",
                     ritualOption(active),
                   )}
+                  style={{ clipPath: ritualTileClip }}
                 >
+                  <div
+                    className="pointer-events-none absolute inset-[4px] border border-[rgba(242,226,181,0.14)]"
+                    style={{ clipPath: ritualTileClip }}
+                  />
+                  <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(242,226,181,0.62),transparent)]" />
                   <div className="flex items-center gap-4">
                     <div
                       className={cn(
-                        "flex h-16 w-16 shrink-0 items-center justify-center rounded-full border text-2xl",
+                        "relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full border text-2xl shadow-[0_0_20px_rgba(0,0,0,0.22)]",
                         active
                           ? "border-[rgba(247,235,203,0.64)] bg-[rgba(255,255,255,0.12)]"
                           : "border-[rgba(214,174,98,0.24)] bg-[rgba(255,255,255,0.04)]",
@@ -195,10 +206,12 @@ export function PlaySetup({
                     type="button"
                     onClick={() => choose({ category: id as StoredSettings["category"] })}
                     className={cn(
-                      "flex aspect-square flex-col items-center justify-center rounded-full border p-3 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-150",
+                      "relative flex aspect-square flex-col items-center justify-center rounded-full border p-3 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-200",
                       medallion(active),
                     )}
                   >
+                    <div className="pointer-events-none absolute inset-[5px] rounded-full border border-[rgba(242,226,181,0.16)]" />
+                    <div className="pointer-events-none absolute inset-x-[22%] top-[7px] h-px bg-[linear-gradient(90deg,transparent,rgba(242,226,181,0.52),transparent)]" />
                     <span className="text-3xl">{meta.icon}</span>
                     <span className="mt-3 text-sm font-semibold leading-5">{meta.label}</span>
                   </button>
@@ -225,10 +238,16 @@ export function PlaySetup({
                   type="button"
                   onClick={() => choose({ difficulty: id as StoredSettings["difficulty"] })}
                   className={cn(
-                    "rounded-[1.7rem] border px-5 py-5 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-150",
+                    "group relative overflow-hidden border px-5 py-5 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-200",
                     ritualOption(active),
                   )}
+                  style={{ clipPath: ritualTileClip }}
                 >
+                  <div
+                    className="pointer-events-none absolute inset-[4px] border border-[rgba(242,226,181,0.14)]"
+                    style={{ clipPath: ritualTileClip }}
+                  />
+                  <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(242,226,181,0.62),transparent)]" />
                   <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">
                     {modeLimits.maxQuestions} questions · {modeLimits.maxGuesses} guesses
                   </p>
@@ -261,6 +280,7 @@ export function PlaySetup({
             <div className="flex justify-center">
               <SurfacePillButton
                 tone="accent"
+                surface="choice"
                 className="min-w-[16rem] px-7 py-3.5 text-base font-semibold"
                 onClick={onStart}
                 disabled={isPending}
