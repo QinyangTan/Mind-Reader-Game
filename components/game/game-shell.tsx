@@ -15,6 +15,7 @@ import { ResultScreen } from "@/components/game/result-screen";
 import { SurfacePillButton } from "@/components/game/scene-surfaces";
 import { StatsPanel } from "@/components/game/stats-panel";
 import { WorldRankPanel } from "@/components/game/world-rank-panel";
+import { SiteFooter } from "@/components/site/site-footer";
 import { entityById } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import {
@@ -627,12 +628,14 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
               ? "teach-flow"
             : "result";
   const showModeUtilities = screen === "setup" && setupStep === "mode";
+  const showSiteFooter = showModeUtilities || screen === "memory" || screen === "world-rank";
 
   return (
     <>
     <ChamberSceneShell
       scene={shellScene}
       mood={stageMascotState}
+      footer={showSiteFooter ? <SiteFooter variant="play" className="pt-3" /> : null}
       header={
         <div className="mx-auto flex w-full max-w-[1320px] items-start justify-between gap-4 pt-1">
           <div className="flex flex-col items-start gap-2">

@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 
 import { ChamberSceneShell } from "@/components/game/chamber-scene-shell";
 import { PromptPlaque } from "@/components/game/scene-surfaces";
+import { SiteFooter } from "@/components/site/site-footer";
 
 export function LandingPage() {
   return (
@@ -12,6 +13,7 @@ export function LandingPage() {
       scene="landing"
       mood="welcome"
       contentClassName="items-center justify-center"
+      footer={<SiteFooter className="pt-3" />}
     >
       <div className="mx-auto flex min-h-[76vh] w-full max-w-[820px] flex-col items-center justify-between px-2 pb-4 pt-[12vh] text-center sm:pt-[16vh]">
         <div />
