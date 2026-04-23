@@ -33,6 +33,7 @@ function zeroRecord<T extends readonly string[]>(values: T): Record<T[number], n
 
 export const defaultStats: GameStats = {
   totalGames: 0,
+  totalScore: 0,
   systemWins: 0,
   playerWins: 0,
   currentStreak: 0,
@@ -47,6 +48,12 @@ export const defaultStats: GameStats = {
   byDifficulty: zeroRecord(difficulties),
   winsByDifficulty: zeroRecord(difficulties),
   questionsByMode: zeroRecord(gameModes),
+  scoreByMode: zeroRecord(gameModes),
+  bestScoreByMode: zeroRecord(gameModes),
+  fastestSolveByMode: {
+    "read-my-mind": null,
+    "guess-my-mind": null,
+  },
   systemGuessAttempts: 0,
   systemGuessHits: 0,
   playerGuessAttempts: 0,
@@ -75,17 +82,32 @@ function mergeStats(raw: Partial<GameStats> | undefined): GameStats {
     byDifficulty: { ...defaultStats.byDifficulty, ...raw?.byDifficulty },
     winsByDifficulty: { ...defaultStats.winsByDifficulty, ...raw?.winsByDifficulty },
     questionsByMode: { ...defaultStats.questionsByMode, ...raw?.questionsByMode },
+    scoreByMode: { ...defaultStats.scoreByMode, ...raw?.scoreByMode },
+    bestScoreByMode: { ...defaultStats.bestScoreByMode, ...raw?.bestScoreByMode },
+    fastestSolveByMode: {
+      ...defaultStats.fastestSolveByMode,
+      ...raw?.fastestSolveByMode,
+    },
   };
+}
+
+function pickStoredValue<T extends string>(allowed: readonly T[], value: unknown, fallback: T) {
+  return typeof value === "string" && allowed.includes(value as T) ? (value as T) : fallback;
 }
 
 function normalizeVaultShape(
   parsed: Partial<PersistedVault> & Partial<LegacyPersistedVaultV1>,
 ): PersistedVault {
+  const rawSettings = parsed.settings ?? defaultSettings;
+
   return {
     version: CURRENT_VAULT_VERSION,
     settings: {
       ...defaultSettings,
       ...parsed.settings,
+      mode: pickStoredValue(gameModes, rawSettings.mode, defaultSettings.mode),
+      category: pickStoredValue(entityCategories, rawSettings.category, defaultSettings.category),
+      difficulty: pickStoredValue(difficulties, rawSettings.difficulty, defaultSettings.difficulty),
     },
     stats: mergeStats(parsed.stats),
     history: Array.isArray(parsed.history) ? parsed.history : [],
@@ -174,6 +196,7 @@ export function applyResultToStats(stats: GameStats, result: GameResult): GameSt
   return {
     ...stats,
     totalGames: stats.totalGames + 1,
+    totalScore: stats.totalScore + result.score,
     systemWins: stats.systemWins + (systemWon ? 1 : 0),
     playerWins: stats.playerWins + playerWinInc,
     currentStreak,
@@ -208,6 +231,23 @@ export function applyResultToStats(stats: GameStats, result: GameResult): GameSt
     questionsByMode: {
       ...stats.questionsByMode,
       [result.mode]: stats.questionsByMode[result.mode] + result.questionsUsed,
+    },
+    scoreByMode: {
+      ...stats.scoreByMode,
+      [result.mode]: stats.scoreByMode[result.mode] + result.score,
+    },
+    bestScoreByMode: {
+      ...stats.bestScoreByMode,
+      [result.mode]: Math.max(stats.bestScoreByMode[result.mode], result.score),
+    },
+    fastestSolveByMode: {
+      ...stats.fastestSolveByMode,
+      [result.mode]:
+        playerWon &&
+        (stats.fastestSolveByMode[result.mode] === null ||
+          result.questionsUsed < stats.fastestSolveByMode[result.mode]!)
+          ? result.questionsUsed
+          : stats.fastestSolveByMode[result.mode],
     },
     systemGuessAttempts: stats.systemGuessAttempts + systemGuessAttemptsInc,
     systemGuessHits: stats.systemGuessHits + systemGuessHitsInc,
@@ -275,6 +315,7 @@ export function createHistoryEntry(result: GameResult): HistoryEntry {
     difficulty: result.difficulty,
     winner: result.winner,
     title: result.title,
+    score: result.score,
     questionsUsed: result.questionsUsed,
     guessesUsed: result.guessesUsed,
     revealedEntityName: result.revealedEntityName,

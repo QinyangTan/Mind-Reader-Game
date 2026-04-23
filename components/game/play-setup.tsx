@@ -87,13 +87,16 @@ export function PlaySetup({
   onStepChange,
 }: PlaySetupProps) {
   const [step, setStep] = useState<SetupStep>("mode");
+  const [previewCategory, setPreviewCategory] = useState<StoredSettings["category"] | null>(null);
 
   useEffect(() => {
     onStepChange?.(step);
   }, [onStepChange, step]);
 
   const selectedMode = modeMeta[settings.mode];
+  const previewedCategory = previewCategory ?? settings.category;
   const selectedCategory = categoryMeta[settings.category];
+  const visibleCategory = categoryMeta[previewedCategory];
   const selectedDifficulty = difficultyConfig[settings.difficulty];
   const limits =
     settings.mode === "read-my-mind"
@@ -111,6 +114,9 @@ export function PlaySetup({
 
   function choose(patch: Partial<StoredSettings>) {
     onChange(patch);
+  }
+
+  function advance() {
     setStep((current) => nextStep(current));
   }
 
@@ -143,7 +149,19 @@ export function PlaySetup({
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Back
               </SurfacePillButton>
-              <p>{step === "review" ? "Begin when the chamber feels aligned." : "Choose one path to continue."}</p>
+              <p>{step === "review" ? "Begin when the chamber feels aligned." : "Select, preview, then continue."}</p>
+              {step !== "review" ? (
+                <SurfacePillButton
+                  type="button"
+                  tone="accent"
+                  surface="compact"
+                  onClick={advance}
+                  className="px-3 py-2"
+                >
+                  Continue
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </SurfacePillButton>
+              ) : null}
             </div>
           </div>
         }
@@ -199,16 +217,27 @@ export function PlaySetup({
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {Object.entries(categoryMeta).map(([id, meta]) => {
                 const active = settings.category === id;
+                const previewed = previewedCategory === id;
 
                 return (
                   <button
                     key={id}
                     type="button"
-                    onClick={() => choose({ category: id as StoredSettings["category"] })}
+                    onMouseEnter={() => setPreviewCategory(id as StoredSettings["category"])}
+                    onFocus={() => setPreviewCategory(id as StoredSettings["category"])}
+                    onBlur={() => setPreviewCategory(null)}
+                    onClick={() => {
+                      const category = id as StoredSettings["category"];
+                      setPreviewCategory(category);
+                      choose({ category });
+                    }}
                     className={cn(
                       "relative flex aspect-square flex-col items-center justify-center rounded-full border p-3 text-center transition-[transform,border-color,background-color,color,box-shadow] duration-200",
-                      medallion(active),
+                      medallion(active || previewed),
+                      active ? "ring-2 ring-[rgba(246,226,179,0.32)]" : "",
                     )}
+                    aria-pressed={active}
+                    aria-describedby="category-scope"
                   >
                     <div className="pointer-events-none absolute inset-[5px] rounded-full border border-[rgba(242,226,181,0.16)]" />
                     <div className="pointer-events-none absolute inset-x-[22%] top-[7px] h-px bg-[linear-gradient(90deg,transparent,rgba(242,226,181,0.52),transparent)]" />
@@ -219,8 +248,9 @@ export function PlaySetup({
               })}
             </div>
 
-            <div className="text-center text-sm leading-6 text-[#d9caac]">
-              {selectedCategory.synopsis}
+            <div id="category-scope" className="text-center text-sm leading-6 text-[#d9caac]">
+              <span className="font-semibold text-[#f6e7bf]">{visibleCategory.label}:</span>{" "}
+              {visibleCategory.synopsis}
             </div>
           </div>
         ) : null}

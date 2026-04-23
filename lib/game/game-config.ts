@@ -38,12 +38,12 @@ export const categoryMeta: Record<
     flavor: "Taste, serving style, and ingredient identity.",
     accent: "from-yellow-300 via-orange-300 to-red-400",
   },
-  vehicles: {
-    label: "Vehicles",
-    icon: "⟡",
-    synopsis: "Road, rail, air, and water machines built to move people, cargo, or urgency.",
-    flavor: "Power source, terrain, and transport role.",
-    accent: "from-sky-300 via-cyan-300 to-indigo-400",
+  historical_figures: {
+    label: "Historical Figures",
+    icon: "♜",
+    synopsis: "Real people from history: rulers, thinkers, artists, scientists, reformers, explorers, and commanders.",
+    flavor: "Era, region, role, and the legacy they left behind.",
+    accent: "from-stone-200 via-amber-200 to-rose-300",
   },
 };
 

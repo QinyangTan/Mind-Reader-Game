@@ -5,16 +5,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookHeart } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { SponsorRail } from "@/components/brand/sponsor-rail";
 import { ChamberSceneShell } from "@/components/game/chamber-scene-shell";
 import { EncounterScene } from "@/components/game/encounter-scene";
 import { EntityGuessDialog } from "@/components/game/entity-guess-dialog";
 import { GuessMyMindBoard } from "@/components/game/guess-my-mind-board";
 import { PlaySetup, type SetupStep } from "@/components/game/play-setup";
+import { PlayerNameGate } from "@/components/game/player-name-gate";
 import { ReadMyMindBoard } from "@/components/game/read-my-mind-board";
 import { ResultScreen } from "@/components/game/result-screen";
 import { SurfacePillButton } from "@/components/game/scene-surfaces";
 import { StatsPanel } from "@/components/game/stats-panel";
+import { WorldRankPanel } from "@/components/game/world-rank-panel";
 import { entityById } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import {
@@ -29,6 +30,13 @@ import {
   getQuestionMascotState,
   getResultMascotState,
 } from "@/lib/game/mascot";
+import { createPublicGameServices } from "@/lib/game/leaderboard-service";
+import {
+  clearPlayerProfile,
+  loadPlayerProfile,
+  renamePlayerProfile,
+  savePlayerProfile,
+} from "@/lib/game/player-profile";
 import {
   applyReadMyMindAnswer,
   askGuessMyMindQuestion,
@@ -63,13 +71,14 @@ import {
   type GameResult,
   type GuessMyMindSession,
   type NormalizedAnswer,
+  type PlayerProfile,
   type ReadMyMindSession,
   type StoredSettings,
   type TeachCase,
 } from "@/types/game";
 
-type ScreenState = "encounter" | "setup" | "play" | "result" | "memory";
-type ReturnableScreenState = Exclude<ScreenState, "memory">;
+type ScreenState = "profile" | "encounter" | "setup" | "play" | "result" | "memory" | "world-rank";
+type ReturnableScreenState = Exclude<ScreenState, "memory" | "world-rank" | "profile">;
 
 interface GameShellProps {
   initialMode?: string;
@@ -106,6 +115,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   });
   const [vault, setVault] = useState(defaultVault);
   const [learnedStore, setLearnedStore] = useState(defaultLearnedStore);
+  const [playerProfile, setPlayerProfile] = useState<PlayerProfile | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [screen, setScreen] = useState<ScreenState>("encounter");
   const [readSession, setReadSession] = useState<ReadMyMindSession | null>(null);
@@ -119,6 +129,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [isRevealing, setIsRevealing] = useState(false);
   const [setupStep, setSetupStep] = useState<SetupStep>("mode");
   const [isPending, startTransition] = useTransition();
+  const publicServices = useMemo(() => createPublicGameServices(), []);
   const recordedResults = useRef<Set<string>>(new Set());
   const revealTimeoutRef = useRef<number | null>(null);
 
@@ -138,14 +149,19 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   useEffect(() => {
     const stored = loadVault();
     const storedLearned = loadLearnedEntities();
+    const storedProfile = loadPlayerProfile();
     const frame = window.requestAnimationFrame(() => {
       setVault(stored);
       setLearnedStore(storedLearned);
+      setPlayerProfile(storedProfile);
       setSettings({
         ...stored.settings,
         ...initialOverridesRef.current,
         soundEnabled: stored.settings.soundEnabled,
       });
+      if (!storedProfile) {
+        setScreen("profile");
+      }
       setHydrated(true);
     });
 
@@ -189,11 +205,16 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   }, [hydrated, learnedStore]);
 
   const persistResult = useEffectEvent((gameResult: GameResult) => {
+    const projectedStats = applyResultToStats(vault.stats, gameResult);
     setVault((previous) => ({
       ...previous,
       stats: applyResultToStats(previous.stats, gameResult),
       history: [createHistoryEntry(gameResult), ...previous.history].slice(0, 16),
     }));
+
+    if (playerProfile) {
+      void publicServices.submitResult(playerProfile, gameResult, projectedStats.bestStreak);
+    }
   });
 
   useEffect(() => {
@@ -414,13 +435,54 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   }
 
   function handleOpenMemory() {
-    const returnTarget: ReturnableScreenState = screen === "memory" ? memoryReturnScreen : screen;
+    const returnTarget: ReturnableScreenState =
+      screen === "memory" || screen === "world-rank" || screen === "profile"
+        ? memoryReturnScreen
+        : screen;
     setMemoryReturnScreen(returnTarget);
     setScreen("memory");
   }
 
   function handleCloseMemory() {
     setScreen(memoryReturnScreen);
+  }
+
+  function handleOpenWorldRank() {
+    const returnTarget: ReturnableScreenState =
+      screen === "memory" || screen === "world-rank" || screen === "profile"
+        ? memoryReturnScreen
+        : screen;
+    setMemoryReturnScreen(returnTarget);
+    setScreen("world-rank");
+  }
+
+  function handleCloseWorldRank() {
+    setScreen(memoryReturnScreen);
+  }
+
+  function handleCreateProfile(profile: PlayerProfile) {
+    savePlayerProfile(profile);
+    setPlayerProfile(profile);
+    setScreen("encounter");
+  }
+
+  function handleRenameProfile(displayName: string) {
+    if (!playerProfile) {
+      return;
+    }
+
+    const renamed = renamePlayerProfile(playerProfile, displayName);
+    savePlayerProfile(renamed);
+    setPlayerProfile(renamed);
+  }
+
+  function handleResetProfile() {
+    clearPlayerProfile();
+    setPlayerProfile(null);
+    setVault(defaultVault);
+    setSettings(defaultSettings);
+    saveVault(defaultVault);
+    setScreen("profile");
   }
 
   function handlePlayAgain() {
@@ -526,8 +588,10 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const isGuessScanning =
     screen === "play" && settings.mode === "read-my-mind" && !!readSession?.queuedGuessId && !guessDialogOpen;
   const stageMascotState =
-    screen === "memory"
+    screen === "memory" || screen === "world-rank"
       ? "observing"
+      : screen === "profile"
+        ? "welcome"
       : guessDialogOpen
       ? "confident"
       : screen === "result" && result
@@ -542,8 +606,10 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             ? "welcome"
             : getSetupMascotState(setupStep);
   const shellScene =
-    screen === "memory"
+    screen === "memory" || screen === "world-rank"
       ? "archive"
+      : screen === "profile"
+        ? "encounter"
       : guessDialogOpen
       ? "reveal"
       : screen === "encounter"
@@ -561,17 +627,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             : result?.teachable && !teachSaved
               ? "teach-flow"
               : "result";
-  const sponsorContext =
-    screen === "memory"
-      ? "setup"
-      : screen === "play"
-      ? settings.mode === "read-my-mind"
-        ? "read"
-        : "guess"
-      : screen === "result"
-        ? "result"
-        : "setup";
-
   return (
     <>
     <ChamberSceneShell
@@ -579,12 +634,18 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       mood={stageMascotState}
       header={
         <div className="mx-auto flex w-full max-w-[1320px] items-start justify-between gap-4 pt-1">
-          <div className="flex min-w-[8rem] justify-start">
-            {screen === "encounter" || screen === "setup" ? (
-              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-80" onClick={handleOpenMemory}>
+          <div className="flex min-w-[9rem] flex-col items-start gap-2">
+            {screen !== "profile" && screen !== "memory" && screen !== "world-rank" ? (
+              <>
+              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-82" onClick={handleOpenMemory}>
                 <BookHeart className="h-4 w-4" />
                 Chamber memory
               </SurfacePillButton>
+              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-82" onClick={handleOpenWorldRank}>
+                <BookHeart className="h-4 w-4" />
+                World Rank
+              </SurfacePillButton>
+              </>
             ) : null}
           </div>
 
@@ -598,6 +659,11 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
                 <ArrowLeft className="h-4 w-4" />
                 Return
               </SurfacePillButton>
+            ) : screen === "world-rank" ? (
+              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-80" onClick={handleCloseWorldRank}>
+                <ArrowLeft className="h-4 w-4" />
+                Return
+              </SurfacePillButton>
             ) : screen === "play" || screen === "result" ? (
               <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-80" onClick={handleBackToSetup}>
                 <ArrowLeft className="h-4 w-4" />
@@ -607,9 +673,17 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
           </div>
         </div>
       }
-      support={<SponsorRail context={sponsorContext} />}
     >
       <AnimatePresence mode="wait" initial={false}>
+        {screen === "profile" ? (
+          <motion.div
+            key="profile"
+            {...sceneTransitionProps}
+          >
+            <PlayerNameGate onCreateProfile={handleCreateProfile} />
+          </motion.div>
+        ) : null}
+
         {screen === "encounter" ? (
           <motion.div
             key="encounter"
@@ -692,6 +766,21 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
               stats={vault.stats}
               history={vault.history}
               learnedEntities={learnedStore.entries}
+              profile={playerProfile}
+              onRenameProfile={handleRenameProfile}
+              onResetProfile={handleResetProfile}
+            />
+          </motion.div>
+        ) : null}
+
+        {screen === "world-rank" ? (
+          <motion.div
+            key="world-rank"
+            {...sceneTransitionProps}
+          >
+            <WorldRankPanel
+              profile={playerProfile}
+              onClose={handleCloseWorldRank}
             />
           </motion.div>
         ) : null}

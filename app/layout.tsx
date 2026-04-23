@@ -16,9 +16,28 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: "Mind Reader",
+  metadataBase: new URL("https://mind-reader.local"),
+  title: {
+    default: "Mind Reader",
+    template: "%s | Mind Reader",
+  },
   description:
-    "A cinematic browser mind-reading ritual set inside a psychic chamber, with mirrored modes, local persistence, and original branding.",
+    "A cinematic browser mind-reading ritual with Mora, personal scores, local learning, and public-rank-ready gameplay.",
+  applicationName: "Mind Reader",
+  authors: [{ name: "Mind Reader" }],
+  openGraph: {
+    title: "Mind Reader",
+    description:
+      "Enter Mora's psychic chamber and play a story-led mind-reading game.",
+    type: "website",
+    images: ["/scene-pack/clean/landing.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Mind Reader",
+    description: "A cinematic browser mind-reading ritual hosted by Mora.",
+    images: ["/scene-pack/clean/landing.png"],
+  },
 };
 
 export default function RootLayout({

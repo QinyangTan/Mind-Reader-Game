@@ -127,19 +127,29 @@ export const questionGroupMeta: Record<
     description: "How it moves, if at all.",
     order: 14,
   },
-  transport: {
-    label: "Transport Role",
-    description: "What kind of transport job it is built for.",
-    order: 15,
-  },
   taste: {
     label: "Taste",
     description: "Flavor profile and palate clues.",
-    order: 16,
+    order: 15,
   },
   serving: {
     label: "Serving Style",
     description: "How it is prepared, served, or consumed.",
+    order: 16,
+  },
+  era: {
+    label: "Era",
+    description: "The age or historical period where a figure belongs.",
     order: 17,
+  },
+  region: {
+    label: "Region",
+    description: "The part of the world most tied to the figure.",
+    order: 18,
+  },
+  legacy: {
+    label: "Legacy",
+    description: "The kind of lasting mark they left behind.",
+    order: 19,
   },
 };

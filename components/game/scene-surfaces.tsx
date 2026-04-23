@@ -101,27 +101,6 @@ const slabPalettes: Record<
   },
 };
 
-function DefaultCrest({ position = "top" }: { position?: "top" | "bottom" }) {
-  const isTop = position === "top";
-
-  return (
-    <div
-      className={cn(
-        "pointer-events-none absolute left-1/2 z-10 -translate-x-1/2",
-        isTop ? "-top-7" : "-bottom-7",
-      )}
-    >
-      <div className="relative flex h-14 w-24 items-center justify-center">
-        <div className="absolute inset-x-1/2 h-px w-16 -translate-x-1/2 bg-[linear-gradient(90deg,transparent,rgba(231,202,129,0.78),transparent)]" />
-        <div className="absolute h-8 w-8 rotate-45 rounded-[0.55rem] border border-[rgba(231,202,129,0.6)] bg-[linear-gradient(180deg,rgba(83,39,108,0.96),rgba(32,16,44,0.96))]" />
-        <div className="absolute h-4 w-4 rotate-45 rounded-[0.3rem] border border-[rgba(245,229,182,0.62)] bg-[radial-gradient(circle,rgba(222,192,113,0.78),rgba(122,77,34,0.9))]" />
-        <div className="absolute left-2 top-1/2 h-px w-4 -translate-y-1/2 bg-[linear-gradient(90deg,transparent,rgba(229,198,119,0.72))]" />
-        <div className="absolute right-2 top-1/2 h-px w-4 -translate-y-1/2 bg-[linear-gradient(270deg,transparent,rgba(229,198,119,0.72))]" />
-      </div>
-    </div>
-  );
-}
-
 export function SceneFrame({ className, ...props }: SceneFrameProps) {
   return <div className={cn("mx-auto w-full", className)} {...props} />;
 }
@@ -157,8 +136,8 @@ export function RitualSlab({
       <div className="pointer-events-none absolute inset-x-8 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(239,217,161,0.5),transparent)]" />
       <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_24%_18%,rgba(255,255,255,0.14)_0,transparent_18%),radial-gradient(circle_at_78%_24%,rgba(255,255,255,0.09)_0,transparent_20%),radial-gradient(circle_at_50%_80%,rgba(255,255,255,0.07)_0,transparent_24%)]" />
 
-      {crest ?? <DefaultCrest position="top" />}
-      {footerCrest ?? <DefaultCrest position="bottom" />}
+      {crest}
+      {footerCrest}
 
       <div className="relative z-10 flex flex-col gap-5 px-5 pb-6 pt-8 sm:px-8 sm:pb-8 sm:pt-10">{children}</div>
     </section>
@@ -226,11 +205,11 @@ export function PromptPlaque({
         <div className="relative z-10">{children}</div>
       </div>
 
-      <DefaultCrest position="top" />
+      {null}
       {tail ? (
         <div className="pointer-events-none absolute -bottom-5 left-1/2 h-10 w-10 -translate-x-1/2 rotate-45 rounded-[0.4rem] border border-[rgba(226,192,118,0.28)] bg-[linear-gradient(180deg,rgba(60,32,82,0.96),rgba(27,16,39,0.98))]" />
       ) : (
-        <DefaultCrest position="bottom" />
+        null
       )}
     </div>
   );

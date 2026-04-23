@@ -81,43 +81,43 @@ const sceneArt: Record<
 };
 
 const moodGlow: Record<MascotState, string> = {
-  welcome: "bg-[radial-gradient(circle_at_50%_22%,rgba(239,203,134,0.22),transparent_26%)]",
-  idle: "bg-[radial-gradient(circle_at_50%_22%,rgba(239,203,134,0.14),transparent_24%)]",
-  observing: "bg-[radial-gradient(circle_at_50%_22%,rgba(160,176,221,0.16),transparent_26%)]",
-  thinking: "bg-[radial-gradient(circle_at_50%_22%,rgba(163,184,222,0.18),transparent_26%)]",
-  asking: "bg-[radial-gradient(circle_at_50%_22%,rgba(239,203,134,0.18),transparent_26%)]",
-  confident: "bg-[radial-gradient(circle_at_50%_22%,rgba(247,222,169,0.26),transparent_28%)]",
-  teasing: "bg-[radial-gradient(circle_at_50%_22%,rgba(213,148,191,0.18),transparent_28%)]",
-  celebration: "bg-[radial-gradient(circle_at_50%_22%,rgba(247,222,169,0.28),transparent_30%)]",
-  surprised: "bg-[radial-gradient(circle_at_50%_22%,rgba(162,174,223,0.18),transparent_28%)]",
-  learning: "bg-[radial-gradient(circle_at_50%_22%,rgba(198,170,234,0.18),transparent_28%)]",
+  welcome: "bg-[linear-gradient(180deg,rgba(239,203,134,0.08),transparent_34%)]",
+  idle: "bg-[linear-gradient(180deg,rgba(239,203,134,0.05),transparent_34%)]",
+  observing: "bg-[linear-gradient(180deg,rgba(160,176,221,0.06),transparent_34%)]",
+  thinking: "bg-[linear-gradient(180deg,rgba(163,184,222,0.07),transparent_34%)]",
+  asking: "bg-[linear-gradient(180deg,rgba(239,203,134,0.07),transparent_34%)]",
+  confident: "bg-[linear-gradient(180deg,rgba(247,222,169,0.1),transparent_36%)]",
+  teasing: "bg-[linear-gradient(180deg,rgba(213,148,191,0.07),transparent_36%)]",
+  celebration: "bg-[linear-gradient(180deg,rgba(247,222,169,0.12),transparent_36%)]",
+  surprised: "bg-[linear-gradient(180deg,rgba(162,174,223,0.08),transparent_36%)]",
+  learning: "bg-[linear-gradient(180deg,rgba(198,170,234,0.08),transparent_36%)]",
 };
 
 const scenePresenceGlow: Record<ChamberSceneKey, string> = {
-  landing: "right-[10%] top-[16%] h-[46vh] w-[30vw]",
-  encounter: "left-1/2 top-[16%] h-[48vh] w-[30vw] -translate-x-1/2",
-  "mode-selection": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
-  "category-selection": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
-  "read-my-mind": "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
-  "guess-my-mind": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
-  "clue-browser": "right-[8%] top-[12%] h-[50vh] w-[32vw]",
-  reveal: "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
-  result: "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
-  "teach-flow": "left-1/2 top-[10%] h-[52vh] w-[34vw] -translate-x-1/2",
-  archive: "right-[10%] top-[16%] h-[44vh] w-[28vw]",
+  landing: "right-[8%] top-[18%] h-[38vh] w-[22vw]",
+  encounter: "right-[7%] top-[18%] h-[38vh] w-[22vw]",
+  "mode-selection": "right-[7%] top-[16%] h-[38vh] w-[22vw]",
+  "category-selection": "right-[7%] top-[16%] h-[38vh] w-[22vw]",
+  "read-my-mind": "left-[6%] top-[18%] h-[38vh] w-[22vw]",
+  "guess-my-mind": "right-[7%] top-[16%] h-[38vh] w-[22vw]",
+  "clue-browser": "right-[7%] top-[16%] h-[38vh] w-[22vw]",
+  reveal: "left-[6%] top-[18%] h-[38vh] w-[22vw]",
+  result: "left-[6%] top-[18%] h-[38vh] w-[22vw]",
+  "teach-flow": "left-[6%] top-[18%] h-[38vh] w-[22vw]",
+  archive: "right-[8%] top-[18%] h-[36vh] w-[20vw]",
 };
 
 const moodPresenceTone: Record<MascotState, string> = {
-  welcome: "bg-[radial-gradient(circle,rgba(245,219,170,0.28),rgba(167,116,228,0.16),transparent_72%)]",
-  idle: "bg-[radial-gradient(circle,rgba(245,219,170,0.18),rgba(167,116,228,0.1),transparent_72%)]",
-  observing: "bg-[radial-gradient(circle,rgba(172,189,230,0.18),rgba(150,116,206,0.12),transparent_72%)]",
-  thinking: "bg-[radial-gradient(circle,rgba(169,190,228,0.22),rgba(140,108,190,0.14),transparent_72%)]",
-  asking: "bg-[radial-gradient(circle,rgba(245,219,170,0.22),rgba(167,116,228,0.14),transparent_72%)]",
-  confident: "bg-[radial-gradient(circle,rgba(247,228,187,0.3),rgba(176,128,237,0.18),transparent_72%)]",
-  teasing: "bg-[radial-gradient(circle,rgba(224,157,209,0.22),rgba(173,119,223,0.16),transparent_72%)]",
-  celebration: "bg-[radial-gradient(circle,rgba(247,228,187,0.32),rgba(188,140,239,0.18),transparent_72%)]",
-  surprised: "bg-[radial-gradient(circle,rgba(179,195,234,0.22),rgba(139,108,190,0.16),transparent_72%)]",
-  learning: "bg-[radial-gradient(circle,rgba(206,182,237,0.24),rgba(154,119,211,0.18),transparent_72%)]",
+  welcome: "bg-[radial-gradient(circle,rgba(245,219,170,0.16),rgba(167,116,228,0.08),transparent_72%)]",
+  idle: "bg-[radial-gradient(circle,rgba(245,219,170,0.1),rgba(167,116,228,0.06),transparent_72%)]",
+  observing: "bg-[radial-gradient(circle,rgba(172,189,230,0.11),rgba(150,116,206,0.07),transparent_72%)]",
+  thinking: "bg-[radial-gradient(circle,rgba(169,190,228,0.13),rgba(140,108,190,0.08),transparent_72%)]",
+  asking: "bg-[radial-gradient(circle,rgba(245,219,170,0.13),rgba(167,116,228,0.08),transparent_72%)]",
+  confident: "bg-[radial-gradient(circle,rgba(247,228,187,0.16),rgba(176,128,237,0.09),transparent_72%)]",
+  teasing: "bg-[radial-gradient(circle,rgba(224,157,209,0.12),rgba(173,119,223,0.08),transparent_72%)]",
+  celebration: "bg-[radial-gradient(circle,rgba(247,228,187,0.18),rgba(188,140,239,0.09),transparent_72%)]",
+  surprised: "bg-[radial-gradient(circle,rgba(179,195,234,0.12),rgba(139,108,190,0.08),transparent_72%)]",
+  learning: "bg-[radial-gradient(circle,rgba(206,182,237,0.13),rgba(154,119,211,0.08),transparent_72%)]",
 };
 
 export function ReferenceSceneBackdrop({
@@ -162,8 +162,8 @@ export function ReferenceSceneBackdrop({
         </motion.div>
       </AnimatePresence>
 
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,2,8,0.68),rgba(7,4,10,0.2)_28%,rgba(10,7,12,0.06)_52%,rgba(7,4,10,0.7)_100%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(248,228,188,0.16),transparent_16%),radial-gradient(circle_at_50%_92%,rgba(5,2,8,0.9),transparent_35%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,2,8,0.62),rgba(7,4,10,0.16)_28%,rgba(10,7,12,0.05)_52%,rgba(7,4,10,0.7)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_92%,rgba(5,2,8,0.9),transparent_35%)]" />
       <div className={cn("absolute inset-0 opacity-95", moodGlow[mood])} />
       <motion.div
         className={cn(
@@ -172,7 +172,7 @@ export function ReferenceSceneBackdrop({
           moodPresenceTone[mood],
         )}
         animate={{
-          opacity: [0.12, 0.3, 0.16],
+          opacity: [0.08, 0.18, 0.1],
           scale: [0.96, 1.03, 0.98],
           y: [0, -8, 0],
         }}
@@ -195,11 +195,6 @@ export function ReferenceSceneBackdrop({
         className="absolute right-[18%] top-[18%] h-3 w-3 rounded-full bg-[rgba(162,180,224,0.35)] blur-sm"
         animate={{ opacity: [0.12, 0.32, 0.12], y: [0, -14, 0], x: [0, -3, 0] }}
         transition={{ duration: 6.4, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut", delay: 0.8 }}
-      />
-      <motion.div
-        className="absolute left-[48%] top-[14%] h-12 w-12 rounded-full border border-[rgba(255,228,175,0.12)] bg-[radial-gradient(circle,rgba(255,235,190,0.12),rgba(255,235,190,0)_74%)]"
-        animate={{ opacity: [0.18, 0.32, 0.18], scale: [0.96, 1.05, 0.96] }}
-        transition={{ duration: 7.2, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
       />
     </div>
   );

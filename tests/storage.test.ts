@@ -129,6 +129,18 @@ describe("loadVault", () => {
 });
 
 describe("applyResultToStats", () => {
+  const scoreBreakdown = {
+    total: 100,
+    base: 40,
+    difficultyBonus: 30,
+    successBonus: 20,
+    questionBonus: 10,
+    efficiencyBonus: 0,
+    rarityBonus: 0,
+    contradictionPenalty: 0,
+    guessPenalty: 0,
+    cap: 480,
+  };
   const baseRmmSystemWin: GameResult = {
     id: "r1",
     mode: "read-my-mind",
@@ -140,6 +152,8 @@ describe("applyResultToStats", () => {
     playedAt: "2024-01-01T00:00:00.000Z",
     questionsUsed: 9,
     guessesUsed: 1,
+    score: 100,
+    scoreBreakdown,
     teachable: false,
   };
 
@@ -150,6 +164,8 @@ describe("applyResultToStats", () => {
     expect(after.byCategory.fictional_characters).toBe(1);
     expect(after.byDifficulty.normal).toBe(1);
     expect(after.questionsByMode["read-my-mind"]).toBe(9);
+    expect(after.totalScore).toBe(100);
+    expect(after.scoreByMode["read-my-mind"]).toBe(100);
   });
 
   it("attributes a system RMM win to systemGuess counters, not player ones", () => {
@@ -179,6 +195,7 @@ describe("applyResultToStats", () => {
     expect(after.winsByMode["guess-my-mind"]).toBe(1);
     expect(after.winsByCategory.animals).toBe(1);
     expect(after.winsByDifficulty.hard).toBe(1);
+    expect(after.bestScoreByMode["guess-my-mind"]).toBe(100);
   });
 
   it("resets currentStreak on a system win and advances bestStreak on a run of player wins", () => {
@@ -211,6 +228,18 @@ describe("derived metric helpers", () => {
   });
 
   it("computes averages and rates correctly with non-zero data", () => {
+    const scoreBreakdown = {
+      total: 100,
+      base: 40,
+      difficultyBonus: 30,
+      successBonus: 20,
+      questionBonus: 10,
+      efficiencyBonus: 0,
+      rarityBonus: 0,
+      contradictionPenalty: 0,
+      guessPenalty: 0,
+      cap: 480,
+    };
     const rmmSystemWin: GameResult = {
       id: "a",
       mode: "read-my-mind",
@@ -222,6 +251,8 @@ describe("derived metric helpers", () => {
       playedAt: "2024-01-01T00:00:00.000Z",
       questionsUsed: 10,
       guessesUsed: 1,
+      score: 100,
+      scoreBreakdown,
       teachable: false,
     };
     const rmmPlayerWin: GameResult = { ...rmmSystemWin, id: "b", winner: "player" };

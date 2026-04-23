@@ -1,10 +1,51 @@
 import { animals } from "@/lib/data/animals";
+import {
+  animalExpansion,
+  fictionalCharactersExpansion,
+  foodExpansion,
+  objectExpansion,
+} from "@/lib/data/content-expansion";
+import {
+  animalExpansionV2,
+  fictionalCharactersExpansionV2,
+  foodExpansionV2,
+  objectExpansionV2,
+} from "@/lib/data/content-expansion-v2";
 import { foods } from "@/lib/data/foods";
 import { fictionalCharacters } from "@/lib/data/fictional-characters";
+import { historicalFigures } from "@/lib/data/historical-figures";
 import { objects } from "@/lib/data/objects";
 import { allQuestions } from "@/lib/data/questions";
-import { vehicles } from "@/lib/data/vehicles";
 import { entityCategories, type EntityCategory, type GameEntity, type QuestionDefinition } from "@/types/game";
+
+function normalizeEntityKey(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function appendUniqueEntities(
+  base: readonly GameEntity[],
+  additions: readonly GameEntity[],
+) {
+  const ids = new Set(base.map((entity) => entity.id));
+  const names = new Set(
+    base.map((entity) => `${entity.category}:${normalizeEntityKey(entity.name)}`),
+  );
+
+  const unique: GameEntity[] = [];
+
+  for (const entity of additions) {
+    const nameKey = `${entity.category}:${normalizeEntityKey(entity.name)}`;
+    if (ids.has(entity.id) || names.has(nameKey)) {
+      continue;
+    }
+
+    ids.add(entity.id);
+    names.add(nameKey);
+    unique.push(entity);
+  }
+
+  return [...base, ...unique];
+}
 
 function freezeMapMutation<K, V>(map: Map<K, V>): ReadonlyMap<K, V> {
   const block = () => {
@@ -17,11 +58,23 @@ function freezeMapMutation<K, V>(map: Map<K, V>): ReadonlyMap<K, V> {
 }
 
 export const entities: readonly GameEntity[] = Object.freeze([
-  ...fictionalCharacters,
-  ...animals,
-  ...objects,
-  ...foods,
-  ...vehicles,
+  ...appendUniqueEntities(
+    appendUniqueEntities(fictionalCharacters, fictionalCharactersExpansion),
+    fictionalCharactersExpansionV2,
+  ),
+  ...appendUniqueEntities(
+    appendUniqueEntities(animals, animalExpansion),
+    animalExpansionV2,
+  ),
+  ...appendUniqueEntities(
+    appendUniqueEntities(objects, objectExpansion),
+    objectExpansionV2,
+  ),
+  ...appendUniqueEntities(
+    appendUniqueEntities(foods, foodExpansion),
+    foodExpansionV2,
+  ),
+  ...historicalFigures,
 ]);
 
 export const entityById: ReadonlyMap<string, GameEntity> = freezeMapMutation(

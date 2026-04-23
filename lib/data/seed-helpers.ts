@@ -112,27 +112,30 @@ function buildAttributeRecord(seed: AttributeSeed) {
     if (record.food === "unknown") {
       record.food = "no";
     }
-    if (record.vehicle === "unknown") {
-      record.vehicle = "no";
+    if (record.historical_figure === "unknown") {
+      record.historical_figure = "no";
     }
   }
 
   if (record.object === "yes") {
     record.living = "no";
     record.food = "no";
-    record.vehicle = "no";
+    record.historical_figure = "no";
   }
 
   if (record.food === "yes") {
     record.living = "no";
     record.object = "no";
-    record.vehicle = "no";
+    record.historical_figure = "no";
   }
 
-  if (record.vehicle === "yes") {
+  if (record.historical_figure === "yes") {
     record.living = "no";
     record.object = "no";
     record.food = "no";
+    record.real = "yes";
+    record.human = record.human === "unknown" ? "yes" : record.human;
+    record.deceased = record.deceased === "unknown" ? "yes" : record.deceased;
   }
 
   if (record.electronic === "yes" && record.powered === "unknown") {
@@ -143,21 +146,19 @@ function buildAttributeRecord(seed: AttributeSeed) {
     record.electronic = "yes";
   }
 
-  if (record.motorized === "yes") {
-    record.powered = "yes";
-    record.human_powered = "no";
+  if (record.ancient === "yes") {
+    record.medieval = record.medieval === "unknown" ? "no" : record.medieval;
+    record.modern = record.modern === "unknown" ? "no" : record.modern;
   }
 
-  if (record.human_powered === "yes" && record.motorized === "unknown") {
-    record.motorized = "no";
+  if (record.medieval === "yes") {
+    record.ancient = record.ancient === "unknown" ? "no" : record.ancient;
+    record.modern = record.modern === "unknown" ? "no" : record.modern;
   }
 
-  if (record.road_vehicle === "yes") {
-    record.outdoor_use = "yes";
-  }
-
-  if (record.air_vehicle === "yes" || record.water_vehicle === "yes" || record.rail_vehicle === "yes") {
-    record.outdoor_use = "yes";
+  if (record.modern === "yes") {
+    record.ancient = record.ancient === "unknown" ? "no" : record.ancient;
+    record.medieval = record.medieval === "unknown" ? "no" : record.medieval;
   }
 
   return record;
@@ -183,7 +184,7 @@ export function createCharacter(
     },
     {
       yes: ["fictional", "living", ...(seed.yes ?? [])],
-      no: ["real", "object", "food", "vehicle", ...(seed.no ?? [])],
+      no: ["real", "object", "food", "historical_figure", ...(seed.no ?? [])],
       probably: seed.probably,
       probably_not: seed.probably_not,
     },
@@ -198,7 +199,7 @@ export function createAnimal(input: Omit<EntitySeedInput, "category">, seed: Att
     },
     {
       yes: ["real", "living", ...(seed.yes ?? [])],
-      no: ["fictional", "object", "food", "vehicle", ...(seed.no ?? [])],
+      no: ["fictional", "object", "food", "historical_figure", ...(seed.no ?? [])],
       probably: seed.probably,
       probably_not: seed.probably_not,
     },
@@ -213,7 +214,7 @@ export function createObject(input: Omit<EntitySeedInput, "category">, seed: Att
     },
     {
       yes: ["real", "object", ...(seed.yes ?? [])],
-      no: ["fictional", "living", "food", "vehicle", "human", "animal_like", ...(seed.no ?? [])],
+      no: ["fictional", "living", "food", "historical_figure", "human", "animal_like", ...(seed.no ?? [])],
       probably: seed.probably,
       probably_not: seed.probably_not,
     },
@@ -228,22 +229,22 @@ export function createFood(input: Omit<EntitySeedInput, "category">, seed: Attri
     },
     {
       yes: ["real", "food", ...(seed.yes ?? [])],
-      no: ["fictional", "living", "object", "vehicle", "human", "animal_like", ...(seed.no ?? [])],
+      no: ["fictional", "living", "object", "historical_figure", "human", "animal_like", ...(seed.no ?? [])],
       probably: seed.probably,
       probably_not: seed.probably_not,
     },
   );
 }
 
-export function createVehicle(input: Omit<EntitySeedInput, "category">, seed: AttributeSeed) {
+export function createHistoricalFigure(input: Omit<EntitySeedInput, "category">, seed: AttributeSeed) {
   return createEntity(
     {
       ...input,
-      category: "vehicles",
+      category: "historical_figures",
     },
     {
-      yes: ["real", "vehicle", ...(seed.yes ?? [])],
-      no: ["fictional", "living", "object", "food", "human", "animal_like", ...(seed.no ?? [])],
+      yes: ["real", "historical_figure", "human", "adult", "deceased", "famous_worldwide", ...(seed.yes ?? [])],
+      no: ["fictional", "living", "object", "food", "animal_like", ...(seed.no ?? [])],
       probably: seed.probably,
       probably_not: seed.probably_not,
     },

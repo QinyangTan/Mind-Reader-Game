@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 
+import { TimedAdSlot } from "@/components/brand/timed-ad-slot";
 import {
   ReferenceSceneBackdrop,
   type ChamberSceneKey,
@@ -121,8 +122,13 @@ export function ChamberSceneShell({
     >
       <ReferenceSceneBackdrop scene={scene} mood={mood} />
 
+      <div className="pointer-events-none absolute inset-0 z-[12] hidden lg:block">
+        <TimedAdSlot id="top-leaderboard" placement="top" className="absolute left-1/2 top-3 -translate-x-1/2 opacity-82" />
+        <TimedAdSlot id="left-rail" placement="left" creativeId="moonline-preview-video" className="absolute left-3 top-[28vh] opacity-72" />
+        <TimedAdSlot id="right-rail" placement="right" className="absolute right-3 top-[28vh] opacity-72" />
+      </div>
+
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-x-[18%] top-[9%] h-[22rem] bg-[radial-gradient(circle,rgba(251,234,199,0.14),transparent_70%)] blur-3xl" />
         <div className="absolute inset-x-[28%] bottom-[12%] h-[16rem] rounded-[50%] border border-[rgba(245,223,176,0.08)] bg-[radial-gradient(circle,rgba(13,7,12,0.18),rgba(13,7,12,0)_72%)]" />
         <div className="absolute left-[8%] top-[4%] h-[78%] w-px bg-[linear-gradient(180deg,transparent,rgba(248,228,188,0.12),transparent)]" />
         <div className="absolute right-[8%] top-[4%] h-[78%] w-px bg-[linear-gradient(180deg,transparent,rgba(248,228,188,0.12),transparent)]" />

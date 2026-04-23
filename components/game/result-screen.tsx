@@ -117,6 +117,18 @@ export function ResultScreen({
             {result.winner === "player" ? "You prevailed." : "Mora prevailed."}
           </p>
 
+          <ResponseWell tone="muted">
+            <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">Score earned</p>
+            <p className="mt-2 font-display text-[2.8rem] leading-none text-[#f6e7bf]">
+              {result.score.toLocaleString()}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[#d7c7a4]">
+              Base {result.scoreBreakdown.base} · Difficulty {result.scoreBreakdown.difficultyBonus} · Success{" "}
+              {result.scoreBreakdown.successBonus} · Penalties{" "}
+              {result.scoreBreakdown.contradictionPenalty + result.scoreBreakdown.guessPenalty}
+            </p>
+          </ResponseWell>
+
           {result.strongestQuestion ? (
             <ResponseWell>
               <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">Turning point</p>

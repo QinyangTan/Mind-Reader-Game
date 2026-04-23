@@ -90,7 +90,6 @@ function familyForQuestion(question: QuestionDefinition): BrowserFamily {
     case "powers":
     case "behavior":
     case "mobility":
-    case "transport":
       return "behavior";
     case "origin":
       return "origin";

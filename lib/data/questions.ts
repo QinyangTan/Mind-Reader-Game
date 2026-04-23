@@ -1,9 +1,9 @@
 import { animalQuestions } from "@/lib/data/question-bank/animals";
 import { fictionalQuestions } from "@/lib/data/question-bank/fictional";
 import { foodQuestions } from "@/lib/data/question-bank/foods";
+import { historicalFigureQuestions } from "@/lib/data/question-bank/historical";
 import { questionGroupMeta } from "@/lib/data/question-bank/meta";
 import { objectQuestions } from "@/lib/data/question-bank/objects";
-import { vehicleQuestions } from "@/lib/data/question-bank/vehicles";
 import type { QuestionDefinition, QuestionGroup } from "@/types/game";
 
 export { questionGroupMeta, questionStageMeta, questionStageOrder } from "@/lib/data/question-bank/meta";
@@ -13,7 +13,7 @@ export const allQuestions: readonly QuestionDefinition[] = Object.freeze([
   ...animalQuestions,
   ...objectQuestions,
   ...foodQuestions,
-  ...vehicleQuestions,
+  ...historicalFigureQuestions,
 ]);
 
 export const questionById = new Map(allQuestions.map((question) => [question.id, question]));

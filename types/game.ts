@@ -51,7 +51,7 @@ export const attributeKeys = [
   "nocturnal",
   "object",
   "food",
-  "vehicle",
+  "historical_figure",
   "portable",
   "electronic",
   "household",
@@ -81,16 +81,24 @@ export const attributeKeys = [
   "drinkable",
   "dessert",
   "spicy",
-  "motorized",
-  "human_powered",
-  "road_vehicle",
-  "air_vehicle",
-  "water_vehicle",
-  "rail_vehicle",
-  "public_transport",
-  "cargo_vehicle",
-  "emergency_vehicle",
-  "luxury_vehicle",
+  "deceased",
+  "ancient",
+  "medieval",
+  "modern",
+  "from_europe",
+  "from_asia",
+  "from_africa",
+  "from_americas",
+  "political_leader",
+  "military_leader",
+  "scientist",
+  "artist",
+  "writer",
+  "philosopher",
+  "religious_figure",
+  "explorer",
+  "inventor",
+  "reformer",
 ] as const;
 
 export type AttributeKey = (typeof attributeKeys)[number];
@@ -186,24 +194,33 @@ export const foodAttributeKeys: AttributeKey[] = [
   "used_daily",
 ];
 
-export const vehicleAttributeKeys: AttributeKey[] = [
+export const historicalFigureAttributeKeys: AttributeKey[] = [
   "real",
-  "vehicle",
-  "large",
-  "small",
-  "outdoor_use",
-  "powered",
-  "has_wheels",
-  "motorized",
-  "human_powered",
-  "road_vehicle",
-  "air_vehicle",
-  "water_vehicle",
-  "rail_vehicle",
-  "public_transport",
-  "cargo_vehicle",
-  "emergency_vehicle",
-  "luxury_vehicle",
+  "historical_figure",
+  "human",
+  "male",
+  "female",
+  "adult",
+  "deceased",
+  "ancient",
+  "medieval",
+  "modern",
+  "from_europe",
+  "from_asia",
+  "from_africa",
+  "from_americas",
+  "political_leader",
+  "military_leader",
+  "scientist",
+  "artist",
+  "writer",
+  "philosopher",
+  "religious_figure",
+  "explorer",
+  "inventor",
+  "reformer",
+  "royal",
+  "famous_worldwide",
 ];
 
 export const entityCategories = [
@@ -211,7 +228,7 @@ export const entityCategories = [
   "animals",
   "objects",
   "foods",
-  "vehicles",
+  "historical_figures",
 ] as const;
 
 export type EntityCategory = (typeof entityCategories)[number];
@@ -241,9 +258,11 @@ export const questionGroups = [
   "material",
   "technology",
   "mobility",
-  "transport",
   "taste",
   "serving",
+  "era",
+  "region",
+  "legacy",
 ] as const;
 
 export type QuestionGroup = (typeof questionGroups)[number];
@@ -374,6 +393,8 @@ export interface GameResult extends SetupSelection {
   playedAt: string;
   questionsUsed: number;
   guessesUsed: number;
+  score: number;
+  scoreBreakdown: ScoreBreakdown;
   revealedEntityId?: string;
   revealedEntityName?: string;
   teachable: boolean;
@@ -387,6 +408,7 @@ export interface StoredSettings extends SetupSelection {
 
 export interface GameStats {
   totalGames: number;
+  totalScore: number;
   systemWins: number;
   playerWins: number;
   currentStreak: number;
@@ -400,6 +422,9 @@ export interface GameStats {
   // Phase 3: expanded lifetime telemetry. All fields are cumulative counters;
   // derived metrics (rates, averages) are computed on read in `storage.ts`.
   winsByMode: Record<GameMode, number>;
+  scoreByMode: Record<GameMode, number>;
+  bestScoreByMode: Record<GameMode, number>;
+  fastestSolveByMode: Record<GameMode, number | null>;
   winsByCategory: Record<EntityCategory, number>;
   byDifficulty: Record<Difficulty, number>;
   winsByDifficulty: Record<Difficulty, number>;
@@ -418,6 +443,7 @@ export interface HistoryEntry {
   difficulty: Difficulty;
   winner: GameWinner;
   title: string;
+  score: number;
   questionsUsed: number;
   guessesUsed: number;
   revealedEntityName?: string;
@@ -471,4 +497,44 @@ export interface LearnedInferenceModel {
   attributeAnswerCounts: Record<string, number>;
   questionStats: Record<string, LearnedQuestionStat>;
   readEntityCounts: Record<string, number>;
+}
+
+export interface ScoreBreakdown {
+  total: number;
+  base: number;
+  difficultyBonus: number;
+  successBonus: number;
+  questionBonus: number;
+  efficiencyBonus: number;
+  rarityBonus: number;
+  contradictionPenalty: number;
+  guessPenalty: number;
+  cap: number;
+}
+
+export interface PlayerProfile {
+  version: 1;
+  id: string;
+  displayName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LeaderboardEntry {
+  playerId: string;
+  displayName: string;
+  mode: GameMode;
+  totalScore: number;
+  gamesPlayed: number;
+  wins: number;
+  bestStreak: number;
+  averageScore: number;
+  updatedAt: string;
+}
+
+export interface LeaderboardSnapshot {
+  mode: GameMode;
+  entries: LeaderboardEntry[];
+  generatedAt: string;
+  source: "local" | "remote";
 }

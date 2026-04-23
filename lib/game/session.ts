@@ -2,6 +2,7 @@ import { entityById, getEntitiesForCategory } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import { difficultyConfig } from "@/lib/game/game-config";
 import { selectNextQuestion } from "@/lib/game/question-selection";
+import { calculateGameScore } from "@/lib/game/score";
 import {
   getTopCandidateId,
   rankCandidates,
@@ -9,6 +10,7 @@ import {
   strongestNarrowingQuestion,
 } from "@/lib/game/scoring";
 import type {
+  AnsweredQuestion,
   GameEntity,
   GameResult,
   GuessMyMindSession,
@@ -55,12 +57,28 @@ function createId() {
 
 function createResult(
   selection: SetupSelection,
-  detail: Omit<GameResult, keyof SetupSelection | "id" | "playedAt">,
+  detail: Omit<GameResult, keyof SetupSelection | "id" | "playedAt" | "score" | "scoreBreakdown">,
+  scoringContext: {
+    answers?: AnsweredQuestion[];
+    entity?: GameEntity | null;
+  } = {},
 ) {
+  const scoreBreakdown = calculateGameScore({
+    mode: selection.mode,
+    difficulty: selection.difficulty,
+    winner: detail.winner,
+    questionsUsed: detail.questionsUsed,
+    guessesUsed: detail.guessesUsed,
+    answers: scoringContext.answers,
+    entity: scoringContext.entity,
+  });
+
   return {
     ...selection,
     id: createId(),
     playedAt: new Date().toISOString(),
+    score: scoreBreakdown.total,
+    scoreBreakdown,
     ...detail,
   } satisfies GameResult;
 }
@@ -160,15 +178,19 @@ function createReadEscapeResult(
 ) {
   const strongestQuestion = computeRmmNarrowing(session, extraEntities);
 
-  return createResult(session, {
-    winner: "player",
-    title: "Thought Pattern Escaped",
-    message: "The chamber lost the signal before it could lock onto your secret.",
-    questionsUsed: session.asked.length,
-    guessesUsed,
-    teachable: true,
-    ...(strongestQuestion ? { strongestQuestion } : {}),
-  });
+  return createResult(
+    session,
+    {
+      winner: "player",
+      title: "Thought Pattern Escaped",
+      message: "The chamber lost the signal before it could lock onto your secret.",
+      questionsUsed: session.asked.length,
+      guessesUsed,
+      teachable: true,
+      ...(strongestQuestion ? { strongestQuestion } : {}),
+    },
+    { answers: session.asked },
+  );
 }
 
 export function applyReadMyMindAnswer(
@@ -309,17 +331,21 @@ export function resolveReadMyMindGuess(
     const strongestQuestion = computeRmmNarrowing(session, extraEntities);
 
     return {
-      result: createResult(session, {
-        winner: "system",
-        title: "Scanner Lock Confirmed",
-        message: `The chamber resolved your thought signature as ${guessedEntity.name}.`,
-        questionsUsed: session.asked.length,
-        guessesUsed: session.guessAttemptsUsed + 1,
-        revealedEntityId: guessedEntity.id,
-        revealedEntityName: guessedEntity.name,
-        teachable: false,
-        ...(strongestQuestion ? { strongestQuestion } : {}),
-      }),
+      result: createResult(
+        session,
+        {
+          winner: "system",
+          title: "Scanner Lock Confirmed",
+          message: `The chamber resolved your thought signature as ${guessedEntity.name}.`,
+          questionsUsed: session.asked.length,
+          guessesUsed: session.guessAttemptsUsed + 1,
+          revealedEntityId: guessedEntity.id,
+          revealedEntityName: guessedEntity.name,
+          teachable: false,
+          ...(strongestQuestion ? { strongestQuestion } : {}),
+        },
+        { answers: session.asked, entity: guessedEntity },
+      ),
     };
   }
 
@@ -467,16 +493,20 @@ export function submitGuessMyMindGuess(
 
   if (guessedEntityId === session.secretEntityId) {
     return {
-      result: createResult(session, {
-        winner: "player",
-        title: "You Broke the Signal",
-        message: `You forced the chamber to reveal ${secretEntity.name}.`,
-        questionsUsed: session.asked.length,
-        guessesUsed: session.guessAttemptsUsed + 1,
-        revealedEntityId: secretEntity.id,
-        revealedEntityName: secretEntity.name,
-        teachable: false,
-      }),
+      result: createResult(
+        session,
+        {
+          winner: "player",
+          title: "You Broke the Signal",
+          message: `You forced the chamber to reveal ${secretEntity.name}.`,
+          questionsUsed: session.asked.length,
+          guessesUsed: session.guessAttemptsUsed + 1,
+          revealedEntityId: secretEntity.id,
+          revealedEntityName: secretEntity.name,
+          teachable: false,
+        },
+        { answers: session.asked, entity: secretEntity },
+      ),
     };
   }
 
@@ -485,16 +515,20 @@ export function submitGuessMyMindGuess(
 
   if (guessAttemptsUsed >= session.config.maxGuesses) {
     return {
-      result: createResult(session, {
-        winner: "system",
-        title: "The Chamber Outplayed You",
-        message: `${secretEntity.name} stayed hidden until your guesses ran dry.`,
-        questionsUsed: session.asked.length,
-        guessesUsed: guessAttemptsUsed,
-        revealedEntityId: secretEntity.id,
-        revealedEntityName: secretEntity.name,
-        teachable: false,
-      }),
+      result: createResult(
+        session,
+        {
+          winner: "system",
+          title: "The Chamber Outplayed You",
+          message: `${secretEntity.name} stayed hidden until your guesses ran dry.`,
+          questionsUsed: session.asked.length,
+          guessesUsed: guessAttemptsUsed,
+          revealedEntityId: secretEntity.id,
+          revealedEntityName: secretEntity.name,
+          teachable: false,
+        },
+        { answers: session.asked, entity: secretEntity },
+      ),
     };
   }
 

@@ -4,8 +4,8 @@ import {
   attributeKeys,
   fictionalAttributeKeys,
   foodAttributeKeys,
+  historicalFigureAttributeKeys,
   objectAttributeKeys,
-  vehicleAttributeKeys,
   type AttributeKey,
   type EntityCategory,
   type GameEntity,
@@ -20,7 +20,7 @@ const CATEGORY_MARKER: Record<EntityCategory, AttributeKey> = {
   animals: "real",
   objects: "object",
   foods: "food",
-  vehicles: "vehicle",
+  historical_figures: "historical_figure",
 };
 
 export function isTeachEntityId(id: string) {
@@ -37,8 +37,8 @@ function categoryAttributeKeys(category: EntityCategory): readonly AttributeKey[
       return objectAttributeKeys;
     case "foods":
       return foodAttributeKeys;
-    case "vehicles":
-      return vehicleAttributeKeys;
+    case "historical_figures":
+      return historicalFigureAttributeKeys;
   }
 }
 
