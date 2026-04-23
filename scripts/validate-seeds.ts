@@ -98,6 +98,19 @@ export function validateSeeds(
       });
     }
 
+    for (const [field, value] of [
+      ["rarityWeight", entity.rarityWeight],
+      ["popularityWeight", entity.popularityWeight],
+    ] as const) {
+      if (value !== undefined && (!Number.isFinite(value) || value <= 0)) {
+        errors.push({
+          scope: "entities",
+          code: "invalid_entity_weight",
+          message: `Entity ${entity.id} has invalid ${field} (${String(value)}); expected a finite number > 0`,
+        });
+      }
+    }
+
     if (seenEntityIds.has(entity.id)) {
       errors.push({
         scope: "entities",
@@ -177,8 +190,23 @@ export function validateSeeds(
     }
   }
 
+  for (const entity of entityList) {
+    for (const alias of entity.aliases ?? []) {
+      const normalizedAlias = `${entity.category}:${normalizeText(alias)}`;
+      const matchingNameOwner = seenEntityNames.get(normalizedAlias);
+      if (matchingNameOwner && matchingNameOwner !== entity.id) {
+        warnings.push({
+          scope: "entities",
+          code: "alias_conflicts_with_name",
+          message: `Alias '${alias}' on ${entity.id} matches canonical name for ${matchingNameOwner}`,
+        });
+      }
+    }
+  }
+
   const seenQuestionIds = new Set<string>();
   const seenQuestionPrompts = new Map<string, string>();
+  const allQuestionIdSet = new Set(questionList.map((question) => question.id));
   for (const question of questionList) {
     if (!question.id.trim()) {
       errors.push({
@@ -246,6 +274,32 @@ export function validateSeeds(
         code: "empty_question_family",
         message: `Question ${question.id} has an empty family`,
       });
+    }
+
+    for (const attributeKey of question.discriminatorFor ?? []) {
+      if (!attributeKeySet.has(attributeKey)) {
+        errors.push({
+          scope: "questions",
+          code: "invalid_discriminator_attribute",
+          message: `Question ${question.id} has invalid discriminator attribute '${attributeKey}'`,
+        });
+      }
+    }
+
+    for (const requiredQuestionId of question.requiredBefore ?? []) {
+      if (!requiredQuestionId.trim()) {
+        errors.push({
+          scope: "questions",
+          code: "empty_question_prerequisite",
+          message: `Question ${question.id} has an empty requiredBefore entry`,
+        });
+      } else if (!allQuestionIdSet.has(requiredQuestionId)) {
+        errors.push({
+          scope: "questions",
+          code: "unknown_question_prerequisite",
+          message: `Question ${question.id} requires unknown question '${requiredQuestionId}'`,
+        });
+      }
     }
 
     if (!attributeKeySet.has(question.attributeKey)) {

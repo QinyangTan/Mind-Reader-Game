@@ -58,3 +58,60 @@ export function getEntitiesForCategory(category: EntityCategory): readonly GameE
 export function getQuestionsForCategory(category: EntityCategory): readonly QuestionDefinition[] {
   return questionsByCategory.get(category) ?? EMPTY_QUESTIONS;
 }
+
+export function normalizeEntityLookupText(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function getEntityLookupTerms(entity: GameEntity) {
+  return [
+    entity.name,
+    ...(entity.aliases ?? []),
+    entity.shortDescription,
+    entity.subcategory ?? "",
+    entity.sourceType ?? "",
+  ].filter(Boolean);
+}
+
+export function entityMatchesLookup(entity: GameEntity, query: string) {
+  const normalizedQuery = normalizeEntityLookupText(query);
+  if (!normalizedQuery) {
+    return true;
+  }
+
+  return getEntityLookupTerms(entity).some((term) =>
+    normalizeEntityLookupText(term).includes(normalizedQuery),
+  );
+}
+
+export function findEntityByNameOrAlias(
+  category: EntityCategory,
+  value: string,
+  extraEntities: GameEntity[] = [],
+) {
+  const normalizedValue = normalizeEntityLookupText(value);
+  if (!normalizedValue) {
+    return null;
+  }
+
+  const seeded = getEntitiesForCategory(category);
+  const seededIds = new Set(seeded.map((entity) => entity.id));
+  const pool = [
+    ...seeded,
+    ...extraEntities.filter((entity) => entity.category === category && !seededIds.has(entity.id)),
+  ];
+
+  return (
+    pool.find((entity) =>
+      [entity.name, ...(entity.aliases ?? [])].some(
+        (term) => normalizeEntityLookupText(term) === normalizedValue,
+      ),
+    ) ?? null
+  );
+}

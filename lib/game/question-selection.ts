@@ -5,7 +5,7 @@ import {
   getSmoothedLikelihood,
   getUncertaintyMetrics,
 } from "@/lib/game/inference-model";
-import { toProbability } from "@/lib/game/scoring";
+import { answerToProbability } from "@/lib/game/answer-evidence";
 import type {
   EntityCategory,
   GameEntity,
@@ -23,7 +23,12 @@ export interface RankedQuestionOption {
   score: number;
   informationGain: number;
   predictedAnswerEntropy: number;
+  expectedLeaderConfidence: number;
+  expectedMargin: number;
+  expectedEffectiveCandidateCount: number;
   targetStage: QuestionStage;
+  repetitionMultiplier: number;
+  layerMultiplier: number;
 }
 
 const normalizedAnswers: readonly NormalizedAnswer[] = [
@@ -38,6 +43,8 @@ const TOP_POOL_SIZE = 40;
 const ENDGAME_TOP_K = 5;
 const RECENT_GROUP_WINDOW = 2;
 const RECENT_FAMILY_WINDOW = 3;
+const HIGH_VALUE_IG_FLOOR = 0.035;
+const HIGH_VALUE_SPLIT_FLOOR = 0.055;
 const stageOrder: QuestionStage[] = [
   "broad",
   "category",
@@ -100,8 +107,8 @@ function topKSplit(
       const left = resolved[i];
       const right = resolved[j];
       const distance = Math.abs(
-        toProbability(left.entity.attributes[question.attributeKey]) -
-          toProbability(right.entity.attributes[question.attributeKey]),
+        answerToProbability(left.entity.attributes[question.attributeKey]) -
+          answerToProbability(right.entity.attributes[question.attributeKey]),
       );
       const pairWeight = left.confidence * right.confidence;
       weightedDistance += distance * pairWeight;
@@ -112,7 +119,7 @@ function topKSplit(
   return weightSum > 0 ? weightedDistance / weightSum : 0;
 }
 
-function determineTargetStage(
+export function determineTargetQuestionStage(
   rankedCandidates: RankedCandidate[],
   questionsAsked: number,
   remainingQuestions: number | undefined,
@@ -123,10 +130,7 @@ function determineTargetStage(
 
   const metrics = getUncertaintyMetrics(rankedCandidates);
 
-  if (
-    remainingQuestions !== undefined &&
-    remainingQuestions <= 1
-  ) {
+  if (remainingQuestions !== undefined && remainingQuestions <= 1) {
     return "fine";
   }
 
@@ -146,7 +150,7 @@ function determineTargetStage(
     return "profile";
   }
 
-  if (questionsAsked >= 2 || metrics.normalizedEntropy <= 0.66) {
+  if (questionsAsked >= 3 || metrics.normalizedEntropy <= 0.62) {
     return "category";
   }
 
@@ -189,15 +193,19 @@ function repetitionMultiplier(
   let multiplier = 1;
 
   if (last.family === question.family) {
-    multiplier *= 0.42;
+    multiplier *= 0.32;
   } else if (recentFamilies.has(question.family)) {
-    multiplier *= 0.74;
+    multiplier *= 0.68;
   }
 
   if (recentGroups.includes(question.group)) {
-    multiplier *= 0.86;
+    multiplier *= 0.82;
   } else {
     multiplier *= 1.03;
+  }
+
+  if (last.group === question.group) {
+    multiplier *= 0.88;
   }
 
   if (recentStages.includes(question.stage)) {
@@ -217,11 +225,55 @@ function coverageMultiplier(
     .map((id) => questionById.get(id))
     .filter((entry): entry is QuestionDefinition => !!entry);
 
-  if (askedQuestions.every((asked) => asked.group !== question.group)) {
+  const groupIsFresh = askedQuestions.every((asked) => asked.group !== question.group);
+  const familyIsFresh = askedQuestions.every((asked) => asked.family !== question.family);
+
+  if (groupIsFresh && familyIsFresh) {
+    return 1.1;
+  }
+
+  if (familyIsFresh) {
     return 1.05;
   }
 
+  if (groupIsFresh) {
+    return 1.03;
+  }
+
   return 1;
+}
+
+function prerequisiteMultiplier(
+  question: QuestionDefinition,
+  askedQuestionIds: string[],
+) {
+  if (!question.requiredBefore || question.requiredBefore.length === 0) {
+    return 1;
+  }
+
+  const asked = new Set(askedQuestionIds);
+  return question.requiredBefore.every((id) => asked.has(id)) ? 1 : 0;
+}
+
+function discriminatorMultiplier(
+  question: QuestionDefinition,
+  rankedCandidates: RankedCandidate[],
+  resolveEntity: EntityResolver,
+) {
+  if (!question.discriminatorFor || question.discriminatorFor.length === 0) {
+    return 1;
+  }
+
+  const top = rankedCandidates.slice(0, ENDGAME_TOP_K);
+  const signals = question.discriminatorFor.map((attributeKey) => {
+    const values = top
+      .map((candidate) => resolveEntity(candidate.entityId)?.attributes[attributeKey])
+      .filter(Boolean);
+    return new Set(values).size;
+  });
+  const hasUsefulDiscriminator = signals.some((count) => count > 1);
+
+  return hasUsefulDiscriminator ? 1.06 : 0.92;
 }
 
 function expectedEntropyMetrics(
@@ -237,6 +289,9 @@ function expectedEntropyMetrics(
       informationGain: 0,
       predictedAnswerEntropy: 0,
       certainty: 0,
+      expectedLeaderConfidence: 0,
+      expectedMargin: 0,
+      expectedEffectiveCandidateCount: rankedCandidates.length,
     };
   }
 
@@ -282,6 +337,9 @@ function expectedEntropyMetrics(
   const certainty = 1 - answerMass.unknown;
 
   let expectedPosteriorEntropy = 0;
+  let expectedLeaderConfidence = 0;
+  let expectedMargin = 0;
+  let expectedEffectiveCandidateCount = 0;
 
   for (const observedAnswer of normalizedAnswers) {
     const mass = answerMass[observedAnswer];
@@ -291,13 +349,50 @@ function expectedEntropyMetrics(
 
     const posterior = posteriorWeights[observedAnswer].map((value) => value / mass);
     expectedPosteriorEntropy += mass * entropy(posterior);
+
+    const sortedPosterior = [...posterior].toSorted((left, right) => right - left);
+    const leader = sortedPosterior[0] ?? 0;
+    const runnerUp = sortedPosterior[1] ?? 0;
+    const concentration = posterior.reduce((sum, value) => sum + value ** 2, 0);
+    expectedLeaderConfidence += mass * leader;
+    expectedMargin += mass * (leader - runnerUp);
+    expectedEffectiveCandidateCount +=
+      mass * (concentration > 0 ? 1 / concentration : pool.length);
   }
 
   return {
     informationGain: Math.max(0, currentEntropy - expectedPosteriorEntropy),
     predictedAnswerEntropy,
     certainty,
+    expectedLeaderConfidence,
+    expectedMargin,
+    expectedEffectiveCandidateCount,
   };
+}
+
+function highValueMultiplier(
+  metrics: ReturnType<typeof expectedEntropyMetrics>,
+  split: number,
+  targetStage: QuestionStage,
+) {
+  const canBeNarrow =
+    targetStage === "specialist" ||
+    targetStage === "fine" ||
+    metrics.expectedEffectiveCandidateCount <= 5;
+
+  if (
+    metrics.informationGain >= HIGH_VALUE_IG_FLOOR ||
+    split >= HIGH_VALUE_SPLIT_FLOOR ||
+    (canBeNarrow && metrics.expectedMargin >= 0.14)
+  ) {
+    return 1;
+  }
+
+  if (metrics.informationGain < 0.015 && split < 0.025) {
+    return 0.58;
+  }
+
+  return 0.78;
 }
 
 export function rankAvailableQuestions(
@@ -309,7 +404,13 @@ export function rankAvailableQuestions(
   inferenceModel?: LearnedInferenceModel,
 ) {
   const asked = new Set(askedQuestionIds);
-  const available = getQuestionsForCategory(category).filter((question) => !asked.has(question.id));
+  const available = getQuestionsForCategory(category).filter((question) => {
+    if (asked.has(question.id)) {
+      return false;
+    }
+
+    return prerequisiteMultiplier(question, askedQuestionIds) > 0;
+  });
 
   if (available.length === 0) {
     return [];
@@ -317,7 +418,7 @@ export function rankAvailableQuestions(
 
   const resolve = makeResolver(extraEntities);
   const questionsAsked = askedQuestionIds.length;
-  const targetStage = determineTargetStage(rankedCandidates, questionsAsked, remainingQuestions);
+  const targetStage = determineTargetQuestionStage(rankedCandidates, questionsAsked, remainingQuestions);
   const uncertainty = getUncertaintyMetrics(rankedCandidates);
 
   return available
@@ -331,21 +432,38 @@ export function rankAvailableQuestions(
       );
       const split = topKSplit(question, rankedCandidates, resolve);
       const weightBonus = ((question.weight ?? 1) - 1) * 0.07;
+      const layerMultiplier = stageMultiplier(question.stage, targetStage);
+      const repeatMultiplier = repetitionMultiplier(question, askedQuestionIds);
+      const endgameFocus = uncertainty.effectiveCandidateCount <= 8.2 || uncertainty.normalizedEntropy <= 0.42;
+      const informationWeight = endgameFocus ? 0.46 : 0.62;
+      const splitWeight = endgameFocus ? 0.23 : 0.13;
+      const convergenceWeight = endgameFocus ? 0.21 : 0.08;
+      const balanceWeight = endgameFocus ? 0.1 : 0.15;
+      const certaintyWeight = endgameFocus ? 0.04 : 0.07;
+      const convergenceScore =
+        metrics.expectedMargin * 0.58 +
+        metrics.expectedLeaderConfidence * 0.26 +
+        (metrics.expectedEffectiveCandidateCount > 0
+          ? (1 / metrics.expectedEffectiveCandidateCount) * 0.16
+          : 0);
       const baseScore =
-        metrics.informationGain * 0.58 +
-        metrics.predictedAnswerEntropy * 0.16 +
-        split * 0.16 +
-        metrics.certainty * 0.08 +
+        metrics.informationGain * informationWeight +
+        metrics.predictedAnswerEntropy * balanceWeight +
+        split * splitWeight +
+        convergenceScore * convergenceWeight +
+        metrics.certainty * certaintyWeight +
         weightBonus;
       const structural =
-        stageMultiplier(question.stage, targetStage) *
-        repetitionMultiplier(question, askedQuestionIds) *
+        layerMultiplier *
+        repeatMultiplier *
         coverageMultiplier(question, askedQuestionIds) *
-        getQuestionUsefulnessMultiplier(inferenceModel, question.id);
+        discriminatorMultiplier(question, rankedCandidates, resolve) *
+        getQuestionUsefulnessMultiplier(inferenceModel, question.id) *
+        highValueMultiplier(metrics, split, targetStage);
       const earlyNarrowPenalty =
         uncertainty.normalizedEntropy > 0.7 &&
         stageIndex[question.stage] > stageIndex[targetStage] + 1
-          ? 0.7
+          ? 0.62
           : 1;
 
       return {
@@ -353,7 +471,12 @@ export function rankAvailableQuestions(
         score: baseScore * structural * earlyNarrowPenalty,
         informationGain: metrics.informationGain,
         predictedAnswerEntropy: metrics.predictedAnswerEntropy,
+        expectedLeaderConfidence: metrics.expectedLeaderConfidence,
+        expectedMargin: metrics.expectedMargin,
+        expectedEffectiveCandidateCount: metrics.expectedEffectiveCandidateCount,
         targetStage,
+        repetitionMultiplier: repeatMultiplier,
+        layerMultiplier,
       };
     })
     .toSorted((left, right) => right.score - left.score);

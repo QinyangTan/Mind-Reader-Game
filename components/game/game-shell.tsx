@@ -19,10 +19,9 @@ import { entityById } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import {
   applyQuestionEntropyDrops,
-  applyResolvedEntityAnswers,
+  applyCompletedEntityLearning,
   applyTeachCaseLearning,
   mergeLearnedModel,
-  recordReadEntityConfirmation,
   replayEntropyDrops,
 } from "@/lib/game/inference-model";
 import {
@@ -489,16 +488,23 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
       answer: entry.answer,
       askedAt: entry.askedAt,
     }));
+    const secretEntity = resolveEntity(activeTeachEntities, session.secretEntityId);
 
     setLearnedStore((previous) =>
-      mergeLearnedModel(previous, (model) =>
-        applyQuestionEntropyDrops(
+      mergeLearnedModel(previous, (model) => {
+        let next = applyQuestionEntropyDrops(
           model,
           replayEntropyDrops(session.category, trail, (replayedTrail) =>
             rankCandidates(session.category, replayedTrail, [], activeTeachEntities, model),
           ),
-        ),
-      ),
+        );
+
+        if (secretEntity && trail.length > 0) {
+          next = applyCompletedEntityLearning(next, session.category, secretEntity, trail);
+        }
+
+        return next;
+      }),
     );
   }
 
@@ -510,10 +516,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
 
     setLearnedStore((previous) =>
       mergeLearnedModel(previous, (model) =>
-        recordReadEntityConfirmation(
-          applyResolvedEntityAnswers(model, session.category, entity, session.asked),
-          entity.id,
-        ),
+        applyCompletedEntityLearning(model, session.category, entity, session.asked),
       ),
     );
   }

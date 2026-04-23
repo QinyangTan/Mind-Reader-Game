@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { getQuestionsForCategory } from "@/lib/data/entities";
-import { rankAvailableQuestions, selectNextQuestion } from "@/lib/game/question-selection";
+import {
+  determineTargetQuestionStage,
+  rankAvailableQuestions,
+  selectNextQuestion,
+} from "@/lib/game/question-selection";
 import { rankCandidates } from "@/lib/game/scoring";
 import { attributeKeys, type EntityCategory, type GameEntity, type RankedCandidate } from "@/types/game";
 
@@ -114,5 +118,79 @@ describe("selectNextQuestion", () => {
     expect(rankedQuestions[0]).toBeDefined();
     expect(["broad", "category"]).toContain(rankedQuestions[0].question.stage);
     expect(rankedQuestions[0].targetStage).toBe("broad");
+  });
+
+  it("moves into fine questions when the candidate pool is already narrow", () => {
+    const target = determineTargetQuestionStage(
+      [ranked("a", 0.82), ranked("b", 0.12), ranked("c", 0.06)],
+      8,
+      6,
+    );
+
+    expect(["specialist", "fine"]).toContain(target);
+  });
+
+  it("keeps repetitive family choices below diverse alternatives in the scoring metadata", () => {
+    const rankings = rankCandidates("objects", [], []);
+    const rankedQuestions = rankAvailableQuestions(
+      "objects",
+      ["object-portable", "object-household", "object-kitchen"],
+      rankings,
+      [],
+      8,
+    );
+
+    const repeated = rankedQuestions.find((entry) => entry.question.family === "room-context");
+    const diverse = rankedQuestions.find((entry) => entry.question.family !== "room-context");
+
+    expect(repeated).toBeDefined();
+    expect(diverse).toBeDefined();
+    expect(repeated!.repetitionMultiplier).toBeLessThanOrEqual(1);
+  });
+
+  it("prioritizes the question most likely to create a decisive leader in endgame", () => {
+    const extraEntities: GameEntity[] = [
+      makeEntity("tablet-like", "objects", {
+        real: "yes",
+        object: "yes",
+        electronic: "yes",
+        powered: "yes",
+        portable: "yes",
+        has_screen: "yes",
+        used_daily: "yes",
+        office_related: "yes",
+      }),
+      makeEntity("headphones-like", "objects", {
+        real: "yes",
+        object: "yes",
+        electronic: "yes",
+        powered: "yes",
+        portable: "yes",
+        has_screen: "no",
+        used_daily: "yes",
+        office_related: "yes",
+      }),
+    ];
+    const rankings = [ranked("tablet-like", 0.52), ranked("headphones-like", 0.48)];
+
+    const rankedQuestions = rankAvailableQuestions(
+      "objects",
+      ["object-electronic", "object-powered", "object-portable"],
+      rankings,
+      extraEntities,
+      4,
+    );
+
+    const screenQuestion = rankedQuestions.find((entry) => entry.question.id === "object-screen");
+    const dailyQuestion = rankedQuestions.find((entry) => entry.question.id === "object-used-daily");
+
+    expect(screenQuestion).toBeDefined();
+    expect(dailyQuestion).toBeDefined();
+    expect(screenQuestion!.expectedMargin).toBeGreaterThan(dailyQuestion!.expectedMargin);
+    expect(
+      rankedQuestions.findIndex((entry) => entry.question.id === "object-screen"),
+    ).toBeLessThan(
+      rankedQuestions.findIndex((entry) => entry.question.id === "object-used-daily"),
+    );
   });
 });

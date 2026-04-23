@@ -3,7 +3,11 @@
 import { useDeferredValue, useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 
-import { getEntitiesForCategory } from "@/lib/data/entities";
+import {
+  entityMatchesLookup,
+  getEntitiesForCategory,
+  normalizeEntityLookupText,
+} from "@/lib/data/entities";
 import { isTeachEntityId } from "@/lib/game/teach";
 import { cn } from "@/lib/utils/cn";
 import type { EntityCategory, GameEntity } from "@/types/game";
@@ -26,7 +30,7 @@ export function EntityPicker({
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const blocked = new Set(excludedIds);
-  const query = deferredSearch.trim().toLowerCase();
+  const query = normalizeEntityLookupText(deferredSearch);
 
   const seeded = getEntitiesForCategory(category);
   const seededIds = new Set(seeded.map((entity) => entity.id));
@@ -36,20 +40,12 @@ export function EntityPicker({
 
   const results = [...seeded, ...extras]
     .filter((entity) => !blocked.has(entity.id))
-    .filter((entity) => {
-      if (!query) {
-        return true;
-      }
-
-      return (
-        entity.name.toLowerCase().includes(query) ||
-        entity.shortDescription.toLowerCase().includes(query) ||
-        entity.aliases?.some((alias) => alias.toLowerCase().includes(query))
-      );
-    })
+    .filter((entity) => entityMatchesLookup(entity, query))
     .toSorted((left, right) => {
-      const leftStarts = left.name.toLowerCase().startsWith(query);
-      const rightStarts = right.name.toLowerCase().startsWith(query);
+      const leftName = normalizeEntityLookupText(left.name);
+      const rightName = normalizeEntityLookupText(right.name);
+      const leftStarts = leftName.startsWith(query);
+      const rightStarts = rightName.startsWith(query);
 
       if (leftStarts !== rightStarts) {
         return Number(rightStarts) - Number(leftStarts);

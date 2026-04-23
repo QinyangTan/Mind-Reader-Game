@@ -51,6 +51,25 @@ describe("validateSeeds (fixtures)", () => {
     expect(report.errors.some((e) => e.code === "invalid_question_weight")).toBe(true);
   });
 
+  it("flags invalid optional entity and question taxonomy metadata", () => {
+    const one = entities[0];
+    const q = allQuestions[0];
+    const report = validateSeeds({
+      entities: [{ ...one, popularityWeight: 0 }],
+      questions: [
+        {
+          ...q,
+          discriminatorFor: ["not_real" as typeof q.attributeKey],
+          requiredBefore: ["missing-question-id"],
+        },
+      ],
+    });
+
+    expect(report.errors.some((e) => e.code === "invalid_entity_weight")).toBe(true);
+    expect(report.errors.some((e) => e.code === "invalid_discriminator_attribute")).toBe(true);
+    expect(report.errors.some((e) => e.code === "unknown_question_prerequisite")).toBe(true);
+  });
+
   it("flags a category with no supporting questions", () => {
     const animalsOnly = allQuestions.filter((q) =>
       q.supportedCategories.every((c) => c === "animals"),

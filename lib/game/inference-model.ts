@@ -301,14 +301,24 @@ export function applyResolvedEntityAnswers(
   return next;
 }
 
+export function applyCompletedEntityLearning(
+  model: LearnedInferenceModel,
+  category: EntityCategory,
+  entity: GameEntity,
+  asked: AnsweredQuestion[],
+) {
+  return recordReadEntityConfirmation(
+    applyResolvedEntityAnswers(model, category, entity, asked),
+    entity.id,
+  );
+}
+
 export function applyTeachCaseLearning(
   model: LearnedInferenceModel,
   teachCase: TeachCase,
 ) {
-  let next = recordReadEntityConfirmation(model, teachCaseToEntity(teachCase).id);
   const entity = teachCaseToEntity(teachCase);
-  next = applyResolvedEntityAnswers(next, teachCase.category, entity, teachCase.answers);
-  return next;
+  return applyCompletedEntityLearning(model, teachCase.category, entity, teachCase.answers);
 }
 
 export function mergeLearnedModel(

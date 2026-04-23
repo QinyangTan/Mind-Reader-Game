@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   applyResolvedEntityAnswers,
+  applyCompletedEntityLearning,
   applyTeachCaseLearning,
   defaultLearnedInferenceModel,
   getQuestionUsefulnessMultiplier,
@@ -130,6 +131,44 @@ describe("applyTeachCaseLearning", () => {
     const teachEntity = teachCaseToEntity(teachCase);
 
     expect(learned.readEntityCounts[teachEntity.id]).toBe(1);
+    expect(
+      getSmoothedLikelihood(
+        learned,
+        "fictional_characters",
+        "magical",
+        "yes",
+        "yes",
+      ),
+    ).toBeGreaterThan(
+      getSmoothedLikelihood(
+        defaultLearnedInferenceModel,
+        "fictional_characters",
+        "magical",
+        "yes",
+        "yes",
+      ),
+    );
+  });
+});
+
+describe("applyCompletedEntityLearning", () => {
+  it("updates both the entity prior and answer-likelihood counts for a completed round", () => {
+    const learned = applyCompletedEntityLearning(
+      defaultLearnedInferenceModel,
+      "fictional_characters",
+      sampleEntity,
+      [
+        {
+          questionId: "fiction-magical",
+          attributeKey: "magical",
+          prompt: "Are they tied to magic?",
+          answer: "yes",
+          askedAt: "2024-01-01T00:00:00.000Z",
+        },
+      ],
+    );
+
+    expect(learned.readEntityCounts[sampleEntity.id]).toBe(1);
     expect(
       getSmoothedLikelihood(
         learned,

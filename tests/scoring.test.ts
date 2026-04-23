@@ -9,7 +9,7 @@ import {
   strongestNarrowingQuestion,
   toProbability,
 } from "@/lib/game/scoring";
-import type { AnsweredQuestion, GameEntity, RankedCandidate } from "@/types/game";
+import { attributeKeys, type AnsweredQuestion, type GameEntity, type RankedCandidate } from "@/types/game";
 
 describe("toProbability", () => {
   it("is monotonic from no → yes", () => {
@@ -21,6 +21,38 @@ describe("toProbability", () => {
 });
 
 describe("rankCandidates", () => {
+  function objectEntity(
+    id: string,
+    answers: Partial<GameEntity["attributes"]>,
+  ): GameEntity {
+    const attributes = Object.fromEntries(attributeKeys.map((key) => [key, "unknown"])) as GameEntity["attributes"];
+    return {
+      id,
+      name: id,
+      category: "objects",
+      shortDescription: "test object",
+      imageEmoji: "🧪",
+      attributes: {
+        ...attributes,
+        real: "yes",
+        object: "yes",
+        ...answers,
+      },
+    };
+  }
+
+  function answer(questionId: string, response: AnsweredQuestion["answer"]): AnsweredQuestion {
+    const question = questionById.get(questionId);
+    expect(question).toBeDefined();
+    return {
+      questionId,
+      attributeKey: question!.attributeKey,
+      prompt: question!.question,
+      answer: response,
+      askedAt: "2024-01-01T00:00:00.000Z",
+    };
+  }
+
   it("returns all candidates for a fresh round with no rejections", () => {
     const ranked = rankCandidates("fictional_characters", [], []);
     const seededCount = getEntitiesForCategory("fictional_characters").length;
@@ -42,6 +74,27 @@ describe("rankCandidates", () => {
     const ranked = rankCandidates("animals", [], []);
     const total = ranked.reduce((sum, r) => sum + r.confidence, 0);
     expect(total).toBeCloseTo(1, 5);
+  });
+
+  it("calibrates confidence so one thin answer does not overclaim certainty", () => {
+    const mammalQ = questionById.get("animal-mammal");
+    expect(mammalQ).toBeDefined();
+
+    const ranked = rankCandidates(
+      "animals",
+      [
+        {
+          questionId: "animal-mammal",
+          attributeKey: "mammal",
+          prompt: mammalQ!.question,
+          answer: "yes",
+          askedAt: "2024-01-01T00:00:00.000Z",
+        },
+      ],
+      [],
+    );
+
+    expect(ranked[0].confidence).toBeLessThan(0.25);
   });
 
   it("sinks hard-contradicting candidates below clean ones", () => {
@@ -73,6 +126,56 @@ describe("rankCandidates", () => {
     expect(maleIdx).toBeGreaterThanOrEqual(0);
     expect(nonMaleIdx).toBeGreaterThanOrEqual(0);
     expect(maleIdx).toBeLessThan(nonMaleIdx);
+  });
+
+  it("keeps contradictions probabilistic so one noisy answer can be outweighed", () => {
+    const strongButContradicted = objectEntity("strong-but-contradicted", {
+      electronic: "no",
+      powered: "yes",
+      has_screen: "yes",
+      portable: "yes",
+      used_daily: "yes",
+      indoor_use: "yes",
+      office_related: "yes",
+      household: "yes",
+      kitchen_related: "no",
+    });
+    const cleanButWeak = objectEntity("clean-but-weak", {
+      electronic: "yes",
+      powered: "no",
+      has_screen: "no",
+      portable: "no",
+      used_daily: "no",
+      indoor_use: "no",
+      office_related: "no",
+      household: "no",
+      kitchen_related: "yes",
+    });
+    const trail = [
+      answer("object-electronic", "yes"),
+      answer("object-powered", "yes"),
+      answer("object-screen", "yes"),
+      answer("object-portable", "yes"),
+      answer("object-used-daily", "yes"),
+      answer("object-indoor", "yes"),
+      answer("object-office", "yes"),
+      answer("object-household", "yes"),
+      answer("object-kitchen", "no"),
+    ];
+
+    const ranked = rankCandidates(
+      "objects",
+      trail,
+      [],
+      [strongButContradicted, cleanButWeak],
+    );
+    const contradicted = ranked.find((entry) => entry.entityId === strongButContradicted.id);
+    const weak = ranked.find((entry) => entry.entityId === cleanButWeak.id);
+
+    expect(contradicted).toBeDefined();
+    expect(weak).toBeDefined();
+    expect(contradicted!.confidence).toBeGreaterThan(0);
+    expect(contradicted!.confidence).toBeGreaterThan(weak!.confidence);
   });
 });
 

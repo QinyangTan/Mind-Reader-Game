@@ -140,7 +140,8 @@ export function QuestionBrowser({
       .filter((entry) => entry.questions.length > 0);
   }, [ranked]);
 
-  const recommended = ranked.slice(0, 5).map((entry) => entry.question);
+  const recommendedCount = askedQuestionIds.length === 0 ? 4 : 3;
+  const recommended = ranked.slice(0, recommendedCount).map((entry) => entry.question);
   const firstFamily = grouped[0]?.family ?? "identity";
   const [activeFamily, setActiveFamily] = useState<BrowserFamily>(firstFamily);
   const resolvedFamily = grouped.some((entry) => entry.family === activeFamily) ? activeFamily : firstFamily;
@@ -156,6 +157,32 @@ export function QuestionBrowser({
 
   return (
     <div className="space-y-5">
+      <div className="space-y-3">
+        <div className="space-y-1 text-center">
+          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">
+            {askedQuestionIds.length === 0 ? "Recommended openers" : "Best next clues"}
+          </p>
+          <p className="mx-auto max-w-[34rem] text-sm leading-6 text-[#d7c7a4]">
+            These are ranked by expected information gain, layer fit, and recent-question variety.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap justify-center gap-3">
+          {recommended.map((question) => (
+            <SurfacePillButton
+              key={question.id}
+              tone="accent"
+              surface="choice"
+              className="min-w-[12rem] px-4 py-2.5 text-[0.95rem] leading-5"
+              disabled={isPending || remainingQuestions <= 0}
+              onClick={() => onAskQuestion(question.id)}
+            >
+              {question.question}
+            </SurfacePillButton>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-center gap-2">
         {grouped.map((entry) => {
           const Icon = familyMeta[entry.family].icon;

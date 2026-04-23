@@ -15,6 +15,8 @@ interface QuestionSeedInput {
   group: QuestionGroup;
   stage: QuestionStage;
   family: string;
+  discriminatorFor?: AttributeKey[];
+  requiredBefore?: string[];
   weight?: number;
 }
 
@@ -23,4 +25,3 @@ export function createQuestion(input: QuestionSeedInput): QuestionDefinition {
     ...input,
   });
 }
-

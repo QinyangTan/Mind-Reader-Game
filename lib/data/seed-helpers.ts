@@ -6,6 +6,10 @@ interface EntitySeedInput {
   shortDescription: string;
   imageEmoji: string;
   aliases?: string[];
+  subcategory?: string;
+  sourceType?: string;
+  rarityWeight?: number;
+  popularityWeight?: number;
   category: EntityCategory;
 }
 

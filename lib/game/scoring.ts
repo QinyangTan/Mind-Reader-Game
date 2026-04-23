@@ -1,6 +1,10 @@
 import { getEntitiesForCategory } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import {
+  answerSignalStrength,
+  answerToProbability,
+} from "@/lib/game/answer-evidence";
+import {
   getEntityPriorLogBoost,
   getSmoothedLikelihood,
   getUncertaintyMetrics,
@@ -15,15 +19,11 @@ import type {
   ReadMyMindConfig,
 } from "@/types/game";
 
-const answerProbability = {
-  yes: 1,
-  probably: 0.72,
-  unknown: 0.5,
-  probably_not: 0.28,
-  no: 0,
-} as const;
-
 const HARD_ANSWERS = new Set<NormalizedAnswer>(["yes", "no"]);
+const HARD_CONTRADICTION_LOG_PENALTY = 1.85;
+const UNKNOWN_ATTRIBUTE_LOG_PENALTY = 0.18;
+const THIN_EVIDENCE_MIX_STRENGTH = 5.5;
+const STATIC_PRIOR_LOG_WEIGHT = 0.08;
 
 /**
  * Tempering factor applied in the softmax that converts log-likelihoods into
@@ -34,7 +34,7 @@ const HARD_ANSWERS = new Set<NormalizedAnswer>(["yes", "no"]);
 const SOFTMAX_TEMPERATURE = 1.25;
 
 export function toProbability(answer: NormalizedAnswer) {
-  return answerProbability[answer];
+  return answerToProbability(answer);
 }
 
 function isHardContradiction(candidate: NormalizedAnswer, player: NormalizedAnswer) {
@@ -43,6 +43,16 @@ function isHardContradiction(candidate: NormalizedAnswer, player: NormalizedAnsw
     HARD_ANSWERS.has(candidate) &&
     HARD_ANSWERS.has(player)
   );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getStaticEntityPriorLogBoost(entity: GameEntity) {
+  const popularity = clamp(entity.popularityWeight ?? 1, 0.25, 4);
+  const rarity = clamp(entity.rarityWeight ?? 1, 0.25, 4);
+  return Math.log(popularity / Math.sqrt(rarity)) * STATIC_PRIOR_LOG_WEIGHT;
 }
 
 interface EntityScore {
@@ -60,19 +70,24 @@ function scoreEntity(
 ): EntityScore {
   if (answers.length === 0) {
     return {
-      score: getEntityPriorLogBoost(inferenceModel, categoryPool, entity.id),
+      score:
+        getEntityPriorLogBoost(inferenceModel, categoryPool, entity.id) +
+        getStaticEntityPriorLogBoost(entity),
       matchedAnswers: 0,
       hardContradictions: 0,
     };
   }
 
-  let score = getEntityPriorLogBoost(inferenceModel, categoryPool, entity.id);
+  let score =
+    getEntityPriorLogBoost(inferenceModel, categoryPool, entity.id) +
+    getStaticEntityPriorLogBoost(entity);
   let matchedAnswers = 0;
   let hardContradictions = 0;
 
   for (const answer of answers) {
     const entityValue = entity.attributes[answer.attributeKey];
     const weight = questionById.get(answer.questionId)?.weight ?? 1;
+    const signal = answerSignalStrength(answer.answer);
     const fit = getSmoothedLikelihood(
       inferenceModel,
       category,
@@ -80,13 +95,17 @@ function scoreEntity(
       entityValue,
       answer.answer,
     );
-
     if (Math.abs(toProbability(entityValue) - toProbability(answer.answer)) <= 0.24) {
       matchedAnswers += 1;
     }
 
     if (isHardContradiction(entityValue, answer.answer)) {
       hardContradictions += 1;
+      score -= HARD_CONTRADICTION_LOG_PENALTY * weight;
+    }
+
+    if (entityValue === "unknown" && answer.answer !== "unknown") {
+      score -= UNKNOWN_ATTRIBUTE_LOG_PENALTY * signal * weight;
     }
 
     score += Math.log(fit) * weight;
@@ -140,24 +159,33 @@ export function rankCandidates(
 
   const totalConfidence = weighted.reduce((sum, candidate) => sum + candidate.confidence, 0) || 1;
 
+  const evidenceMass = answers.reduce((sum, answer) => {
+    const question = questionById.get(answer.questionId);
+    return sum + answerSignalStrength(answer.answer) * (question?.weight ?? 1);
+  }, 0);
+  const evidenceMix = evidenceMass / (evidenceMass + THIN_EVIDENCE_MIX_STRENGTH);
+  const uniformConfidence = 1 / scored.length;
+
   const normalized = weighted
     .map((candidate) => ({
       ...candidate,
-      confidence: candidate.confidence / totalConfidence,
+      confidence:
+        (candidate.confidence / totalConfidence) * evidenceMix +
+        uniformConfidence * (1 - evidenceMix),
     }))
     .toSorted((left, right) => {
-      // Hard contradictions dominate the ordering: a candidate that directly
-      // disagrees with a yes/no answer never out-ranks one that doesn't,
-      // even if softmax gave it a scrap of mass.
-      if (left.hardContradictions !== right.hardContradictions) {
-        return left.hardContradictions - right.hardContradictions;
-      }
-
       if (right.confidence !== left.confidence) {
         return right.confidence - left.confidence;
       }
 
-      return right.matchedAnswers - left.matchedAnswers;
+      if (right.matchedAnswers !== left.matchedAnswers) {
+        return right.matchedAnswers - left.matchedAnswers;
+      }
+
+      // Contradictions are already represented as log-likelihood penalties.
+      // Keep them as a tie-breaker only so a candidate can recover from one
+      // noisy answer if the rest of the trail strongly supports it.
+      return left.hardContradictions - right.hardContradictions;
     });
 
   return normalized.map<RankedCandidate>((candidate) => ({
@@ -177,14 +205,6 @@ export function getTopCandidateId(rankings: RankedCandidate[], rejectedGuessIds:
  * Signal strength of a player's answer — how much actual information the
  * answer carries for narrowing. Unknown answers contribute nothing.
  */
-const NARROWING_SIGNAL: Record<NormalizedAnswer, number> = {
-  yes: 1,
-  no: 1,
-  probably: 0.55,
-  probably_not: 0.55,
-  unknown: 0,
-};
-
 const NARROWING_TOP_N = 5;
 
 /**
@@ -257,7 +277,7 @@ export function strongestNarrowingQuestion(
       continue;
     }
 
-    const signal = NARROWING_SIGNAL[answer.answer];
+    const signal = answerSignalStrength(answer.answer);
     if (signal === 0) {
       continue;
     }

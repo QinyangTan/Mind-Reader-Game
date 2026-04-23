@@ -263,6 +263,10 @@ export interface GameEntity {
   shortDescription: string;
   imageEmoji: string;
   aliases?: string[];
+  subcategory?: string;
+  sourceType?: string;
+  rarityWeight?: number;
+  popularityWeight?: number;
   attributes: Record<AttributeKey, NormalizedAnswer>;
 }
 
@@ -275,6 +279,8 @@ export interface QuestionDefinition {
   group: QuestionGroup;
   stage: QuestionStage;
   family: string;
+  discriminatorFor?: AttributeKey[];
+  requiredBefore?: string[];
   weight?: number;
 }
 
