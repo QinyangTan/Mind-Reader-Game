@@ -5,7 +5,7 @@ Mind Reader is a cinematic, local-first browser guessing game set inside Mora's 
 - **Psychic Reads You** — think of an entity, answer Mora's questions, and try to survive her guesses.
 - **You Read the Psychic** — Mora secretly picks an entity, you ask structured clue questions, and you try to solve her thought.
 
-Seeded knowledge base: **389 entities** across **5 categories** and **107 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
+Seeded knowledge base: **3,032 entities** across **5 categories** and **159 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
 
 ## Version Highlights
 
@@ -16,9 +16,10 @@ Seeded knowledge base: **389 entities** across **5 categories** and **107 layere
 - **Balanced scoring.** Both modes now compute deterministic scores used by results, Chamber Memory, history, and World Rank.
 - **Historical Figures category.** Historical Figures now fill the fifth playable slot and include era, region, leadership, science, art, writing, philosophy, religion, exploration, invention, reform, royal, and gender question families.
 - **Larger data set.** Supplemental seed files expand Fictional Characters, Animals, Objects, Foods, and Historical Figures while validation prevents malformed entries and duplicate shipped ids.
+- **Massive v4 content pass.** The newest live expansion adds **538 fictional characters**, **514 animals**, **523 objects**, **551 foods**, and **517 historical figures** on top of the prior shipped catalog.
 - **Guided Guess My Mind.** Reverse mode now uses layered inquiry: Broad Openers, Identity Split, Profile, Specialist, and Fine Detail. The player sees one active layer, up to four paths, and only 3-5 recommended questions at a time.
 - **Category preview fix.** Category hover/focus/tap previews now update the description without advancing. Only the explicit Continue / Begin action moves the setup forward.
-- **Ad-ready layout.** Top, left, and right sponsor slots render sample media, stay outside the safe gameplay area, and can be closed after an exact 15-second countdown. No third-party ad code is included.
+- **Real example ads.** Top, left, and right sponsor slots now render cached real public ad art, stay outside the safe gameplay area, and can be closed after an exact 15-second countdown. No third-party ad code is included.
 
 ## Run Locally
 
@@ -140,6 +141,8 @@ lib/data/historical-figures.ts
 lib/data/content-expansion.ts
 lib/data/content-expansion-v2.ts
 lib/data/content-expansion-v3.ts
+lib/data/content-expansion-v4.ts
+lib/data/bulk/*.ts
 lib/data/question-bank/*.ts
 ```
 

@@ -19,15 +19,15 @@ interface TimedAdSlotProps {
 const CLOSE_DELAY_SECONDS = 15;
 
 const placementClasses: Record<TimedAdPlacement, string> = {
-  top: "w-[min(720px,calc(100vw-2rem))] min-h-[68px]",
-  left: "w-[128px] min-h-[220px]",
-  right: "w-[128px] min-h-[220px]",
+  top: "w-[min(780px,calc(100vw-2rem))] min-h-[94px]",
+  left: "w-[144px] min-h-[254px]",
+  right: "w-[144px] min-h-[254px]",
 };
 
 export function TimedAdSlot({
   id,
   placement,
-  creativeId = "midnight-platform-poster",
+  creativeId = placement === "top" ? "computer-space-launch" : "pan-am-caribbean-poster",
   className,
 }: TimedAdSlotProps) {
   const creative = adCreatives[creativeId];
@@ -97,39 +97,41 @@ export function TimedAdSlot({
         </button>
       </div>
 
-      <div className={cn("relative flex h-full gap-3 p-2", compact ? "flex-col" : "items-center")}>
-        <div className={cn("relative overflow-hidden", compact ? "aspect-[4/5] w-full" : "h-[54px] w-[120px] shrink-0")}>
-          {creative.kind === "video" ? (
-            <video
-              className="h-full w-full object-cover opacity-75"
-              poster={creative.poster}
-              muted
-              playsInline
-              controls={!compact}
-              preload="metadata"
-              aria-label={creative.alt}
-            >
-              <source src={creative.src} type="video/webm" />
-            </video>
-          ) : (
-            <Image
-              src={creative.src}
-              alt={creative.alt}
-              fill
-              sizes={compact ? "160px" : "180px"}
-              className="object-cover opacity-75"
-            />
-          )}
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,8,18,0.05),rgba(10,6,14,0.58))]" />
+      <div className={cn("relative flex h-full gap-3 p-2", compact ? "flex-col" : "items-stretch")}>
+        <div className={cn("relative overflow-hidden border border-[rgba(233,204,144,0.16)]", compact ? "aspect-[13/20] w-full" : "min-h-[76px] min-w-[208px] shrink-0")}>
+          <Image
+            src={creative.src}
+            alt={creative.alt}
+            fill
+            sizes={compact ? "160px" : "340px"}
+            className="object-cover opacity-[0.88]"
+            style={{ objectPosition: creative.imagePosition ?? "center" }}
+          />
+          <div className={cn(
+            "absolute inset-0",
+            compact
+              ? "bg-[linear-gradient(180deg,rgba(10,6,14,0.06),rgba(8,4,11,0.84))]"
+              : "bg-[linear-gradient(90deg,rgba(10,6,14,0.1),rgba(8,4,11,0.26)_42%,rgba(8,4,11,0.84))]"
+          )} />
+          <div className="absolute left-2 top-2 inline-flex items-center rounded-sm border border-[rgba(255,232,184,0.28)] bg-[rgba(22,11,18,0.82)] px-2 py-1 text-[0.54rem] uppercase tracking-[0.18em] text-[#f1ddb0]">
+            {creative.label}
+          </div>
         </div>
-        <div className={cn("min-w-0", compact ? "space-y-1 px-1 pb-1" : "pr-8")}>
-          <p className="text-[0.55rem] uppercase tracking-[0.18em] text-[#d6a653]/70">Sponsor</p>
-          <p className={cn("font-display leading-none text-[#f4e7c8]", compact ? "text-[1.1rem]" : "text-[1.25rem]")}>
-            {creative.title}
-          </p>
-          <p className={cn("leading-5 text-[#d8cab1]/78", compact ? "line-clamp-3 text-[0.68rem]" : "line-clamp-1 text-xs")}>
-            {creative.copy}
-          </p>
+        <div className={cn("min-w-0", compact ? "space-y-1 px-1 pb-1" : "flex min-w-0 flex-1 flex-col justify-between pr-8 pt-1")}>
+          <div className={cn(compact ? "space-y-1" : "space-y-1.5")}>
+            <p className="text-[0.55rem] uppercase tracking-[0.18em] text-[#d6a653]/72">{creative.sponsor}</p>
+            <p className={cn("font-display leading-none text-[#f4e7c8]", compact ? "text-[1.04rem]" : "text-[1.18rem]")}>
+              {creative.title}
+            </p>
+            <p className={cn("leading-5 text-[#d8cab1]/78", compact ? "line-clamp-4 text-[0.67rem]" : "line-clamp-2 text-[0.76rem]")}>
+              {creative.copy}
+            </p>
+          </div>
+          {!compact ? (
+            <p className="text-[0.65rem] uppercase tracking-[0.18em] text-[#ead6a5]/74">
+              {creative.cta}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

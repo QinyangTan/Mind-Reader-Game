@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Clapperboard, ImageIcon, TrainFront } from "lucide-react";
+import { ArrowRight, ImageIcon, TrainFront } from "lucide-react";
 import Image from "next/image";
 
 import { HouseAdCard, type HouseAdVariant } from "@/components/brand/house-ad-card";
@@ -77,33 +77,18 @@ export function MediaAdCard({
         <div className={cn("relative overflow-hidden border-b border-[rgba(214,166,83,0.18)] md:border-b-0 md:border-r", layout.media)}>
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(9,6,12,0.06),rgba(9,6,12,0.28))]" />
 
-          {creative.kind === "image" ? (
-            <Image
-              src={creative.src}
-              alt={creative.alt}
-              fill
-              sizes={size === "leaderboard" ? "(max-width: 1024px) 100vw, 560px" : size === "mobile" ? "40vw" : "300px"}
-              className="object-cover"
-              onError={() => setMediaFailed(true)}
-            />
-          ) : (
-            <video
-              className="h-full w-full object-cover"
-              controls
-              muted
-              playsInline
-              preload="metadata"
-              poster={creative.poster}
-              aria-label={creative.alt}
-              onError={() => setMediaFailed(true)}
-            >
-              <source src={creative.src} type="video/webm" />
-              Your browser does not support the video tag.
-            </video>
-          )}
+          <Image
+            src={creative.src}
+            alt={creative.alt}
+            fill
+            sizes={size === "leaderboard" ? "(max-width: 1024px) 100vw, 560px" : size === "mobile" ? "40vw" : "300px"}
+            className="object-cover"
+            style={{ objectPosition: creative.imagePosition ?? "50% 50%" }}
+            onError={() => setMediaFailed(true)}
+          />
 
           <div className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-[rgba(255,232,184,0.26)] bg-[rgba(22,11,18,0.74)] px-2.5 py-1 text-[0.68rem] font-semibold tracking-[0.18em] text-[#f1ddb0]">
-            {creative.kind === "video" ? <Clapperboard className="h-3.5 w-3.5" /> : <ImageIcon className="h-3.5 w-3.5" />}
+            <ImageIcon className="h-3.5 w-3.5" />
             {creative.label}
           </div>
         </div>

@@ -123,9 +123,24 @@ export function ChamberSceneShell({
       <ReferenceSceneBackdrop scene={scene} mood={mood} />
 
       <div className="pointer-events-none absolute inset-0 z-[12] hidden lg:block">
-        <TimedAdSlot id="top-leaderboard" placement="top" className="absolute left-1/2 top-3 -translate-x-1/2 opacity-82" />
-        <TimedAdSlot id="left-rail" placement="left" creativeId="moonline-preview-video" className="absolute left-3 top-[28vh] opacity-72" />
-        <TimedAdSlot id="right-rail" placement="right" className="absolute right-3 top-[28vh] opacity-72" />
+        <TimedAdSlot
+          id="top-leaderboard"
+          placement="top"
+          creativeId="computer-space-launch"
+          className="absolute left-1/2 top-3 -translate-x-1/2 opacity-82"
+        />
+        <TimedAdSlot
+          id="left-rail"
+          placement="left"
+          creativeId="pan-am-caribbean-poster"
+          className="absolute left-3 top-[28vh] opacity-72"
+        />
+        <TimedAdSlot
+          id="right-rail"
+          placement="right"
+          creativeId="computer-space-side"
+          className="absolute right-3 top-[28vh] opacity-72"
+        />
       </div>
 
       <div className="pointer-events-none absolute inset-0">

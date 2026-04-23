@@ -18,7 +18,7 @@ const contextMap = {
 
 export function SponsorRail({ context = "landing", className }: SponsorRailProps) {
   const variants = contextMap[context];
-  const creative = adCreatives["midnight-platform-poster"];
+  const creative = adCreatives["pan-am-caribbean-poster"];
 
   return (
     <aside className={cn("space-y-1 text-right", className)}>
@@ -35,8 +35,8 @@ export function SponsorRail({ context = "landing", className }: SponsorRailProps
           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(12,8,18,0.16),rgba(10,6,14,0.88))]" />
           <div className="absolute inset-x-0 bottom-0 space-y-1 px-3 py-3 text-left">
             <p className="text-[0.52rem] uppercase tracking-[0.16em] text-[#d6a653]/54">{variants[0].replace("-", " ")}</p>
-            <p className="font-display text-[1rem] leading-none text-[#f4e7c8]">Night Platform Pass</p>
-            <p className="text-[0.62rem] leading-5 text-[#d8cab1]/72">A quiet house ad tucked into the chamber wall.</p>
+            <p className="font-display text-[1rem] leading-none text-[#f4e7c8]">{creative.title}</p>
+            <p className="text-[0.62rem] leading-5 text-[#d8cab1]/72">{creative.copy}</p>
           </div>
         </div>
       </div>

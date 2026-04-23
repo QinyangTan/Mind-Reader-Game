@@ -1,45 +1,72 @@
 export const adCreativeIds = [
-  "midnight-platform-poster",
-  "moonline-preview-video",
+  "computer-space-launch",
+  "computer-space-side",
+  "pan-am-caribbean-poster",
+  "pan-am-caribbean-leaderboard",
 ] as const;
 
 export type AdCreativeId = (typeof adCreativeIds)[number];
 
 export interface AdCreativeDefinition {
   id: AdCreativeId;
-  kind: "image" | "video";
+  kind: "image";
   sponsor: string;
   label: string;
   title: string;
   copy: string;
   cta: string;
   src: string;
-  poster?: string;
   alt: string;
+  imagePosition?: string;
 }
 
 export const adCreatives: Record<AdCreativeId, AdCreativeDefinition> = {
-  "midnight-platform-poster": {
-    id: "midnight-platform-poster",
+  "computer-space-launch": {
+    id: "computer-space-launch",
     kind: "image",
-    sponsor: "Moonline Rail",
-    label: "Scenic sponsor",
-    title: "Night Platform Pass",
-    copy: "A cinematic station poster keeps the rail looking lived-in without crowding the play stage.",
-    cta: "See the route",
-    src: "/media/ads/night-railroad-station-1440.jpg",
-    alt: "Nighttime railroad station poster creative used as a scenic sponsor placeholder.",
+    sponsor: "Nutting Associates",
+    label: "Example Ad",
+    title: "Computer Space Launch",
+    copy: "A real 1971 arcade promo flyer reframed as a tasteful example leaderboard creative.",
+    cta: "View classic launch art",
+    src: "/media/ads/example-ad-computer-space.jpg",
+    alt: "Computer Space 1971 promotional flyer used as a real example ad creative.",
+    imagePosition: "50% 36%",
   },
-  "moonline-preview-video": {
-    id: "moonline-preview-video",
-    kind: "video",
-    sponsor: "Moonline Rail",
-    label: "Video sponsor",
-    title: "Mountain Line Preview",
-    copy: "A short muted rail clip demonstrates how a tasteful video placement can live in the sponsor rail.",
-    cta: "Watch preview",
-    src: "/media/ads/photoreal-train-360p.webm",
-    poster: "/media/ads/night-railroad-station-1440.jpg",
-    alt: "Muted train video preview used as a sponsor example inside the Mind Reader rail.",
+  "computer-space-side": {
+    id: "computer-space-side",
+    kind: "image",
+    sponsor: "Nutting Associates",
+    label: "Example Ad",
+    title: "Computer Space Cabinet",
+    copy: "The original arcade launch flyer is cropped for a separate side-rail example ad with a stronger machine-focused composition.",
+    cta: "See arcade flyer source",
+    src: "/media/ads/example-ad-computer-space.jpg",
+    alt: "Computer Space 1971 promotional flyer cropped as a side-rail example ad creative.",
+    imagePosition: "52% 24%",
+  },
+  "pan-am-caribbean-poster": {
+    id: "pan-am-caribbean-poster",
+    kind: "image",
+    sponsor: "Pan American Airways",
+    label: "Example Ad",
+    title: "Fly to the Caribbean",
+    copy: "A restored Pan Am Clipper poster gives the rail slots a real travel-ad presence without scripts or trackers.",
+    cta: "See poster source",
+    src: "/media/ads/example-ad-pan-am.jpg",
+    alt: "Pan American World Airways Caribbean Clipper travel poster used as a real example ad creative.",
+    imagePosition: "50% 22%",
+  },
+  "pan-am-caribbean-leaderboard": {
+    id: "pan-am-caribbean-leaderboard",
+    kind: "image",
+    sponsor: "Pan American Airways",
+    label: "Example Ad",
+    title: "Clipper Coast Escape",
+    copy: "The same public-domain Pan Am campaign art is cropped for a softer banner treatment above the chamber.",
+    cta: "Open poster reference",
+    src: "/media/ads/example-ad-pan-am.jpg",
+    alt: "Pan Am Caribbean poster cropped into a banner-style example ad.",
+    imagePosition: "50% 18%",
   },
 };

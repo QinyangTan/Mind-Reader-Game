@@ -36,6 +36,20 @@ npm run build
 npm run start
 ```
 
+For the fastest hosted publish path once you are authenticated:
+
+```bash
+npx vercel login
+npx vercel --prod
+```
+
+Or, with Netlify:
+
+```bash
+npx netlify-cli login
+npx netlify-cli deploy --build --prod
+```
+
 The app does not require server-side sessions, a database, or auth to launch. Player profiles are anonymous display-name records with stable local ids. A real backend can later persist score submissions and leaderboard aggregates without changing gameplay code.
 
 ## Public Game QA
