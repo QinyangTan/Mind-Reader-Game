@@ -17,13 +17,15 @@ import {
 
 import { SurfacePillButton } from "@/components/game/scene-surfaces";
 import { questionGroupMeta, questionStageMeta, questionStageOrder } from "@/lib/data/questions";
-import { rankAvailableQuestions } from "@/lib/game/question-selection";
+import {
+  rankAvailableQuestions,
+  type RankedQuestionOption,
+} from "@/lib/game/question-selection";
 import { cn } from "@/lib/utils/cn";
 import type {
   EntityCategory,
   GameEntity,
   LearnedInferenceModel,
-  QuestionDefinition,
   QuestionGroup,
   QuestionStage,
   RankedCandidate,
@@ -33,9 +35,11 @@ interface QuestionBrowserProps {
   category: EntityCategory;
   askedQuestionIds: string[];
   rankedCandidates: RankedCandidate[];
+  rankedQuestionOptions?: RankedQuestionOption[];
   remainingQuestions: number;
   onAskQuestion: (questionId: string) => void;
   isPending: boolean;
+  isRanking?: boolean;
   extraEntities?: GameEntity[];
   inferenceModel?: LearnedInferenceModel;
 }
@@ -113,7 +117,7 @@ interface FamilyBucket {
   label: string;
   description: string;
   topScore: number;
-  questions: QuestionDefinition[];
+  questions: RankedQuestionOption[];
 }
 
 interface BrowserSelection {
@@ -121,6 +125,7 @@ interface BrowserSelection {
   askedCount: number;
   familyKey: string | null;
   showMore: boolean;
+  showFamilyPicker: boolean;
 }
 
 function unlockDepth(askedCount: number, remainingQuestions: number, targetStage: QuestionStage) {
@@ -157,7 +162,7 @@ function buildFamilyBuckets(
     const current = buckets.get(key);
 
     if (current) {
-      current.questions.push(question);
+      current.questions.push(entry);
       current.topScore = Math.max(current.topScore, entry.score);
       continue;
     }
@@ -168,25 +173,52 @@ function buildFamilyBuckets(
       label: questionGroupMeta[question.group].label,
       description: questionGroupMeta[question.group].description,
       topScore: entry.score,
-      questions: [question],
+      questions: [entry],
     });
   }
 
   return [...buckets.values()].toSorted((left, right) => right.topScore - left.topScore);
 }
 
+function recommendationHint(entry: RankedQuestionOption | undefined) {
+  if (!entry) {
+    return "Mora is keeping the next clue path open.";
+  }
+
+  if (entry.profileCoverage < 0.35) {
+    return "This path is partly hazy, so Mora is weighing it cautiously.";
+  }
+
+  if (entry.expectedMargin >= 0.16) {
+    return "This clue is likely to separate close possibilities quickly.";
+  }
+
+  if (entry.informationGain >= 0.08) {
+    return "This clue should cut a wide section of the thought-space.";
+  }
+
+  if (entry.repetitionMultiplier < 0.8) {
+    return "Useful, but a little close to recent clues. Switch paths if it feels repetitive.";
+  }
+
+  return "This is the clearest low-noise path Mora can see right now.";
+}
+
 export function QuestionBrowser({
   category,
   askedQuestionIds,
   rankedCandidates,
+  rankedQuestionOptions,
   remainingQuestions,
   onAskQuestion,
   isPending,
+  isRanking = false,
   extraEntities = [],
   inferenceModel,
 }: QuestionBrowserProps) {
   const ranked = useMemo(
     () =>
+      rankedQuestionOptions ??
       rankAvailableQuestions(
         category,
         askedQuestionIds,
@@ -195,7 +227,15 @@ export function QuestionBrowser({
         remainingQuestions,
         inferenceModel,
       ),
-    [category, askedQuestionIds, rankedCandidates, extraEntities, remainingQuestions, inferenceModel],
+    [
+      category,
+      askedQuestionIds,
+      rankedCandidates,
+      extraEntities,
+      remainingQuestions,
+      inferenceModel,
+      rankedQuestionOptions,
+    ],
   );
   const targetStage = ranked[0]?.targetStage ?? "broad";
   const unlockedDepth = unlockDepth(askedQuestionIds.length, remainingQuestions, targetStage);
@@ -214,6 +254,7 @@ export function QuestionBrowser({
     askedCount: askedQuestionIds.length,
     familyKey: null,
     showMore: false,
+    showFamilyPicker: false,
   });
   const unlockedKey = unlockedStages.join("|");
   const activeStage = unlockedKey.split("|").includes(requestedStage)
@@ -227,6 +268,10 @@ export function QuestionBrowser({
     selection.stage === activeStage && selection.askedCount === askedQuestionIds.length
       ? selection.showMore
       : false;
+  const showFamilyPicker =
+    selection.stage === activeStage && selection.askedCount === askedQuestionIds.length
+      ? selection.showFamilyPicker
+      : false;
 
   function chooseStage(stage: QuestionStage) {
     setRequestedStage(stage);
@@ -235,6 +280,7 @@ export function QuestionBrowser({
       askedCount: askedQuestionIds.length,
       familyKey: null,
       showMore: false,
+      showFamilyPicker: false,
     });
   }
 
@@ -242,12 +288,13 @@ export function QuestionBrowser({
     () => buildFamilyBuckets(ranked, activeStage),
     [activeStage, ranked],
   );
-  const visibleFamilies = familyBuckets.slice(0, 4);
+  const visibleFamilies = familyBuckets.slice(0, 3);
   const resolvedFamily =
     familyBuckets.find((bucket) => bucket.key === activeFamilyKey) ??
     familyBuckets[0] ??
     null;
-  const visibleQuestions = (resolvedFamily?.questions ?? []).slice(0, showMore ? 5 : 3);
+  const visibleQuestions = (resolvedFamily?.questions ?? []).slice(0, showMore ? 4 : 2);
+  const bestVisibleQuestion = visibleQuestions[0];
   const activeStagePosition = unlockedStages.indexOf(activeStage);
   const broaderStage = activeStagePosition > 0 ? unlockedStages[activeStagePosition - 1] : null;
   const deeperStage =
@@ -256,6 +303,14 @@ export function QuestionBrowser({
       : null;
   const LayerIcon = layerCopy[activeStage].icon;
   const FamilyIcon = resolvedFamily ? groupIcons[resolvedFamily.group] ?? Compass : Compass;
+
+  if (isRanking && ranked.length === 0) {
+    return (
+      <div className="text-center">
+        <p className="text-sm text-[#d7c7a4]">Mora is sorting the strongest clue paths...</p>
+      </div>
+    );
+  }
 
   if (ranked.length === 0 || !resolvedFamily) {
     return (
@@ -321,9 +376,29 @@ export function QuestionBrowser({
             <ArrowRight className="h-3.5 w-3.5" />
           </SurfacePillButton>
         ) : null}
+
+        {visibleFamilies.length > 1 ? (
+          <SurfacePillButton
+            type="button"
+            tone="default"
+            surface="compact"
+            onClick={() =>
+              setSelection({
+                stage: activeStage,
+                askedCount: askedQuestionIds.length,
+                familyKey: resolvedFamily.key,
+                showMore,
+                showFamilyPicker: !showFamilyPicker,
+              })
+            }
+            className="px-3 py-2"
+          >
+            {showFamilyPicker ? "Keep this path" : "Switch family"}
+          </SurfacePillButton>
+        ) : null}
       </div>
 
-      {visibleFamilies.length > 1 ? (
+      {visibleFamilies.length > 1 && showFamilyPicker ? (
         <div className="space-y-2">
           <p className="text-center text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-[#d8b36a]">
             Choose an inquiry path
@@ -346,6 +421,7 @@ export function QuestionBrowser({
                       askedCount: askedQuestionIds.length,
                       familyKey: bucket.key,
                       showMore: false,
+                      showFamilyPicker: false,
                     });
                   }}
                 >
@@ -369,22 +445,25 @@ export function QuestionBrowser({
           <p className="mx-auto max-w-[32rem] text-sm leading-6 text-[#d7c7a4]">
             {resolvedFamily.description}
           </p>
+          <p className="mx-auto max-w-[30rem] text-xs leading-5 text-[#bcae8c]">
+            {recommendationHint(bestVisibleQuestion)}
+          </p>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-3">
-          {visibleQuestions.map((question) => (
+          {visibleQuestions.map((entry) => (
             <SurfacePillButton
-              key={question.id}
+              key={entry.question.id}
               tone="accent"
               surface="choice"
-              className={cn(
+                className={cn(
                 "min-h-[4.2rem] px-4 py-3 text-[0.94rem] leading-5",
-                visibleQuestions.length < 3 ? "sm:col-span-1" : "",
+                visibleQuestions.length <= 2 ? "sm:col-span-1" : "",
               )}
               disabled={isPending || remainingQuestions <= 0}
-              onClick={() => onAskQuestion(question.id)}
+              onClick={() => onAskQuestion(entry.question.id)}
             >
-              {question.question}
+              {entry.question.question}
             </SurfacePillButton>
           ))}
         </div>
@@ -402,6 +481,7 @@ export function QuestionBrowser({
                   askedCount: askedQuestionIds.length,
                   familyKey: resolvedFamily.key,
                   showMore: !showMore,
+                  showFamilyPicker,
                 })
               }
             >

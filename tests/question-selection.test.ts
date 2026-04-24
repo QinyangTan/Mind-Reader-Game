@@ -61,6 +61,15 @@ describe("selectNextQuestion", () => {
     expect(askedIds).not.toContain(next!.id);
   });
 
+  it("treats an already-asked attribute as spent across alternate phrasings", () => {
+    const rankings = rankCandidates("objects", [], []);
+    const rankedQuestions = rankAvailableQuestions("objects", ["object-metal"], rankings, [], 8);
+
+    expect(
+      rankedQuestions.some((entry) => entry.question.id === "object-metal-body"),
+    ).toBe(false);
+  });
+
   it("penalizes repeating the same question family when a similarly useful alternative exists", () => {
     const extraEntities: GameEntity[] = [
       makeEntity("desk-lamp", "objects", {
@@ -192,5 +201,56 @@ describe("selectNextQuestion", () => {
     ).toBeLessThan(
       rankedQuestions.findIndex((entry) => entry.question.id === "object-used-daily"),
     );
+  });
+
+  it("penalizes low-coverage questions when likely candidates have unknown profile values", () => {
+    const extraEntities: GameEntity[] = [
+      makeEntity("office-a", "objects", {
+        real: "yes",
+        object: "yes",
+        office_related: "yes",
+        has_screen: "unknown",
+      }),
+      makeEntity("office-b", "objects", {
+        real: "yes",
+        object: "yes",
+        office_related: "yes",
+        has_screen: "unknown",
+      }),
+      makeEntity("home-a", "objects", {
+        real: "yes",
+        object: "yes",
+        office_related: "no",
+        has_screen: "unknown",
+      }),
+      makeEntity("home-b", "objects", {
+        real: "yes",
+        object: "yes",
+        office_related: "no",
+        has_screen: "unknown",
+      }),
+    ];
+    const rankings = [
+      ranked("office-a", 0.26),
+      ranked("office-b", 0.24),
+      ranked("home-a", 0.26),
+      ranked("home-b", 0.24),
+    ];
+
+    const rankedQuestions = rankAvailableQuestions(
+      "objects",
+      ["object-electronic", "object-powered", "object-portable"],
+      rankings,
+      extraEntities,
+      5,
+    );
+
+    const officeQuestion = rankedQuestions.find((entry) => entry.question.id === "object-office");
+    const screenQuestion = rankedQuestions.find((entry) => entry.question.id === "object-screen");
+
+    expect(officeQuestion).toBeDefined();
+    expect(screenQuestion).toBeDefined();
+    expect(officeQuestion!.profileCoverage).toBeGreaterThan(screenQuestion!.profileCoverage);
+    expect(officeQuestion!.score).toBeGreaterThan(screenQuestion!.score);
   });
 });

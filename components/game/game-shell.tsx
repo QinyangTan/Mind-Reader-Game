@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookHeart } from "lucide-react";
 
 import { ChamberSceneShell } from "@/components/game/chamber-scene-shell";
 import { EncounterScene } from "@/components/game/encounter-scene";
 import { EntityGuessDialog } from "@/components/game/entity-guess-dialog";
+import {
+  type ScreenState,
+  useRevealController,
+  useUtilitySceneController,
+} from "@/components/game/game-shell-controllers";
 import { GuessMyMindBoard } from "@/components/game/guess-my-mind-board";
 import { PlaySetup, type SetupStep } from "@/components/game/play-setup";
 import { PlayerNameGate } from "@/components/game/player-name-gate";
@@ -77,9 +82,6 @@ import {
   type TeachCase,
 } from "@/types/game";
 
-type ScreenState = "profile" | "encounter" | "setup" | "play" | "result" | "memory" | "world-rank";
-type ReturnableScreenState = Exclude<ScreenState, "memory" | "world-rank" | "profile">;
-
 interface GameShellProps {
   initialMode?: string;
   initialCategory?: string;
@@ -121,30 +123,36 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [readSession, setReadSession] = useState<ReadMyMindSession | null>(null);
   const [guessSession, setGuessSession] = useState<GuessMyMindSession | null>(null);
   const [result, setResult] = useState<GameResult | null>(null);
-  const [memoryReturnScreen, setMemoryReturnScreen] = useState<ReturnableScreenState>("encounter");
   const [guessDialogOpen, setGuessDialogOpen] = useState(false);
   const [guessDialogCandidateId, setGuessDialogCandidateId] = useState<string | null>(null);
   const [teachSaved, setTeachSaved] = useState(false);
   const [readTrailSnapshot, setReadTrailSnapshot] = useState<AnsweredQuestion[]>([]);
-  const [isRevealing, setIsRevealing] = useState(false);
   const [setupStep, setSetupStep] = useState<SetupStep>("mode");
   const [isPending, startTransition] = useTransition();
   const publicServices = useMemo(() => createPublicGameServices(), []);
   const recordedResults = useRef<Set<string>>(new Set());
-  const revealTimeoutRef = useRef<number | null>(null);
-
-  function clearRevealTimeout() {
-    if (revealTimeoutRef.current !== null) {
-      window.clearTimeout(revealTimeoutRef.current);
-      revealTimeoutRef.current = null;
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      clearRevealTimeout();
-    };
+  const resetGuessDialog = useCallback(() => {
+    setGuessDialogOpen(false);
+    setGuessDialogCandidateId(null);
   }, []);
+  const { isRevealing, setIsRevealing, clearRevealTimeout, finalizeResult } =
+    useRevealController({
+      onBeforeFinalize: resetGuessDialog,
+      onImmediateResult: (nextResult) => {
+        setResult(nextResult);
+        setScreen("result");
+      },
+      onDelayedResult: (nextResult) => {
+        setResult(nextResult);
+        setScreen("result");
+      },
+    });
+  const {
+    openMemory: handleOpenMemory,
+    openWorldRank: handleOpenWorldRank,
+    closeMemory: handleCloseMemory,
+    closeWorldRank: handleCloseWorldRank,
+  } = useUtilitySceneController({ setScreen, setSetupStep });
 
   useEffect(() => {
     const stored = loadVault();
@@ -292,35 +300,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     });
   }
 
-  /**
-   * Short suspense beat before the result screen appears. Only applied when
-   * there's an actual entity reveal to linger on — escapes with no revealed
-   * entity transition immediately so we never introduce dead air.
-   */
-  const REVEAL_DELAY_MS = 700;
-
-  function finalizeResult(nextResult: GameResult) {
-    setGuessDialogOpen(false);
-    setGuessDialogCandidateId(null);
-    clearRevealTimeout();
-
-    const hasReveal = !!nextResult.revealedEntityId;
-
-    if (!hasReveal) {
-      setResult(nextResult);
-      setScreen("result");
-      return;
-    }
-
-    setIsRevealing(true);
-    revealTimeoutRef.current = window.setTimeout(() => {
-      revealTimeoutRef.current = null;
-      setIsRevealing(false);
-      setResult(nextResult);
-      setScreen("result");
-    }, REVEAL_DELAY_MS);
-  }
-
   function handleReadAnswer(answer: AnsweredQuestion["answer"]) {
     if (!readSession) {
       return;
@@ -434,35 +413,10 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     });
   }
 
-  function handleOpenMemory() {
-    setSetupStep("mode");
-    setMemoryReturnScreen("setup");
-    setScreen("memory");
-  }
-
-  function handleCloseMemory() {
-    if (memoryReturnScreen === "setup") {
-      setSetupStep("mode");
-    }
-    setScreen(memoryReturnScreen);
-  }
-
-  function handleOpenWorldRank() {
-    setSetupStep("mode");
-    setMemoryReturnScreen("setup");
-    setScreen("world-rank");
-  }
-
-  function handleCloseWorldRank() {
-    if (memoryReturnScreen === "setup") {
-      setSetupStep("mode");
-    }
-    setScreen(memoryReturnScreen);
-  }
-
   function handleCreateProfile(profile: PlayerProfile) {
     savePlayerProfile(profile);
     setPlayerProfile(profile);
+    void publicServices.saveProfile(profile);
     setScreen("encounter");
   }
 
@@ -474,6 +428,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     const renamed = renamePlayerProfile(playerProfile, displayName);
     savePlayerProfile(renamed);
     setPlayerProfile(renamed);
+    void publicServices.saveProfile(renamed);
   }
 
   function handleResetProfile() {

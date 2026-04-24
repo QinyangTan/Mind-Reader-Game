@@ -1,13 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Crosshair, SearchCheck } from "lucide-react";
 
 import { EntityPicker } from "@/components/game/entity-picker";
 import { InquirySurface, ResponseWell, RitualProgress, SurfacePillButton } from "@/components/game/scene-surfaces";
 import { QuestionBrowser } from "@/components/game/question-browser";
-import { rankCandidates } from "@/lib/game/scoring";
+import {
+  computeInferenceRanking,
+  type InferenceRankingResult,
+} from "@/lib/game/inference-worker-client";
 import type {
   GameEntity,
   GuessMyMindSession,
@@ -50,14 +53,65 @@ export function GuessMyMindBoard({
   const activePanelMode: PanelMode = remainingQuestions <= 0 ? "guess" : panelMode;
   const latestReply = recentAnswers[0] ?? null;
   const earlierReplies = recentAnswers.slice(1);
+  const rankingRequestKey = useMemo(
+    () =>
+      JSON.stringify({
+        category: session.category,
+        asked: session.asked.map((entry) => [entry.questionId, entry.entityAnswer]),
+        rejected: session.wrongGuessIds,
+        remainingQuestions,
+        extraEntities: extraEntities.map((entity) => entity.id),
+        learnedVersion: inferenceModel?.version ?? 0,
+      }),
+    [
+      extraEntities,
+      inferenceModel?.version,
+      remainingQuestions,
+      session.asked,
+      session.category,
+      session.wrongGuessIds,
+    ],
+  );
+  const [inference, setInference] = useState<{
+    key: string;
+    result: InferenceRankingResult;
+  } | null>(null);
+  const rankingPending = inference?.key !== rankingRequestKey;
   const guessUnlocked =
-    session.asked.length >= 2 ||
+    session.asked.length >= 3 ||
     remainingQuestions <= Math.ceil(session.config.maxQuestions / 2) ||
     remainingQuestions <= 0;
-  const candidateRankings = useMemo(
-    () => rankCandidates(session.category, session.asked, session.wrongGuessIds, extraEntities, inferenceModel),
-    [extraEntities, inferenceModel, session.asked, session.category, session.wrongGuessIds],
-  );
+
+  useEffect(() => {
+    let active = true;
+
+    void computeInferenceRanking({
+      category: session.category,
+      asked: session.asked,
+      rejectedGuessIds: session.wrongGuessIds,
+      askedQuestionIds: session.asked.map((entry) => entry.questionId),
+      remainingQuestions,
+      extraEntities,
+      inferenceModel,
+    }).then((result) => {
+      if (!active) {
+        return;
+      }
+      setInference({ key: rankingRequestKey, result });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    extraEntities,
+    inferenceModel,
+    rankingRequestKey,
+    remainingQuestions,
+    session.asked,
+    session.category,
+    session.wrongGuessIds,
+  ]);
 
   return (
     <div className="mx-auto w-full max-w-[920px]">
@@ -115,10 +169,12 @@ export function GuessMyMindBoard({
                 <QuestionBrowser
                   category={session.category}
                   askedQuestionIds={session.asked.map((entry) => entry.questionId)}
-                  rankedCandidates={candidateRankings}
+                  rankedCandidates={inference?.result.rankedCandidates ?? []}
+                  rankedQuestionOptions={inference?.result.rankedQuestions}
                   remainingQuestions={remainingQuestions}
                   onAskQuestion={onAskQuestion}
-                  isPending={isPending}
+                  isPending={isPending || rankingPending}
+                  isRanking={rankingPending}
                   extraEntities={extraEntities}
                   inferenceModel={inferenceModel}
                 />

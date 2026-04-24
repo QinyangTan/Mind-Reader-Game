@@ -16,6 +16,7 @@ interface LeaderboardStore {
 export interface PublicGameServices {
   source: "local" | "remote";
   refreshIntervalMs: number;
+  saveProfile(profile: PlayerProfile): Promise<void>;
   submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number): Promise<void>;
   getLeaderboard(mode: GameMode): Promise<LeaderboardSnapshot>;
 }
@@ -67,6 +68,11 @@ class LocalLeaderboardService implements PublicGameServices {
   source = "local" as const;
   refreshIntervalMs = REFRESH_MS;
 
+  async saveProfile(profile: PlayerProfile) {
+    void profile;
+    return;
+  }
+
   async submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number) {
     const store = readLocalStore();
     const existing = store.entries.find(
@@ -113,12 +119,28 @@ class RemoteLeaderboardService implements PublicGameServices {
 
   constructor(private readonly baseUrl: string) {}
 
+  async saveProfile(profile: PlayerProfile) {
+    const response = await fetch(`${this.baseUrl}/players`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ profile }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Profile request failed: ${response.status}`);
+    }
+  }
+
   async submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number) {
-    await fetch(`${this.baseUrl}/scores`, {
+    const response = await fetch(`${this.baseUrl}/scores`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ profile, result, bestStreak }),
     });
+
+    if (!response.ok) {
+      throw new Error(`Score request failed: ${response.status}`);
+    }
   }
 
   async getLeaderboard(mode: GameMode): Promise<LeaderboardSnapshot> {
@@ -133,11 +155,56 @@ class RemoteLeaderboardService implements PublicGameServices {
   }
 }
 
-export function createPublicGameServices(): PublicGameServices {
-  const baseUrl = process.env.NEXT_PUBLIC_MIND_READER_BACKEND_URL?.replace(/\/$/, "");
-  if (baseUrl) {
-    return new RemoteLeaderboardService(baseUrl);
+class HybridLeaderboardService implements PublicGameServices {
+  source = "remote" as const;
+  refreshIntervalMs = REFRESH_MS;
+
+  constructor(
+    private readonly remote: RemoteLeaderboardService,
+    private readonly fallback: LocalLeaderboardService,
+  ) {}
+
+  async saveProfile(profile: PlayerProfile) {
+    try {
+      await this.remote.saveProfile(profile);
+    } catch {
+      await this.fallback.saveProfile(profile);
+    }
   }
 
-  return new LocalLeaderboardService();
+  async submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number) {
+    try {
+      await this.remote.submitResult(profile, result, bestStreak);
+    } catch {
+      await this.fallback.submitResult(profile, result, bestStreak);
+    }
+  }
+
+  async getLeaderboard(mode: GameMode): Promise<LeaderboardSnapshot> {
+    try {
+      return await this.remote.getLeaderboard(mode);
+    } catch {
+      return this.fallback.getLeaderboard(mode);
+    }
+  }
+}
+
+export function createPublicGameServices(): PublicGameServices {
+  if (process.env.NEXT_PUBLIC_MIND_READER_BACKEND_MODE === "local") {
+    return new LocalLeaderboardService();
+  }
+
+  const configuredBaseUrl = process.env.NEXT_PUBLIC_MIND_READER_BACKEND_URL?.replace(/\/$/, "");
+  const baseUrl =
+    configuredBaseUrl ||
+    (typeof window !== "undefined" ? `${window.location.origin}/api` : "");
+
+  if (!baseUrl) {
+    return new LocalLeaderboardService();
+  }
+
+  return new HybridLeaderboardService(
+    new RemoteLeaderboardService(baseUrl),
+    new LocalLeaderboardService(),
+  );
 }

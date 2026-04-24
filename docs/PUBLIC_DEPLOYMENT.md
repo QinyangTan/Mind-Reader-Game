@@ -19,13 +19,24 @@ npm run validate
 
 ## Environment
 
-Create the deployment environment from `.env.example`.
+Create the deployment environment from `env.example`.
 
 ```bash
 NEXT_PUBLIC_MIND_READER_BACKEND_URL=
+NEXT_PUBLIC_MIND_READER_BACKEND_MODE=
 ```
 
-Leave the value empty for local fallback leaderboards. Set it only when a production backend implements the contract in `docs/LEADERBOARD_BACKEND.md`.
+Leave the backend URL empty to use the same-origin `/api` backend with browser-local fallback. Set `NEXT_PUBLIC_MIND_READER_BACKEND_MODE=local` only when you want to skip public API calls during development. Set `NEXT_PUBLIC_MIND_READER_BACKEND_URL` when a separate durable backend implements the contract in `docs/LEADERBOARD_BACKEND.md`.
+
+## Health Check
+
+After deployment, verify the public readiness endpoint:
+
+```bash
+curl https://your-domain.example/api/health
+```
+
+The endpoint reports deployment metadata, content totals, backend storage mode, and rate-limit settings. It intentionally exposes readiness counts only; it does not expose player records or leaderboard payloads.
 
 ## Hosting
 
@@ -61,6 +72,7 @@ Before release, manually check:
 - Chamber Memory and World Rank appear only on Mode Selection.
 - Chamber Memory returns to Mode Selection and shows score, history, profile, and teachings.
 - World Rank returns to Mode Selection and shows separate mode tabs.
+- `/api/health` returns `status: "ok"` and expected content totals.
 - Category preview does not auto-advance on click; only Continue starts the ritual.
 - Read My Mind and Guess My Mind both complete end to end.
 - Guess My Mind shows one active inquiry layer with a small set of questions, not a flat bank.
@@ -70,7 +82,7 @@ Before release, manually check:
 
 ## Backend Adapter Notes
 
-The client service layer uses a remote HTTP adapter when `NEXT_PUBLIC_MIND_READER_BACKEND_URL` is set and a browser-local adapter otherwise. Production backends should:
+The client service layer uses the same-origin `/api` backend by default, a remote HTTP adapter when `NEXT_PUBLIC_MIND_READER_BACKEND_URL` is set, and a browser-local adapter as a fallback. Production backends should:
 
 - Use player ids, not display names, as stable keys.
 - Sanitize display names server-side.

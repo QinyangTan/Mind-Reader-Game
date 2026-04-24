@@ -20,7 +20,9 @@ import {
   normalizedAnswers,
   questionGroups,
   questionStages,
+  type EntityCategory,
   type GameEntity,
+  type QuestionStage,
   type QuestionDefinition,
 } from "@/types/game";
 
@@ -33,6 +35,22 @@ export interface ValidationIssue {
 export interface ValidationReport {
   errors: ValidationIssue[];
   warnings: ValidationIssue[];
+  summaries: ContentCoverageSummary[];
+}
+
+export interface ContentCoverageSummary {
+  category: EntityCategory;
+  entityCount: number;
+  questionCount: number;
+  questionsPer100Entities: number;
+  weakEntityCount: number;
+  stageCounts: Record<QuestionStage, number>;
+  groupCount: number;
+  familyCount: number;
+  largestFamily: {
+    family: string;
+    count: number;
+  };
 }
 
 const attributeKeySet = new Set<string>(attributeKeys);
@@ -43,9 +61,60 @@ const questionStageSet = new Set<string>(questionStages);
 
 const SPARSE_ATTRIBUTE_WARN_THRESHOLD = 2;
 const MIN_GROUPS_PER_CATEGORY = 4;
+const WEAK_ENTITY_ATTRIBUTE_THRESHOLD = 10;
 
 function normalizeText(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function countKnownAttributes(entity: GameEntity) {
+  return attributeKeys.filter((key) => entity.attributes[key] !== "unknown").length;
+}
+
+function buildCoverageSummaries(
+  entityList: readonly GameEntity[],
+  questionList: readonly QuestionDefinition[],
+): ContentCoverageSummary[] {
+  return entityCategories.map((category) => {
+    const categoryEntities = entityList.filter((entity) => entity.category === category);
+    const categoryQuestions = questionList.filter((question) =>
+      question.supportedCategories.includes(category),
+    );
+    const familyCounts = new Map<string, number>();
+
+    for (const question of categoryQuestions) {
+      familyCounts.set(question.family, (familyCounts.get(question.family) ?? 0) + 1);
+    }
+
+    const largestFamily = [...familyCounts.entries()].toSorted(
+      (left, right) => right[1] - left[1],
+    )[0] ?? ["none", 0];
+
+    return {
+      category,
+      entityCount: categoryEntities.length,
+      questionCount: categoryQuestions.length,
+      questionsPer100Entities:
+        categoryEntities.length > 0
+          ? (categoryQuestions.length / categoryEntities.length) * 100
+          : 0,
+      weakEntityCount: categoryEntities.filter(
+        (entity) => countKnownAttributes(entity) < WEAK_ENTITY_ATTRIBUTE_THRESHOLD,
+      ).length,
+      stageCounts: Object.fromEntries(
+        questionStages.map((stage) => [
+          stage,
+          categoryQuestions.filter((question) => question.stage === stage).length,
+        ]),
+      ) as Record<QuestionStage, number>,
+      groupCount: new Set(categoryQuestions.map((question) => question.group)).size,
+      familyCount: familyCounts.size,
+      largestFamily: {
+        family: largestFamily[0],
+        count: largestFamily[1],
+      },
+    };
+  });
 }
 
 export interface ValidateSeedsInput {
@@ -61,6 +130,7 @@ export function validateSeeds(
 
   const errors: ValidationIssue[] = [];
   const warnings: ValidationIssue[] = [];
+  const summaries = buildCoverageSummaries(entityList, questionList);
 
   const seenEntityIds = new Set<string>();
   const seenEntityNames = new Map<string, string>();
@@ -380,5 +450,21 @@ export function validateSeeds(
     }
   }
 
-  return { errors, warnings };
+  return { errors, warnings, summaries };
+}
+
+export function formatCoverageSummary(summaries: readonly ContentCoverageSummary[]) {
+  return summaries
+    .map(
+      (summary) =>
+        [
+          `${summary.category}: ${summary.entityCount} entities, ${summary.questionCount} questions`,
+          `${summary.questionsPer100Entities.toFixed(1)} questions / 100 entities`,
+          `${summary.weakEntityCount} weak profiles`,
+          `${summary.groupCount} groups`,
+          `${summary.familyCount} families`,
+          `largest family ${summary.largestFamily.family} (${summary.largestFamily.count})`,
+        ].join(" | "),
+    )
+    .join("\n");
 }

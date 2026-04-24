@@ -5,7 +5,7 @@ Mind Reader is a cinematic, local-first browser guessing game set inside Mora's 
 - **Psychic Reads You** — think of an entity, answer Mora's questions, and try to survive her guesses.
 - **You Read the Psychic** — Mora secretly picks an entity, you ask structured clue questions, and you try to solve her thought.
 
-Seeded knowledge base: **3,032 entities** across **5 categories** and **159 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
+Seeded knowledge base: **3,024 entities** across **5 categories** and **213 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
 
 ## Version Highlights
 
@@ -17,7 +17,12 @@ Seeded knowledge base: **3,032 entities** across **5 categories** and **159 laye
 - **Historical Figures category.** Historical Figures now fill the fifth playable slot and include era, region, leadership, science, art, writing, philosophy, religion, exploration, invention, reform, royal, and gender question families.
 - **Larger data set.** Supplemental seed files expand Fictional Characters, Animals, Objects, Foods, and Historical Figures while validation prevents malformed entries and duplicate shipped ids.
 - **Massive v4 content pass.** The newest live expansion adds **538 fictional characters**, **514 animals**, **523 objects**, **551 foods**, and **517 historical figures** on top of the prior shipped catalog.
-- **Guided Guess My Mind.** Reverse mode now uses layered inquiry: Broad Openers, Identity Split, Profile, Specialist, and Fine Detail. The player sees one active layer, up to four paths, and only 3-5 recommended questions at a time.
+- **Coverage-aware decision quality.** Mora now demotes questions when likely candidates mostly have unknown values for that trait, so the chamber asks fewer low-evidence prompts.
+- **Denser question bank.** The newest production pass adds stronger specialist and fine-grained discriminators, especially for Historical Figures, Objects, and Foods.
+- **Guided Guess My Mind.** Reverse mode now uses layered inquiry: Broad Openers, Identity Split, Profile, Specialist, and Fine Detail. The player sees one active layer, one chosen family, only 2 recommended questions by default, and a short guidance hint explaining why that path is useful.
+- **Worker-backed inference.** Reverse-mode candidate and question ranking runs through a Web Worker with deterministic synchronous fallback and a small request cache so the chamber stays responsive as content grows.
+- **Same-origin public backend.** Profile and leaderboard calls now default to `/api/players`, `/api/scores`, and `/api/leaderboard`, with validation, rate limiting, and local fallback.
+- **Production health check.** `/api/health` reports deployment, content totals, backend storage mode, and rate-limit settings for monitoring.
 - **Category preview fix.** Category hover/focus/tap previews now update the description without advancing. Only the explicit Continue / Begin action moves the setup forward.
 - **Real example ads.** Top, left, and right sponsor slots now render cached real public ad art, stay outside the safe gameplay area, and can be closed after an exact 15-second countdown. No third-party ad code is included.
 
@@ -43,6 +48,7 @@ npm run lint:fix     # ESLint with --fix
 npm run typecheck    # TypeScript check
 
 npm run test         # Vitest domain suite
+npm run test:e2e     # Playwright browser flow suite
 npm run test:watch   # Vitest watch mode
 npm run validate     # Seed integrity gate
 
@@ -52,13 +58,14 @@ npm run check:full   # check + production build
 
 ## Environment
 
-Copy `.env.example` if you want to configure a remote leaderboard/profile service:
+Copy `env.example` if you want to configure leaderboard/profile behavior:
 
 ```bash
 NEXT_PUBLIC_MIND_READER_BACKEND_URL=
+NEXT_PUBLIC_MIND_READER_BACKEND_MODE=
 ```
 
-Leave it empty for the browser-local fallback. When set, the client calls the configured backend for score submission and leaderboard fetches. See [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md).
+By default, the browser uses this app's same-origin `/api` backend and falls back to browser-local rankings if a request fails. Set `NEXT_PUBLIC_MIND_READER_BACKEND_URL` to point at a separate durable backend, or set `NEXT_PUBLIC_MIND_READER_BACKEND_MODE=local` to force local-only development. See [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md).
 
 ## Scoring Formulas
 
@@ -122,7 +129,8 @@ Domain logic lives in `lib/game/` with no React dependency:
 
 - `scoring.ts` ranks candidates with smoothed probabilistic evidence.
 - `inference-model.ts` keeps additive smoothing counts and learned question usefulness.
-- `question-selection.ts` selects decision-tree-style questions using entropy reduction, split balance, layer fit, and anti-repetition penalties.
+- `question-selection.ts` selects decision-tree-style questions using entropy reduction, split balance, known-profile coverage, layer fit, and anti-repetition penalties.
+- `inference-worker-client.ts` moves heavy Guess My Mind candidate/question ranking into a worker when available.
 - `session.ts` owns both gameplay state machines and result creation.
 - `score.ts` computes deterministic public-game scores.
 
@@ -154,6 +162,7 @@ Run `npm run validate` to check:
 - invalid answer values
 - missing category question coverage
 - weak-profile warnings
+- per-category question density, family balance, and weak-entity summaries
 
 ## Ads
 
@@ -169,5 +178,6 @@ Each slot is non-blocking and closes only after a visible 15-second countdown. D
 
 - No account system is required; player profiles are anonymous display-name profiles.
 - The leaderboard service is adapter-based: local fallback for development, remote HTTP adapter for production.
-- The app has production metadata, social preview metadata, `.env.example`, deterministic score tests, profile tests, storage migration tests, domain tests, and seed validation.
+- `/api/health` is available for uptime checks and basic deployment/content diagnostics.
+- The app has production metadata, social preview metadata, `env.example`, deterministic score tests, profile tests, storage migration tests, domain tests, and seed validation.
 - Deploy as a normal Next.js app. If you enable a real backend, implement the endpoints in [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md), set `NEXT_PUBLIC_MIND_READER_BACKEND_URL`, and follow the production checklist in [docs/PUBLIC_DEPLOYMENT.md](docs/PUBLIC_DEPLOYMENT.md).

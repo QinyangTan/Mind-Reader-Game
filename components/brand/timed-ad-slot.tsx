@@ -104,6 +104,7 @@ export function TimedAdSlot({
             alt={creative.alt}
             fill
             sizes={compact ? "160px" : "340px"}
+            loading="eager"
             className="object-cover opacity-[0.88]"
             style={{ objectPosition: creative.imagePosition ?? "center" }}
           />

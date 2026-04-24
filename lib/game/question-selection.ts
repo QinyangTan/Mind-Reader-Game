@@ -23,9 +23,11 @@ export interface RankedQuestionOption {
   score: number;
   informationGain: number;
   predictedAnswerEntropy: number;
+  profileCoverage: number;
   expectedLeaderConfidence: number;
   expectedMargin: number;
   expectedEffectiveCandidateCount: number;
+  decisionQuality: number;
   targetStage: QuestionStage;
   repetitionMultiplier: number;
   layerMultiplier: number;
@@ -39,7 +41,7 @@ const normalizedAnswers: readonly NormalizedAnswer[] = [
   "unknown",
 ];
 
-const TOP_POOL_SIZE = 40;
+const TOP_POOL_SIZE = 64;
 const ENDGAME_TOP_K = 5;
 const RECENT_GROUP_WINDOW = 2;
 const RECENT_FAMILY_WINDOW = 3;
@@ -288,6 +290,7 @@ function expectedEntropyMetrics(
     return {
       informationGain: 0,
       predictedAnswerEntropy: 0,
+      profileCoverage: 0,
       certainty: 0,
       expectedLeaderConfidence: 0,
       expectedMargin: 0,
@@ -305,6 +308,7 @@ function expectedEntropyMetrics(
   const posteriorWeights = Object.fromEntries(
     normalizedAnswers.map((answer) => [answer, [] as number[]]),
   ) as Record<NormalizedAnswer, number[]>;
+  let profileCoverage = 0;
 
   for (let index = 0; index < pool.length; index += 1) {
     const candidate = pool[index];
@@ -315,6 +319,10 @@ function expectedEntropyMetrics(
 
     const prior = priors[index];
     const trueValue = entity.attributes[question.attributeKey];
+
+    if (trueValue !== "unknown") {
+      profileCoverage += prior;
+    }
 
     for (const observedAnswer of normalizedAnswers) {
       const mass =
@@ -363,11 +371,32 @@ function expectedEntropyMetrics(
   return {
     informationGain: Math.max(0, currentEntropy - expectedPosteriorEntropy),
     predictedAnswerEntropy,
+    profileCoverage,
     certainty,
     expectedLeaderConfidence,
     expectedMargin,
     expectedEffectiveCandidateCount,
   };
+}
+
+function evidenceCoverageMultiplier(profileCoverage: number) {
+  if (profileCoverage >= 0.84) {
+    return 1.08;
+  }
+
+  if (profileCoverage >= 0.62) {
+    return 1.02;
+  }
+
+  if (profileCoverage >= 0.42) {
+    return 0.88;
+  }
+
+  if (profileCoverage >= 0.24) {
+    return 0.68;
+  }
+
+  return 0.46;
 }
 
 function highValueMultiplier(
@@ -404,8 +433,17 @@ export function rankAvailableQuestions(
   inferenceModel?: LearnedInferenceModel,
 ) {
   const asked = new Set(askedQuestionIds);
+  const askedAttributes = new Set(
+    askedQuestionIds
+      .map((id) => questionById.get(id)?.attributeKey)
+      .filter((attributeKey): attributeKey is QuestionDefinition["attributeKey"] => !!attributeKey),
+  );
   const available = getQuestionsForCategory(category).filter((question) => {
     if (asked.has(question.id)) {
+      return false;
+    }
+
+    if (askedAttributes.has(question.attributeKey)) {
       return false;
     }
 
@@ -440,6 +478,7 @@ export function rankAvailableQuestions(
       const convergenceWeight = endgameFocus ? 0.21 : 0.08;
       const balanceWeight = endgameFocus ? 0.1 : 0.15;
       const certaintyWeight = endgameFocus ? 0.04 : 0.07;
+      const coverageWeight = endgameFocus ? 0.08 : 0.06;
       const convergenceScore =
         metrics.expectedMargin * 0.58 +
         metrics.expectedLeaderConfidence * 0.26 +
@@ -452,11 +491,13 @@ export function rankAvailableQuestions(
         split * splitWeight +
         convergenceScore * convergenceWeight +
         metrics.certainty * certaintyWeight +
+        metrics.profileCoverage * coverageWeight +
         weightBonus;
       const structural =
         layerMultiplier *
         repeatMultiplier *
         coverageMultiplier(question, askedQuestionIds) *
+        evidenceCoverageMultiplier(metrics.profileCoverage) *
         discriminatorMultiplier(question, rankedCandidates, resolve) *
         getQuestionUsefulnessMultiplier(inferenceModel, question.id) *
         highValueMultiplier(metrics, split, targetStage);
@@ -471,9 +512,16 @@ export function rankAvailableQuestions(
         score: baseScore * structural * earlyNarrowPenalty,
         informationGain: metrics.informationGain,
         predictedAnswerEntropy: metrics.predictedAnswerEntropy,
+        profileCoverage: metrics.profileCoverage,
         expectedLeaderConfidence: metrics.expectedLeaderConfidence,
         expectedMargin: metrics.expectedMargin,
         expectedEffectiveCandidateCount: metrics.expectedEffectiveCandidateCount,
+        decisionQuality:
+          metrics.informationGain * 0.42 +
+          split * 0.2 +
+          metrics.expectedMargin * 0.18 +
+          metrics.profileCoverage * 0.14 +
+          metrics.predictedAnswerEntropy * 0.06,
         targetStage,
         repetitionMultiplier: repeatMultiplier,
         layerMultiplier,

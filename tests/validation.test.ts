@@ -22,7 +22,7 @@ import {
   historicalFiguresExpansionV4,
   objectExpansionV4,
 } from "@/lib/data/content-expansion-v4";
- import { entities } from "@/lib/data/entities";
+import { entities } from "@/lib/data/entities";
 import { fictionalCharacters } from "@/lib/data/fictional-characters";
 import { foods } from "@/lib/data/foods";
 import { historicalFigures } from "@/lib/data/historical-figures";
@@ -31,7 +31,7 @@ import { allQuestions } from "@/lib/data/questions";
 import { getEntitiesForCategory, getQuestionsForCategory } from "@/lib/data/entities";
 import { questionStages } from "@/types/game";
 
-import { validateSeeds } from "../scripts/validate-seeds";
+import { formatCoverageSummary, validateSeeds } from "../scripts/validate-seeds";
 
 function normalizeName(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -113,12 +113,12 @@ describe("validateSeeds (shipped data)", () => {
       preV4Historical.length + 500,
     );
 
-    expect(allQuestions.length).toBeGreaterThanOrEqual(150);
-    expect(getQuestionsForCategory("fictional_characters").length).toBeGreaterThanOrEqual(28);
-    expect(getQuestionsForCategory("animals").length).toBeGreaterThanOrEqual(28);
-    expect(getQuestionsForCategory("objects").length).toBeGreaterThanOrEqual(28);
-    expect(getQuestionsForCategory("foods").length).toBeGreaterThanOrEqual(24);
-    expect(getQuestionsForCategory("historical_figures").length).toBeGreaterThanOrEqual(28);
+    expect(allQuestions.length).toBeGreaterThanOrEqual(210);
+    expect(getQuestionsForCategory("fictional_characters").length).toBeGreaterThanOrEqual(38);
+    expect(getQuestionsForCategory("animals").length).toBeGreaterThanOrEqual(38);
+    expect(getQuestionsForCategory("objects").length).toBeGreaterThanOrEqual(38);
+    expect(getQuestionsForCategory("foods").length).toBeGreaterThanOrEqual(36);
+    expect(getQuestionsForCategory("historical_figures").length).toBeGreaterThanOrEqual(40);
 
     for (const category of [
       "fictional_characters",
@@ -142,6 +142,21 @@ describe("validateSeeds (shipped data)", () => {
         question.supportedCategories.some((category) => (category as string) === "vehicles"),
       ),
     ).toBe(false);
+  });
+
+  it("emits category coverage summaries for scale maintenance", () => {
+    const report = validateSeeds();
+    const summaryText = formatCoverageSummary(report.summaries);
+
+    expect(report.summaries).toHaveLength(5);
+    expect(summaryText).toContain("fictional_characters");
+    for (const summary of report.summaries) {
+      expect(summary.entityCount).toBeGreaterThan(0);
+      expect(summary.questionCount).toBeGreaterThan(0);
+      expect(summary.groupCount).toBeGreaterThanOrEqual(4);
+      expect(summary.familyCount).toBeGreaterThanOrEqual(6);
+      expect(summary.questionsPer100Entities).toBeGreaterThan(3);
+    }
   });
 });
 

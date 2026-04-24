@@ -12,12 +12,12 @@ function source(path: string) {
 describe("scene flow regression guards", () => {
   it("keeps Chamber Memory and World Rank as true archive scene states", () => {
     const gameShell = source("components/game/game-shell.tsx");
+    const controllers = source("components/game/game-shell-controllers.ts");
 
-    expect(gameShell).toContain(
-      'type ScreenState = "profile" | "encounter" | "setup" | "play" | "result" | "memory" | "world-rank"',
-    );
-    expect(gameShell).toContain('setScreen("memory")');
-    expect(gameShell).toContain('setScreen("world-rank")');
+    expect(controllers).toContain('"memory"');
+    expect(controllers).toContain('"world-rank"');
+    expect(controllers).toContain('openUtilityScene("memory")');
+    expect(controllers).toContain('openUtilityScene("world-rank")');
     expect(gameShell).toMatch(
       /screen === "memory" \|\| screen === "world-rank"\s*\?\s*"archive"/,
     );
@@ -27,10 +27,11 @@ describe("scene flow regression guards", () => {
 
   it("only shows Chamber Memory and World Rank on the mode-selection stage", () => {
     const gameShell = source("components/game/game-shell.tsx");
+    const controllers = source("components/game/game-shell-controllers.ts");
 
     expect(gameShell).toContain('const showModeUtilities = screen === "setup" && setupStep === "mode";');
     expect(gameShell).toContain("showModeUtilities ? (");
-    expect(gameShell).toContain('setSetupStep("mode")');
+    expect(controllers).toContain('setSetupStep("mode")');
   });
 
   it("does not auto-advance when a category is clicked", () => {

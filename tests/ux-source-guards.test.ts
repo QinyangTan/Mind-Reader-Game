@@ -24,8 +24,10 @@ describe("public-game UX source guards", () => {
 
     expect(browser).toContain("Layer A · Broad Openers");
     expect(browser).toContain("Layer E · Fine Detail");
-    expect(browser).toContain("visibleFamilies = familyBuckets.slice(0, 4)");
-    expect(browser).toContain("slice(0, showMore ? 5 : 3)");
+    expect(browser).toContain("visibleFamilies = familyBuckets.slice(0, 3)");
+    expect(browser).toContain("slice(0, showMore ? 4 : 2)");
+    expect(browser).toContain("recommendationHint");
+    expect(browser).toContain("Switch family");
     expect(browser).not.toContain("questionFamilies.map");
   });
 });
