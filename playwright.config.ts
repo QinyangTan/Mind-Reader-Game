@@ -18,7 +18,7 @@ export default defineConfig({
   webServer: useHostedTarget
     ? undefined
     : {
-        command: "npm run build && npm run start -- --hostname 127.0.0.1 --port 3100",
+        command: "npm run clean && npm run build && npm run start -- --hostname 127.0.0.1 --port 3100",
         url: baseURL,
         reuseExistingServer: false,
         timeout: 180_000,
