@@ -7,6 +7,7 @@ import { foodQuestions } from "@/lib/data/question-bank/foods";
 import { historicalFigureQuestions } from "@/lib/data/question-bank/historical";
 import { questionGroupMeta } from "@/lib/data/question-bank/meta";
 import { objectQuestions } from "@/lib/data/question-bank/objects";
+import { productionDepthQuestions } from "@/lib/data/question-bank/production-depth";
 import type { QuestionDefinition, QuestionGroup } from "@/types/game";
 
 export { questionGroupMeta, questionStageMeta, questionStageOrder } from "@/lib/data/question-bank/meta";
@@ -20,6 +21,7 @@ export const allQuestions: readonly QuestionDefinition[] = Object.freeze([
   ...expandedQuestions,
   ...expandedQuestionsV2,
   ...expandedQuestionsV3,
+  ...productionDepthQuestions,
 ]);
 
 export const questionById = new Map(allQuestions.map((question) => [question.id, question]));
