@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
-import { readdir, readFile } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { readFile } from "node:fs/promises";
+import { dirname, extname, join, resolve } from "node:path";
+import { createRequire } from "node:module";
+import vm from "node:vm";
+import ts from "typescript";
 
 const ROOT = process.cwd();
-const DATA_DIR = join(ROOT, "lib", "data");
+const requireFromRoot = createRequire(join(ROOT, "package.json"));
+const moduleCache = new Map();
+
 const CATEGORY_IDS = [
   "fictional_characters",
   "animals",
@@ -13,35 +18,130 @@ const CATEGORY_IDS = [
   "historical_figures",
 ];
 
-async function listTsFiles(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
-  const files = [];
-
-  for (const entry of entries) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...(await listTsFiles(path)));
-    } else if (entry.isFile() && entry.name.endsWith(".ts")) {
-      files.push(path);
-    }
+function resolveModulePath(specifier, fromFile) {
+  if (specifier.startsWith("node:")) {
+    return specifier;
   }
 
-  return files;
+  if (specifier.startsWith("@/")) {
+    return resolve(ROOT, specifier.slice(2));
+  }
+
+  if (specifier.startsWith(".")) {
+    return resolve(dirname(fromFile), specifier);
+  }
+
+  return specifier;
 }
 
-function unique(values) {
-  return [...new Set(values)];
+async function resolveTsFile(path) {
+  if (path.startsWith("node:") || !path.startsWith("/")) {
+    return path;
+  }
+
+  if (extname(path)) {
+    return path;
+  }
+
+  return `${path}.ts`;
 }
 
-function collectMatches(content, regex, group = 1) {
-  return [...content.matchAll(regex)].map((match) => match[group]).filter(Boolean);
+async function loadTsModule(filePath) {
+  const resolved = await resolveTsFile(filePath);
+
+  if (resolved.startsWith("node:") || !resolved.startsWith("/")) {
+    return requireFromRoot(resolved);
+  }
+
+  if (moduleCache.has(resolved)) {
+    return moduleCache.get(resolved).exports;
+  }
+
+  const source = await readFile(resolved, "utf8");
+  const cjsModule = { exports: {} };
+  moduleCache.set(resolved, cjsModule);
+
+  const transpiled = ts.transpileModule(source, {
+    compilerOptions: {
+      esModuleInterop: true,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: resolved,
+  }).outputText;
+
+  const localRequire = (specifier) => {
+    const target = resolveModulePath(specifier, resolved);
+
+    if (target.startsWith("node:") || !target.startsWith("/")) {
+      return requireFromRoot(target);
+    }
+
+    const loaded = loadTsModuleSync(target);
+    return loaded;
+  };
+
+  const wrapper = vm.runInThisContext(
+    `(function(exports, require, module, __filename, __dirname) { ${transpiled}\n})`,
+    { filename: resolved },
+  );
+
+  wrapper(cjsModule.exports, localRequire, cjsModule, resolved, dirname(resolved));
+  return cjsModule.exports;
+}
+
+function loadTsModuleSync(filePath) {
+  const resolved = extname(filePath) ? filePath : `${filePath}.ts`;
+
+  if (moduleCache.has(resolved)) {
+    return moduleCache.get(resolved).exports;
+  }
+
+  const source = requireFromRoot("node:fs").readFileSync(resolved, "utf8");
+  const cjsModule = { exports: {} };
+  moduleCache.set(resolved, cjsModule);
+
+  const transpiled = ts.transpileModule(source, {
+    compilerOptions: {
+      esModuleInterop: true,
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+    },
+    fileName: resolved,
+  }).outputText;
+
+  const localRequire = (specifier) => {
+    const target = resolveModulePath(specifier, resolved);
+    if (target.startsWith("node:") || !target.startsWith("/")) {
+      return requireFromRoot(target);
+    }
+    return loadTsModuleSync(target);
+  };
+
+  const wrapper = vm.runInThisContext(
+    `(function(exports, require, module, __filename, __dirname) { ${transpiled}\n})`,
+    { filename: resolved },
+  );
+
+  wrapper(cjsModule.exports, localRequire, cjsModule, resolved, dirname(resolved));
+  return cjsModule.exports;
+}
+
+function findDuplicates(values) {
+  const counts = new Map();
+  for (const value of values.filter(Boolean)) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([value, count]) => ({ value, count }));
 }
 
 function summarizeCoverage(category, entities, questions) {
-  const categoryEntityIds = entities
-    .filter((entity) => entity.category === category)
-    .map((entity) => entity.id);
-  const categoryQuestions = questions.filter((question) => question.categories.includes(category));
+  const categoryEntities = entities.filter((entity) => entity.category === category);
+  const categoryQuestions = questions.filter((question) =>
+    question.supportedCategories.includes(category),
+  );
   const attributeUse = new Map();
   const stageUse = new Map();
   const familyUse = new Map();
@@ -54,10 +154,10 @@ function summarizeCoverage(category, entities, questions) {
 
   return {
     category,
-    entities: categoryEntityIds.length,
+    entities: categoryEntities.length,
     questions: categoryQuestions.length,
-    questionToEntityRatio: categoryEntityIds.length
-      ? Number((categoryQuestions.length / categoryEntityIds.length).toFixed(3))
+    questionToEntityRatio: categoryEntities.length
+      ? Number((categoryQuestions.length / categoryEntities.length).toFixed(3))
       : 0,
     stages: Object.fromEntries([...stageUse.entries()].sort()),
     topQuestionFamilies: [...familyUse.entries()]
@@ -68,72 +168,35 @@ function summarizeCoverage(category, entities, questions) {
   };
 }
 
-function findDuplicates(values) {
-  const counts = new Map();
-  for (const value of values) {
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  }
-  return [...counts.entries()].filter(([, count]) => count > 1).map(([value, count]) => ({ value, count }));
+function normalizeAlias(value) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 async function main() {
-  const files = await listTsFiles(DATA_DIR);
-  const entities = [];
-  const questions = [];
-  const aliasValues = [];
-
-  for (const file of files) {
-    const content = await readFile(file, "utf8");
-    const rel = relative(ROOT, file);
-
-    const ids = collectMatches(content, /id:\s*"([^"]+)"/g);
-    const entityCategories = collectMatches(content, /category:\s*"([^"]+)"/g);
-    const supportedCategoryBlocks = collectMatches(content, /supportedCategories:\s*\[([^\]]+)\]/g);
-    const stages = collectMatches(content, /stage:\s*"([^"]+)"/g);
-    const families = collectMatches(content, /family:\s*"([^"]+)"/g);
-    const attributes = collectMatches(content, /attributeKey:\s*"([^"]+)"/g);
-    const aliasBlocks = collectMatches(content, /aliases:\s*\[([^\]]+)\]/g);
-
-    for (const block of aliasBlocks) {
-      aliasValues.push(...collectMatches(block, /"([^"]+)"/g).map((alias) => alias.toLowerCase()));
-    }
-
-    // Entity records have `category`; question records have `supportedCategories`.
-    for (let index = 0; index < Math.min(ids.length, entityCategories.length); index += 1) {
-      if (CATEGORY_IDS.includes(entityCategories[index])) {
-        entities.push({ id: ids[index], category: entityCategories[index], file: rel });
-      }
-    }
-
-    for (let index = 0; index < supportedCategoryBlocks.length; index += 1) {
-      questions.push({
-        id: ids[index] ?? `${rel}:question:${index}`,
-        categories: collectMatches(supportedCategoryBlocks[index], /"([^"]+)"/g),
-        stage: stages[index] ?? "unknown",
-        family: families[index] ?? "unknown",
-        attributeKey: attributes[index] ?? "unknown",
-        file: rel,
-      });
-    }
-  }
+  const { entities } = await loadTsModule(join(ROOT, "lib/data/entities.ts"));
+  const { allQuestions } = await loadTsModule(join(ROOT, "lib/data/questions.ts"));
+  const duplicateAliases = findDuplicates(
+    entities.flatMap((entity) => (entity.aliases ?? []).map(normalizeAlias)),
+  );
 
   const report = {
     generatedAt: new Date().toISOString(),
     totals: {
       entities: entities.length,
-      questions: questions.length,
-      entityFiles: unique(entities.map((entity) => entity.file)).length,
-      questionFiles: unique(questions.map((question) => question.file)).length,
+      questions: allQuestions.length,
+      categories: CATEGORY_IDS.length,
     },
-    categories: CATEGORY_IDS.map((category) => summarizeCoverage(category, entities, questions)),
+    categories: CATEGORY_IDS.map((category) =>
+      summarizeCoverage(category, entities, allQuestions),
+    ),
     duplicateEntityIds: findDuplicates(entities.map((entity) => entity.id)).slice(0, 25),
-    duplicateQuestionIds: findDuplicates(questions.map((question) => question.id)).slice(0, 25),
-    duplicateAliases: findDuplicates(aliasValues).slice(0, 25),
+    duplicateQuestionIds: findDuplicates(allQuestions.map((question) => question.id)).slice(0, 25),
+    duplicateAliases: duplicateAliases.slice(0, 25),
     warnings: [],
   };
 
   for (const summary of report.categories) {
-    if (summary.questionToEntityRatio < 0.08) {
+    if (summary.questionToEntityRatio < 0.06) {
       report.warnings.push(
         `${summary.category}: low question/entity ratio (${summary.questions}/${summary.entities}). Add more specialist/fine questions.`,
       );

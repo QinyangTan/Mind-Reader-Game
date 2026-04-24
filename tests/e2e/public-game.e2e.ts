@@ -1,9 +1,9 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
-async function createProfile(page: import("@playwright/test").Page, name = "E2E Player") {
-  await page.goto("/");
+async function createProfile(page: Page, name = "E2E Player") {
+  await page.goto("/play");
   await page.evaluate(() => window.localStorage.clear());
-  await page.reload();
+  await page.goto("/play");
   await expect(page.getByPlaceholder("Your player name")).toBeVisible();
   await page.getByPlaceholder("Your player name").fill(name);
   await page.getByRole("button", { name: new RegExp(`Enter as ${name}`, "i") }).click();
@@ -26,10 +26,12 @@ test.describe("Mind Reader public game smoke flow", () => {
     await createProfile(page, "Category Tester");
     await page.getByRole("button", { name: /Continue/i }).click();
     await page.getByRole("button", { name: /Read My Mind/i }).click();
+    await page.getByRole("button", { name: /^Continue/i }).click();
 
     const characters = page.getByRole("button", { name: /Fictional Characters/i });
     await expect(characters).toBeVisible();
-    await characters.hover();
+    await characters.click();
+    await expect(page.getByText(/Fictional Characters:/i)).toBeVisible();
     await expect(page.getByRole("button", { name: /Begin|Continue|Start/i })).toBeVisible();
     await expect(page.getByText(/Question 1/i)).toHaveCount(0);
   });
@@ -51,9 +53,9 @@ test.describe("Mind Reader public game smoke flow", () => {
 
   test("ads render on refresh and expose their countdown labels", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByText(/Example Ad/i).first()).toBeVisible();
+    await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(3);
     await page.reload();
-    await expect(page.getByText(/Example Ad/i).first()).toBeVisible();
-    await expect(page.getByText(/Close in/i).first()).toBeVisible();
+    await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(3);
+    await expect(page.getByRole("button", { name: /Ad can be closed in/i }).first()).toBeVisible();
   });
 });
