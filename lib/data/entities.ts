@@ -1,4 +1,8 @@
 import { animals } from "@/lib/data/animals";
+import {
+  quarantinedEntityIds,
+  quarantineReasonById,
+} from "@/lib/data/content-quarantine";
 import { refineEntityAttributes } from "@/lib/data/attribute-refinements";
 import {
   animalExpansion,
@@ -122,12 +126,33 @@ const rawEntities: readonly GameEntity[] = [
   ),
 ];
 
-export const entities: readonly GameEntity[] = Object.freeze(
+export const allSeedEntities: readonly GameEntity[] = Object.freeze(
   rawEntities.map(refineEntityAttributes),
 );
 
+export const quarantinedEntities: readonly GameEntity[] = Object.freeze(
+  allSeedEntities
+    .filter((entity) => quarantinedEntityIds.has(entity.id))
+    .map((entity) =>
+      Object.freeze({
+        ...entity,
+        contentStatus: "quarantined",
+        contentNotes: quarantineReasonById.get(entity.id),
+      }) as GameEntity,
+    ),
+);
+
+export const entities: readonly GameEntity[] = Object.freeze(
+  allSeedEntities.filter((entity) => !quarantinedEntityIds.has(entity.id)),
+);
+
 export const entityById: ReadonlyMap<string, GameEntity> = freezeMapMutation(
-  new Map(entities.map((entity) => [entity.id, entity])),
+  new Map(
+    [
+      ...entities,
+      ...quarantinedEntities,
+    ].map((entity) => [entity.id, entity]),
+  ),
 );
 
 export const entitiesByCategory: ReadonlyMap<EntityCategory, readonly GameEntity[]> =

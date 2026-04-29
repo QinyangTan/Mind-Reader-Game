@@ -200,6 +200,106 @@ function rankOfEntity(rankings, entityId) {
   return index >= 0 ? index + 1 : rankings.length + 1;
 }
 
+function summarizeStumpReasons(results) {
+  const stumps = results.filter((result) => !result.finalCommitted);
+  const reasons = {
+    confidence_too_low: 0,
+    margin_too_low: 0,
+    entropy_too_high: 0,
+    effective_pool_too_high: 0,
+    leader_instability: 0,
+    low_known_coverage: 0,
+    no_high_value_questions_left: 0,
+  };
+
+  for (const result of stumps) {
+    if (result.finalConfidence < 0.035) {
+      reasons.confidence_too_low += 1;
+    }
+    if (result.finalMargin < 0.012) {
+      reasons.margin_too_low += 1;
+    }
+    if (result.finalNormalizedEntropy > 0.9) {
+      reasons.entropy_too_high += 1;
+    }
+    if (result.finalEffectiveCandidateCount > 260) {
+      reasons.effective_pool_too_high += 1;
+    }
+    if (result.leaderStreak < 4) {
+      reasons.leader_instability += 1;
+    }
+    if (result.unknownAskedRate > 0.58 || result.unknownAnswerCount > result.questions * 0.45) {
+      reasons.low_known_coverage += 1;
+    }
+    if (result.finalTimingReason === "forced_no_questions") {
+      reasons.no_high_value_questions_left += 1;
+    }
+  }
+
+  const top5AtStump = average(stumps.map((result) => result.top5 ? 1 : 0));
+  const top10AtStump = average(stumps.map((result) => result.top10 ? 1 : 0));
+  const avgRank = average(stumps.map((result) => result.finalCorrectRank));
+  const avgConfidence = average(stumps.map((result) => result.finalConfidence));
+  const avgEvidenceQuality = average(stumps.map((result) => result.finalEvidenceQuality ?? 0));
+  const avgStrongAnswers = average(stumps.map((result) => result.strongAnswerCount ?? 0));
+  const avgHighValueAnswers = average(stumps.map((result) => result.highValueAnswerCount ?? 0));
+  const avgUnknownAnswers = average(stumps.map((result) => result.unknownAnswerCount ?? 0));
+
+  let nextBestFix = "balanced threshold calibration";
+  if (reasons.low_known_coverage >= stumps.length * 0.45) {
+    nextBestFix = "weak entity profiles / missing populated attributes";
+  } else if (top10AtStump < 0.35 || avgRank > 40) {
+    nextBestFix = "candidate ranking and profile uniqueness";
+  } else if (reasons.no_high_value_questions_left >= stumps.length * 0.45) {
+    nextBestFix = "more high-coverage specialist/fine questions";
+  } else if (top5AtStump >= 0.45 && reasons.margin_too_low < stumps.length * 0.5) {
+    nextBestFix = "slightly more permissive final commitment";
+  }
+
+  return {
+    stumps: stumps.length,
+    reasons,
+    averageLeaderConfidenceAtStump: Number(avgConfidence.toFixed(4)),
+    averageEvidenceQualityAtStump: Number(avgEvidenceQuality.toFixed(3)),
+    averageStrongAnswersAtStump: Number(avgStrongAnswers.toFixed(2)),
+    averageHighValueAnswersAtStump: Number(avgHighValueAnswers.toFixed(2)),
+    averageUnknownAnswersAtStump: Number(avgUnknownAnswers.toFixed(2)),
+    averageCorrectAnswerRankAtStump: Number(avgRank.toFixed(2)),
+    top5AtStump: Number(top5AtStump.toFixed(3)),
+    top10AtStump: Number(top10AtStump.toFixed(3)),
+    nextBestFix,
+  };
+}
+
+function collectMissingSeparators(result, trueEntity, topEntity, questionById) {
+  if (!topEntity || result.finalCommitted) {
+    return [];
+  }
+
+  const separators = [];
+  const seen = new Set();
+  for (const question of questionById.values()) {
+    if (!question.supportedCategories.includes(trueEntity.category)) {
+      continue;
+    }
+    if (seen.has(question.attributeKey)) {
+      continue;
+    }
+    seen.add(question.attributeKey);
+
+    const trueValue = trueEntity.attributes[question.attributeKey];
+    const topValue = topEntity.attributes[question.attributeKey];
+    if (trueValue === "unknown" && topValue === "unknown") {
+      continue;
+    }
+    if (trueValue !== topValue && (trueValue === "unknown" || topValue === "unknown")) {
+      separators.push(question.attributeKey);
+    }
+  }
+
+  return separators.slice(0, 4);
+}
+
 function formatMarkdown(report) {
   const lines = [
     "# Mind Reader Accuracy Evaluation",
@@ -251,6 +351,8 @@ function simulateEntity({
   getGuessTimingDiagnostics,
   shouldCommitFinalGuess,
   countStrongAnsweredTraits,
+  countUnknownAnswers,
+  countHighValueAnsweredTraits,
 }) {
   const config = difficultyConfig.normal.readMyMind;
   let asked = [];
@@ -268,6 +370,8 @@ function simulateEntity({
     const remainingQuestions = config.maxQuestions - asked.length;
     const leader = rankings[0];
     const strongAnswerCount = countStrongAnsweredTraits(asked);
+    const unknownAnswerCount = countUnknownAnswers(asked);
+    const highValueAnswerCount = countHighValueAnsweredTraits(asked);
     const timing = getGuessTimingDiagnostics(
       rankings,
       config,
@@ -278,6 +382,8 @@ function simulateEntity({
         questionsAsked: asked.length,
         leaderStreak,
         strongAnswerCount,
+        unknownAnswerCount,
+        highValueAnswerCount,
       },
     );
     timingReasons.set(timing.reason, (timingReasons.get(timing.reason) ?? 0) + 1);
@@ -296,9 +402,14 @@ function simulateEntity({
           finalMargin: leader.confidence - (rankings[1]?.confidence ?? 0),
           finalEffectiveCandidateCount: timing.effectiveCandidateCount,
           finalNormalizedEntropy: timing.normalizedEntropy,
+          finalEvidenceQuality: timing.evidenceQuality,
           leaderStreak,
           strongAnswerCount,
+          unknownAnswerCount,
+          highValueAnswerCount,
           finalCorrectRank: 1,
+          finalTimingReason: timing.reason,
+          topCandidateId: leader.entityId,
           top5: true,
           top10: true,
           unknownAskedRate: average(
@@ -355,10 +466,14 @@ function simulateEntity({
 
   const finalLeader = rankings[0]?.entityId;
   const strongAnswerCount = countStrongAnsweredTraits(asked);
+  const unknownAnswerCount = countUnknownAnswers(asked);
+  const highValueAnswerCount = countHighValueAnsweredTraits(asked);
   const finalCommitted = shouldCommitFinalGuess(rankings, entity.category, {
     questionsAsked: asked.length,
     leaderStreak,
     strongAnswerCount,
+    unknownAnswerCount,
+    highValueAnswerCount,
   });
   const finalConfidence = rankings[0]?.confidence ?? 0;
   const finalMargin = finalConfidence - (rankings[1]?.confidence ?? 0);
@@ -373,6 +488,8 @@ function simulateEntity({
       questionsAsked: asked.length,
       leaderStreak,
       strongAnswerCount,
+      unknownAnswerCount,
+      highValueAnswerCount,
     },
   );
   timingReasons.set(finalTiming.reason, (timingReasons.get(finalTiming.reason) ?? 0) + 1);
@@ -390,9 +507,13 @@ function simulateEntity({
     finalMargin,
     finalEffectiveCandidateCount: finalTiming.effectiveCandidateCount,
     finalNormalizedEntropy: finalTiming.normalizedEntropy,
+    finalEvidenceQuality: finalTiming.evidenceQuality,
     leaderStreak,
     strongAnswerCount,
+    unknownAnswerCount,
+    highValueAnswerCount,
     finalCorrectRank,
+    finalTimingReason: finalTiming.reason,
     top5: finalCorrectRank <= 5,
     top10: finalCorrectRank <= 10,
     unknownAskedRate: average(
@@ -407,7 +528,14 @@ async function main() {
   const { entities } = await loadTsModule(join(ROOT, "lib/data/entities.ts"));
   const { questionById } = await loadTsModule(join(ROOT, "lib/data/questions.ts"));
   const { difficultyConfig } = await loadTsModule(join(ROOT, "lib/game/game-config.ts"));
-  const { rankCandidates, getGuessTimingDiagnostics, shouldCommitFinalGuess, countStrongAnsweredTraits } = await loadTsModule(join(ROOT, "lib/game/scoring.ts"));
+  const {
+    rankCandidates,
+    getGuessTimingDiagnostics,
+    shouldCommitFinalGuess,
+    countStrongAnsweredTraits,
+    countUnknownAnswers,
+    countHighValueAnsweredTraits,
+  } = await loadTsModule(join(ROOT, "lib/game/scoring.ts"));
   const { selectNextQuestion } = await loadTsModule(join(ROOT, "lib/game/question-selection.ts"));
   const { attributeKeys, entityCategories } = await loadTsModule(join(ROOT, "types/game.ts"));
 
@@ -418,6 +546,7 @@ async function main() {
   const familyUtility = new Map();
   const wrongPairs = new Map();
   const timingReasonUse = new Map();
+  const missingSeparatorUse = new Map();
   const categoryReports = [];
   const hardestEntities = [];
   const lowCoverageEntities = [];
@@ -437,6 +566,8 @@ async function main() {
         getGuessTimingDiagnostics,
         shouldCommitFinalGuess,
         countStrongAnsweredTraits,
+        countUnknownAnswers,
+        countHighValueAnsweredTraits,
       });
       for (const questionId of result.usedQuestions) {
         questionUse.set(questionId, (questionUse.get(questionId) ?? 0) + 1);
@@ -457,6 +588,13 @@ async function main() {
       if (!result.correct && result.finalGuessId) {
         const key = `${result.finalGuessId} -> ${entity.id}`;
         wrongPairs.set(key, (wrongPairs.get(key) ?? 0) + 1);
+      }
+      const topEntity = result.topCandidateId
+        ? entities.find((candidate) => candidate.id === result.topCandidateId)
+        : null;
+      for (const attributeKey of collectMissingSeparators(result, entity, topEntity, questionById)) {
+        const key = `${category}:${attributeKey}`;
+        missingSeparatorUse.set(key, (missingSeparatorUse.get(key) ?? 0) + 1);
       }
       const knownAttributes = countKnownAttributes(entity, attributeKeys);
       hardestEntities.push({
@@ -510,6 +648,17 @@ async function main() {
       averageLeaderStreak: averageNumber(results.map((result) => result.leaderStreak), 2),
       unknownAskedRate: Number(average(results.map((result) => result.unknownAskedRate)).toFixed(3)),
       repeatedFamilyRate: Number((average(results.map((result) => result.repeatedFamilies / Math.max(1, result.questions)))).toFixed(3)),
+      stumpAnalysis: {
+        ...summarizeStumpReasons(results),
+        missingAttributesThatWouldSeparateLeaders: topEntries(
+          new Map(
+            [...missingSeparatorUse.entries()]
+              .filter(([key]) => key.startsWith(`${category}:`))
+              .map(([key, count]) => [key.slice(category.length + 1), count]),
+          ),
+          8,
+        ),
+      },
       guessTimingReasons: Object.fromEntries(
         [...timingReasonUse.entries()]
           .filter(([key]) => key.startsWith(`${category}:`))

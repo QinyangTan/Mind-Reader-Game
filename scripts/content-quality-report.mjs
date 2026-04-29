@@ -285,7 +285,11 @@ function normalizeAlias(value) {
 }
 
 async function main() {
-  const { entities } = await loadTsModule(join(ROOT, "lib/data/entities.ts"));
+  const {
+    allSeedEntities = [],
+    entities,
+    quarantinedEntities = [],
+  } = await loadTsModule(join(ROOT, "lib/data/entities.ts"));
   const { allQuestions } = await loadTsModule(join(ROOT, "lib/data/questions.ts"));
   const { attributeKeys } = await loadTsModule(join(ROOT, "types/game.ts"));
   const duplicateAliases = findDuplicates(
@@ -296,6 +300,9 @@ async function main() {
     generatedAt: new Date().toISOString(),
     totals: {
       entities: entities.length,
+      activeEntities: entities.length,
+      totalSeedEntities: allSeedEntities.length || entities.length,
+      quarantinedEntities: quarantinedEntities.length,
       questions: allQuestions.length,
       categories: CATEGORY_IDS.length,
     },
@@ -305,6 +312,12 @@ async function main() {
     duplicateEntityIds: findDuplicates(entities.map((entity) => entity.id)).slice(0, 25),
     duplicateQuestionIds: findDuplicates(allQuestions.map((question) => question.id)).slice(0, 25),
     duplicateAliases: duplicateAliases.slice(0, 25),
+    quarantinedEntities: quarantinedEntities.map((entity) => ({
+      id: entity.id,
+      name: entity.name,
+      category: entity.category,
+      reason: entity.contentNotes ?? "quarantined",
+    })),
     warnings: [],
   };
 

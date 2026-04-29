@@ -125,6 +125,12 @@ export const attributeKeys = [
   "imaging_item",
   "timekeeping_item",
   "repair_or_maintenance",
+  "seating_item",
+  "table_or_surface",
+  "storage_furniture",
+  "writing_or_drawing_tool",
+  "recreation_item",
+  "personal_accessory",
   "sweet",
   "savory",
   "served_hot",
@@ -170,6 +176,12 @@ export const attributeKeys = [
   "cheese_forward",
   "fried_dough",
   "chocolate_or_cocoa",
+  "cake_or_cookie",
+  "flatbread_or_wrap",
+  "dumpling_or_filled",
+  "porridge_or_grain_bowl",
+  "frozen_or_iced",
+  "stuffed_or_filled",
   "deceased",
   "ancient",
   "medieval",
@@ -219,6 +231,15 @@ export const attributeKeys = [
   "abolition_or_suffrage",
   "space_or_astronomy",
   "economic_or_industrial",
+  "roman_or_byzantine",
+  "middle_eastern_or_islamic",
+  "east_asian",
+  "south_asian",
+  "us_history",
+  "independence_leader",
+  "dynastic_ruler",
+  "classical_antiquity",
+  "enlightenment_or_scientific_revolution",
 ] as const;
 
 export type AttributeKey = (typeof attributeKeys)[number];
@@ -347,6 +368,12 @@ export const objectAttributeKeys: AttributeKey[] = [
   "imaging_item",
   "timekeeping_item",
   "repair_or_maintenance",
+  "seating_item",
+  "table_or_surface",
+  "storage_furniture",
+  "writing_or_drawing_tool",
+  "recreation_item",
+  "personal_accessory",
   "large",
   "small",
 ];
@@ -400,6 +427,12 @@ export const foodAttributeKeys: AttributeKey[] = [
   "cheese_forward",
   "fried_dough",
   "chocolate_or_cocoa",
+  "cake_or_cookie",
+  "flatbread_or_wrap",
+  "dumpling_or_filled",
+  "porridge_or_grain_bowl",
+  "frozen_or_iced",
+  "stuffed_or_filled",
   "used_daily",
 ];
 
@@ -459,6 +492,15 @@ export const historicalFigureAttributeKeys: AttributeKey[] = [
   "abolition_or_suffrage",
   "space_or_astronomy",
   "economic_or_industrial",
+  "roman_or_byzantine",
+  "middle_eastern_or_islamic",
+  "east_asian",
+  "south_asian",
+  "us_history",
+  "independence_leader",
+  "dynastic_ruler",
+  "classical_antiquity",
+  "enlightenment_or_scientific_revolution",
   "royal",
   "famous_worldwide",
 ];
@@ -515,6 +557,10 @@ export const difficulties = ["easy", "normal", "hard"] as const;
 
 export type Difficulty = (typeof difficulties)[number];
 
+export const contentStatuses = ["active", "quarantined", "needs_profile"] as const;
+
+export type ContentStatus = (typeof contentStatuses)[number];
+
 export interface GameEntity {
   id: string;
   name: string;
@@ -526,6 +572,8 @@ export interface GameEntity {
   sourceType?: string;
   rarityWeight?: number;
   popularityWeight?: number;
+  contentStatus?: ContentStatus;
+  contentNotes?: string;
   attributes: Record<AttributeKey, NormalizedAnswer>;
 }
 

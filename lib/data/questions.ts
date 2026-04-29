@@ -11,6 +11,7 @@ import { productionDepthQuestions } from "@/lib/data/question-bank/production-de
 import { productionV5Questions } from "@/lib/data/question-bank/production-v5";
 import { productionV6Questions } from "@/lib/data/question-bank/production-v6";
 import { productionV7Questions } from "@/lib/data/question-bank/production-v7";
+import { productionV8Questions } from "@/lib/data/question-bank/production-v8";
 import type { QuestionDefinition, QuestionGroup } from "@/types/game";
 
 export { questionGroupMeta, questionStageMeta, questionStageOrder } from "@/lib/data/question-bank/meta";
@@ -28,6 +29,7 @@ export const allQuestions: readonly QuestionDefinition[] = Object.freeze([
   ...productionV5Questions,
   ...productionV6Questions,
   ...productionV7Questions,
+  ...productionV8Questions,
 ]);
 
 export const questionById = new Map(allQuestions.map((question) => [question.id, question]));

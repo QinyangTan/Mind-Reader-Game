@@ -142,6 +142,45 @@ function topKnownCoverage(
   );
 }
 
+function directPairSeparation(
+  question: QuestionDefinition,
+  rankedCandidates: RankedCandidate[],
+  resolveEntity: EntityResolver,
+  topK = ENDGAME_TOP_K,
+) {
+  const top = rankedCandidates.slice(0, topK);
+  let totalDistance = 0;
+  let knownPairs = 0;
+  let maxDistance = 0;
+
+  for (let i = 0; i < top.length; i += 1) {
+    for (let j = i + 1; j < top.length; j += 1) {
+      const left = resolveEntity(top[i].entityId);
+      const right = resolveEntity(top[j].entityId);
+      if (!left || !right) {
+        continue;
+      }
+
+      const leftValue = left.attributes[question.attributeKey];
+      const rightValue = right.attributes[question.attributeKey];
+      if (leftValue === "unknown" || rightValue === "unknown") {
+        continue;
+      }
+
+      const distance = Math.abs(answerToProbability(leftValue) - answerToProbability(rightValue));
+      totalDistance += distance;
+      maxDistance = Math.max(maxDistance, distance);
+      knownPairs += 1;
+    }
+  }
+
+  if (knownPairs === 0) {
+    return 0;
+  }
+
+  return totalDistance / knownPairs * 0.72 + maxDistance * 0.28;
+}
+
 export function determineTargetQuestionStage(
   rankedCandidates: RankedCandidate[],
   questionsAsked: number,
@@ -491,6 +530,7 @@ export function rankAvailableQuestions(
       );
       const split = topKSplit(question, rankedCandidates, resolve);
       const wideSplit = topKSplit(question, rankedCandidates, resolve, ENDGAME_WIDE_TOP_K);
+      const pairSeparation = directPairSeparation(question, rankedCandidates, resolve);
       const endgameMode = remainingQuestions !== undefined && remainingQuestions <= 3;
       const leaderCoverage = topKnownCoverage(question, rankedCandidates, resolve);
       const weightBonus = ((question.weight ?? 1) - 1) * 0.07;
@@ -513,9 +553,10 @@ export function rankAvailableQuestions(
           ? (1 / metrics.expectedEffectiveCandidateCount) * 0.16
           : 0);
       const leaderSeparationScore =
-        wideSplit * 0.62 +
-        split * 0.28 +
-        leaderCoverage * 0.1;
+        pairSeparation * 0.42 +
+        wideSplit * 0.34 +
+        split * 0.16 +
+        leaderCoverage * 0.08;
       const baseScore =
         metrics.informationGain * informationWeight +
         metrics.predictedAnswerEntropy * balanceWeight +
@@ -556,6 +597,7 @@ export function rankAvailableQuestions(
         discriminatorMultiplier(question, rankedCandidates, resolve) *
         getQuestionUsefulnessMultiplier(inferenceModel, question.id) *
         highValueMultiplier(metrics, endgameMode ? Math.max(split, wideSplit) : split, targetStage) *
+        (endgameMode && pairSeparation >= 0.32 ? 1.18 : 1) *
         endgameStageMultiplier *
         endgameCoverageMultiplier;
       const earlyNarrowPenalty =

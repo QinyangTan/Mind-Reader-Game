@@ -133,7 +133,7 @@ npm run eval:accuracy -- --category=foods --limit=100 --json
 npm run eval:accuracy -- --all
 ```
 
-The default run samples each category so it stays fast enough for local and CI use. It reports top-1, top-5, and top-10 accuracy, committed-guess rate, stump rate, wrong committed guesses, timing reasons, question-family usage and utility, common wrong-guess pairs, hard entities, low-coverage entities, and leader-stability diagnostics. The `--all` run is slower and better for dedicated content-tuning passes.
+The default run samples each category so it stays fast enough for local and CI use. It reports top-1, top-5, and top-10 accuracy, committed-guess rate, stump rate, wrong committed guesses, timing reasons, question-family usage and utility, common wrong-guess pairs, hard entities, low-coverage entities, stump evidence quality, and leader-stability diagnostics. The `--all` run is slower and better for dedicated content-tuning passes.
 
 Interpret the trust metrics together:
 
@@ -141,7 +141,7 @@ Interpret the trust metrics together:
 - A high wrong committed-guess rate means Mora is guessing without enough evidence.
 - A healthy tuning pass should reduce stumps by improving endgame evidence and leader stability, not by blindly lowering early thresholds.
 
-Run `npm run quality:content` after content changes. It includes profile-uniqueness diagnostics that report highly similar entity clusters, indistinguishable pairs, and unknown-heavy entities by category.
+Run `npm run quality:content` after content changes. It includes active versus quarantined entity totals, profile-uniqueness diagnostics, highly similar entity clusters, indistinguishable pairs, and unknown-heavy entities by category. Quarantined records stay in the seed data for repair but are excluded from active candidate pools and Mora's secret choices.
 
 ## Analytics
 

@@ -336,4 +336,53 @@ describe("selectNextQuestion", () => {
     expect(imagingQuestion).toBeDefined();
     expect(officeQuestion!.score).toBeGreaterThan(imagingQuestion!.score);
   });
+
+  it("uses direct pair separation when top candidates are otherwise similar", () => {
+    const extraEntities: GameEntity[] = [
+      makeEntity("reading-chair", "objects", {
+        real: "yes",
+        object: "yes",
+        furniture: "yes",
+        household: "yes",
+        seating_item: "yes",
+        table_or_surface: "no",
+      }),
+      makeEntity("side-table", "objects", {
+        real: "yes",
+        object: "yes",
+        furniture: "yes",
+        household: "yes",
+        seating_item: "no",
+        table_or_surface: "yes",
+      }),
+      makeEntity("storage-bench", "objects", {
+        real: "yes",
+        object: "yes",
+        furniture: "yes",
+        household: "yes",
+        seating_item: "probably",
+        table_or_surface: "no",
+      }),
+    ];
+    const rankings = [
+      ranked("reading-chair", 0.36),
+      ranked("side-table", 0.34),
+      ranked("storage-bench", 0.3),
+    ];
+
+    const rankedQuestions = rankAvailableQuestions(
+      "objects",
+      ["object-indoor", "object-portable"],
+      rankings,
+      extraEntities,
+      2,
+    );
+
+    const seatingQuestion = rankedQuestions.find((entry) => entry.question.id === "v8-object-seating");
+    const householdQuestion = rankedQuestions.find((entry) => entry.question.id === "object-household");
+
+    expect(seatingQuestion).toBeDefined();
+    expect(householdQuestion).toBeDefined();
+    expect(seatingQuestion!.score).toBeGreaterThan(householdQuestion!.score);
+  });
 });

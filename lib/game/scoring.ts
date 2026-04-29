@@ -328,16 +328,40 @@ export interface GuessTimingDiagnostics {
   requiredMargin: number;
   leaderStreak: number;
   strongAnswerCount: number;
+  unknownAnswerCount: number;
+  highValueAnswerCount: number;
+  evidenceQuality: number;
 }
 
 export interface GuessCommitmentEvidence {
   questionsAsked?: number;
   leaderStreak?: number;
   strongAnswerCount?: number;
+  unknownAnswerCount?: number;
+  highValueAnswerCount?: number;
 }
 
 export function countStrongAnsweredTraits(answers: AnsweredQuestion[]) {
   return answers.filter((answer) => answerSignalStrength(answer.answer) >= 0.68).length;
+}
+
+export function countUnknownAnswers(answers: AnsweredQuestion[]) {
+  return answers.filter((answer) => answer.answer === "unknown").length;
+}
+
+export function countHighValueAnsweredTraits(answers: AnsweredQuestion[]) {
+  return answers.filter((answer) => {
+    const question = questionById.get(answer.questionId);
+    return answerSignalStrength(answer.answer) * (question?.weight ?? 1) >= 0.72;
+  }).length;
+}
+
+function evidenceQualityScore(evidence: GuessCommitmentEvidence) {
+  const questionsAsked = Math.max(1, evidence.questionsAsked ?? 0);
+  const strong = evidence.strongAnswerCount ?? 0;
+  const highValue = evidence.highValueAnswerCount ?? 0;
+  const unknown = evidence.unknownAnswerCount ?? 0;
+  return clamp((strong * 1.05 + highValue * 0.55 - unknown * 0.62) / questionsAsked, 0, 1);
 }
 
 function getGuessPolicy(config: ReadMyMindConfig, category?: EntityCategory) {
@@ -387,6 +411,15 @@ export function getGuessTimingDiagnostics(
   const margin = leaderConfidence - runnerUpConfidence;
   const leaderStreak = evidence.leaderStreak ?? 0;
   const strongAnswerCount = evidence.strongAnswerCount ?? 0;
+  const unknownAnswerCount = evidence.unknownAnswerCount ?? 0;
+  const highValueAnswerCount = evidence.highValueAnswerCount ?? 0;
+  const evidenceQuality = evidenceQualityScore({
+    questionsAsked,
+    leaderStreak,
+    strongAnswerCount,
+    unknownAnswerCount,
+    highValueAnswerCount,
+  });
   const base = {
     questionsAsked,
     remainingQuestions,
@@ -400,6 +433,9 @@ export function getGuessTimingDiagnostics(
     requiredMargin: policy.primaryMargin,
     leaderStreak,
     strongAnswerCount,
+    unknownAnswerCount,
+    highValueAnswerCount,
+    evidenceQuality,
   };
 
   if (rankings.length === 0) {
@@ -451,6 +487,7 @@ export function getGuessTimingDiagnostics(
     remainingQuestions <= 2 &&
     leaderStreak >= 4 &&
     strongAnswerCount >= (category && CONSERVATIVE_GUESS_CATEGORIES.has(category) ? 8 : 7) &&
+    evidenceQuality >= (category && CONSERVATIVE_GUESS_CATEGORIES.has(category) ? 0.44 : 0.4) &&
     leaderConfidence >= stableConfidence &&
     margin >= stableMargin &&
     (leader?.matchedAnswers ?? 0) >= strongAnswerCount - 1 &&
@@ -517,6 +554,10 @@ export function shouldCommitFinalGuess(
   const maximumEntropy = conservative ? 0.84 : 0.88;
   const leaderStreak = evidence.leaderStreak ?? 0;
   const strongAnswerCount = evidence.strongAnswerCount ?? 0;
+  const unknownAnswerCount = evidence.unknownAnswerCount ?? 0;
+  const highValueAnswerCount = evidence.highValueAnswerCount ?? 0;
+  const evidenceQuality = evidenceQualityScore(evidence);
+  const unknownRate = unknownAnswerCount / Math.max(1, evidence.questionsAsked ?? 0);
   const cleanLeader = (leader.hardContradictions ?? 0) === 0;
   const stableMinimumConfidence = conservative ? 0.035 : 0.032;
   const stableMinimumMargin = conservative ? 0.012 : 0.01;
@@ -532,6 +573,9 @@ export function shouldCommitFinalGuess(
   const stableEndgame =
     leaderStreak >= 4 &&
     strongAnswerCount >= (conservative ? 8 : 7) &&
+    highValueAnswerCount >= (conservative ? 7 : 6) &&
+    unknownRate <= (conservative ? 0.68 : 0.72) &&
+    evidenceQuality >= (conservative ? 0.42 : 0.38) &&
     leader.matchedAnswers >= Math.max(6, strongAnswerCount - 1) &&
     cleanLeader &&
     leader.confidence >= stableMinimumConfidence &&
@@ -539,5 +583,18 @@ export function shouldCommitFinalGuess(
     uncertainty.effectiveCandidateCount <= stableMaximumEffectiveCandidates &&
     uncertainty.normalizedEntropy <= stableMaximumEntropy;
 
-  return highCertainty || stableEndgame;
+  const finalTurnBestEvidence =
+    leaderStreak >= 8 &&
+    strongAnswerCount >= (conservative ? 7 : 6) &&
+    highValueAnswerCount >= (conservative ? 6 : 5) &&
+    unknownRate <= (conservative ? 0.74 : 0.78) &&
+    evidenceQuality >= (conservative ? 0.22 : 0.2) &&
+    cleanLeader &&
+    leader.matchedAnswers >= Math.max(6, strongAnswerCount - 2) &&
+    leader.confidence >= (conservative ? 0.014 : 0.012) &&
+    margin >= (conservative ? 0.0025 : 0.002) &&
+    uncertainty.effectiveCandidateCount <= (conservative ? 720 : 780) &&
+    uncertainty.normalizedEntropy <= 0.995;
+
+  return highCertainty || stableEndgame || finalTurnBestEvidence;
 }

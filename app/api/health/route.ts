@@ -1,4 +1,4 @@
-import { entities } from "@/lib/data/entities";
+import { allSeedEntities, entities, quarantinedEntities } from "@/lib/data/entities";
 import { allQuestions } from "@/lib/data/questions";
 import {
   getPublicBackendDiagnostics,
@@ -36,6 +36,9 @@ export async function GET() {
       content: {
         categories: entityCategories.length,
         entities: entities.length,
+        activeEntities: entities.length,
+        totalSeedEntities: allSeedEntities.length,
+        quarantinedEntities: quarantinedEntities.length,
         questions: allQuestions.length,
       },
       backend: {

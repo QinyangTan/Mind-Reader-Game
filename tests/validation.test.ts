@@ -22,7 +22,7 @@ import {
   historicalFiguresExpansionV4,
   objectExpansionV4,
 } from "@/lib/data/content-expansion-v4";
-import { entities } from "@/lib/data/entities";
+import { allSeedEntities, entities } from "@/lib/data/entities";
 import { fictionalCharacters } from "@/lib/data/fictional-characters";
 import { foods } from "@/lib/data/foods";
 import { historicalFigures } from "@/lib/data/historical-figures";
@@ -109,9 +109,10 @@ describe("validateSeeds (shipped data)", () => {
     expect(getEntitiesForCategory("foods").length).toBeGreaterThanOrEqual(
       preV4Foods.length + 500,
     );
-    expect(getEntitiesForCategory("historical_figures").length).toBeGreaterThanOrEqual(
-      preV4Historical.length + 500,
-    );
+    expect(
+      allSeedEntities.filter((entity) => entity.category === "historical_figures").length,
+    ).toBeGreaterThanOrEqual(preV4Historical.length + 500);
+    expect(getEntitiesForCategory("historical_figures").length).toBeGreaterThan(540);
 
     expect(allQuestions.length).toBeGreaterThanOrEqual(350);
     expect(getQuestionsForCategory("fictional_characters").length).toBeGreaterThanOrEqual(55);

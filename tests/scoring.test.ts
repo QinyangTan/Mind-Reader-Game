@@ -279,7 +279,13 @@ describe("shouldAttemptGuess", () => {
       cfg.minQuestionsBeforeGuess + 8,
       1,
       "objects",
-      { leaderStreak: 5, strongAnswerCount: 9 },
+      {
+        questionsAsked: cfg.minQuestionsBeforeGuess + 8,
+        leaderStreak: 5,
+        strongAnswerCount: 9,
+        unknownAnswerCount: 1,
+        highValueAnswerCount: 9,
+      },
     );
 
     expect(diagnostics.shouldGuess).toBe(true);
@@ -298,6 +304,8 @@ describe("shouldAttemptGuess", () => {
         questionsAsked: 20,
         leaderStreak: 6,
         strongAnswerCount: 9,
+        unknownAnswerCount: 1,
+        highValueAnswerCount: 9,
       }),
     ).toBe(false);
   });
@@ -314,6 +322,44 @@ describe("shouldAttemptGuess", () => {
         questionsAsked: 20,
         leaderStreak: 6,
         strongAnswerCount: 9,
+        unknownAnswerCount: 1,
+        highValueAnswerCount: 9,
+      }),
+    ).toBe(true);
+  });
+
+  it("blocks final commitment when too many answers are unknown", () => {
+    const rankings = [
+      { ...candidate("a", 0.08), matchedAnswers: 4, hardContradictions: 0 },
+      { ...candidate("b", 0.04), matchedAnswers: 7, hardContradictions: 0 },
+      { ...candidate("c", 0.02), matchedAnswers: 5, hardContradictions: 0 },
+    ];
+
+    expect(
+      shouldCommitFinalGuess(rankings, "foods", {
+        questionsAsked: 20,
+        leaderStreak: 9,
+        strongAnswerCount: 4,
+        unknownAnswerCount: 16,
+        highValueAnswerCount: 4,
+      }),
+    ).toBe(false);
+  });
+
+  it("allows best-evidence final commitment for a very stable clean leader", () => {
+    const rankings = [
+      { ...candidate("a", 0.031), matchedAnswers: 8, hardContradictions: 0 },
+      { ...candidate("b", 0.023), matchedAnswers: 7, hardContradictions: 0 },
+      { ...candidate("c", 0.018), matchedAnswers: 6, hardContradictions: 0 },
+    ];
+
+    expect(
+      shouldCommitFinalGuess(rankings, "objects", {
+        questionsAsked: 20,
+        leaderStreak: 10,
+        strongAnswerCount: 8,
+        unknownAnswerCount: 4,
+        highValueAnswerCount: 10,
       }),
     ).toBe(true);
   });

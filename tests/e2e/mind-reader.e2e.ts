@@ -125,7 +125,9 @@ test("public health endpoint reports readiness metadata", async ({ request }) =>
 
   const body = await response.json();
   expect(body.status).toBe("ok");
-  expect(body.content.entities).toBeGreaterThanOrEqual(3000);
+  expect(body.content.entities).toBeGreaterThanOrEqual(2950);
+  expect(body.content.totalSeedEntities).toBeGreaterThanOrEqual(3000);
+  expect(body.content.quarantinedEntities).toBeGreaterThanOrEqual(1);
   expect(body.content.questions).toBeGreaterThanOrEqual(350);
   expect(["server-memory", "upstash-redis"]).toContain(body.backend.storage);
   expect(typeof body.backend.durableConfigured).toBe("boolean");

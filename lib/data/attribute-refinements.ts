@@ -31,6 +31,19 @@ function setIfUnknown(
   return false;
 }
 
+function setAttribute(
+  attributes: MutableAttributes,
+  key: AttributeKey,
+  value: NormalizedAnswer,
+) {
+  if (attributes[key] === value) {
+    return false;
+  }
+
+  attributes[key] = value;
+  return true;
+}
+
 function setComplement(
   attributes: MutableAttributes,
   positive: AttributeKey,
@@ -59,7 +72,11 @@ function refineObjectAttributes(entity: GameEntity, attributes: MutableAttribute
   const electronics = [/electric|electronic|computer|phone|camera|radio|speaker|keyboard|printer|monitor|screen|television|tv|charger|battery|organ|eyeharp/];
   const display = [/phone|computer|tablet|monitor|screen|television|tv|laptop|display|watch/];
   const furniture = [/chair|table|desk|bed|sofa|couch|shelf|cabinet|dresser|stool|bench|wardrobe/];
+  const seating = [/chair|sofa|couch|stool|bench|seat|ottoman|gueridon|fauteuil/];
+  const tableSurface = [/table|desk|counter|shelf|stand|surface|gueridon|nightstand|workbench/];
+  const storageFurniture = [/cabinet|dresser|wardrobe|closet|hutch|chest|shelf|bookcase|drawer|rack|basket/];
   const wearable = [/glove|hat|helmet|shoe|boot|watch|mask|belt|coat|jacket|shirt|dress|ring|necklace|bracelet|wearable/];
+  const personalAccessory = [/glove|hat|helmet|watch|mask|belt|ring|necklace|bracelet|wallet|purse|bag|backpack|sunglasses|umbrella/];
   const personalCare = [/comb|razor|toothbrush|soap|shampoo|towel|mirror|cosmetic|perfume|makeup|hairbrush/];
   const decorative = [/decor|ornament|vase|statue|figurine|frame|poster|painting|artwork|sculpture|tapestry|wall hanging/];
   const fastener = [/button|zipper|clip|pin|nail|screw|bolt|hook|lock|latch|buckle|clasp|staple/];
@@ -70,6 +87,8 @@ function refineObjectAttributes(entity: GameEntity, attributes: MutableAttribute
   const imaging = [/camera|photo|lens|telescope|microscope|binocular|mirror|scanner|projector|printer/];
   const timekeeping = [/clock|watch|timer|calendar|sundial|hourglass|stopwatch/];
   const repair = [/hammer|screwdriver|wrench|drill|nail|screw|bolt|tape|glue|pliers|spanner|saw/];
+  const writingTool = [/pen|pencil|marker|crayon|chalk|stylus|brush|typewriter|notebook|journal|clipboard/];
+  const recreation = [/ball|game|toy|sport|skate|bicycle|helmet|racket|guitar|violin|drum|puzzle|cards|dice/];
 
   if (includesAny(text, kitchen)) {
     changed = setIfUnknown(attributes, "household", "yes") || changed;
@@ -115,9 +134,30 @@ function refineObjectAttributes(entity: GameEntity, attributes: MutableAttribute
     changed = setIfUnknown(attributes, "portable", "probably_not") || changed;
   }
 
+  if (includesAny(text, seating)) {
+    changed = setIfUnknown(attributes, "seating_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "furniture", "yes") || changed;
+  }
+
+  if (includesAny(text, tableSurface)) {
+    changed = setIfUnknown(attributes, "table_or_surface", "yes") || changed;
+    changed = setIfUnknown(attributes, "furniture", "probably") || changed;
+  }
+
+  if (includesAny(text, storageFurniture)) {
+    changed = setIfUnknown(attributes, "storage_furniture", "yes") || changed;
+    changed = setIfUnknown(attributes, "storage_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "furniture", "probably") || changed;
+  }
+
   if (includesAny(text, wearable)) {
     changed = setIfUnknown(attributes, "wearable", "yes") || changed;
     changed = setIfUnknown(attributes, "body_worn_object", "yes") || changed;
+    changed = setIfUnknown(attributes, "portable", "yes") || changed;
+  }
+
+  if (includesAny(text, personalAccessory)) {
+    changed = setIfUnknown(attributes, "personal_accessory", "yes") || changed;
     changed = setIfUnknown(attributes, "portable", "yes") || changed;
   }
 
@@ -174,6 +214,17 @@ function refineObjectAttributes(entity: GameEntity, attributes: MutableAttribute
     changed = setIfUnknown(attributes, "tool", "yes") || changed;
   }
 
+  if (includesAny(text, writingTool)) {
+    changed = setIfUnknown(attributes, "writing_or_drawing_tool", "yes") || changed;
+    changed = setIfUnknown(attributes, "writes_or_records", "yes") || changed;
+    changed = setIfUnknown(attributes, "desk_item", "probably") || changed;
+  }
+
+  if (includesAny(text, recreation)) {
+    changed = setIfUnknown(attributes, "recreation_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "toy_or_game", "probably") || changed;
+  }
+
   if (includesAny(text, [/clean|soap|sponge|brush|broom|mop|vacuum|duster|laundry/])) {
     changed = setIfUnknown(attributes, "cleaning_related", "yes") || changed;
     changed = setIfUnknown(attributes, "household", "yes") || changed;
@@ -212,7 +263,7 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
   const text = entityText(entity);
   let changed = false;
 
-  if (includesAny(text, [/rice|arroz|polo|bariis|risotto|paella|biryani|pilaf|jollof/])) {
+  if (includesAny(text, [/rice|arroz|polo|bariis|risotto|paella|biryani|pilaf|jollof|poha|nasi|khichuri|spanakorizo|mujaddara|htamin|reisfleisch|omo tuo/])) {
     changed = setIfUnknown(attributes, "rice_based", "yes") || changed;
     changed = setIfUnknown(attributes, "rice_dish", "yes") || changed;
     changed = setIfUnknown(attributes, "grain_based", "yes") || changed;
@@ -229,6 +280,21 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
     changed = setIfUnknown(attributes, "sandwich_like", "probably") || changed;
     changed = setIfUnknown(attributes, "bread_based", "probably") || changed;
   }
+  if (includesAny(text, [/flatbread|wrap|taco|burrito|naan|pita|tortilla|lavash|roti|quesadilla/])) {
+    changed = setIfUnknown(attributes, "flatbread_or_wrap", "yes") || changed;
+    changed = setIfUnknown(attributes, "handheld", "probably") || changed;
+    changed = setIfUnknown(attributes, "grain_based", "yes") || changed;
+  }
+  if (includesAny(text, [/dumpling|pierogi|samosa|ravioli|empanada|momo|gyoza|wonton|turnover/])) {
+    changed = setIfUnknown(attributes, "dumpling_or_filled", "yes") || changed;
+    changed = setIfUnknown(attributes, "stuffed_or_filled", "probably") || changed;
+    changed = setIfUnknown(attributes, "handheld", "probably") || changed;
+  }
+  if (includesAny(text, [/porridge|oatmeal|congee|grits|polenta|kasha|cereal|gruel/])) {
+    changed = setIfUnknown(attributes, "porridge_or_grain_bowl", "yes") || changed;
+    changed = setIfUnknown(attributes, "grain_based", "yes") || changed;
+    changed = setIfUnknown(attributes, "breakfast_food", "probably") || changed;
+  }
   if (includesAny(text, [/soup|stew|broth|bisque|bouillon|pottage|harira|avgolemono/])) {
     changed = setIfUnknown(attributes, "soup_or_stew", "yes") || changed;
     changed = setIfUnknown(attributes, "soup_dish", "yes") || changed;
@@ -239,6 +305,16 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
     changed = setIfUnknown(attributes, "sweet", "yes") || changed;
     changed = setIfUnknown(attributes, "dessert", "probably") || changed;
     changed = setIfUnknown(attributes, "dessert_pastry", "probably") || changed;
+  }
+  if (includesAny(text, [/cake|cookie|brownie|torte|sfouf|meuseukat|biscuit|shortbread|madeleine|cupcake|muffin|ontbijtkoek|wuzetka|khanom farang/])) {
+    changed = setIfUnknown(attributes, "cake_or_cookie", "yes") || changed;
+    changed = setIfUnknown(attributes, "baked", "probably") || changed;
+    changed = setIfUnknown(attributes, "dessert_pastry", "yes") || changed;
+  }
+  if (includesAny(text, [/ice cream|gelato|sorbet|popsicle|frozen|kulfi|granita|slush/])) {
+    changed = setIfUnknown(attributes, "frozen_or_iced", "yes") || changed;
+    changed = setIfUnknown(attributes, "served_cold", "yes") || changed;
+    changed = setIfUnknown(attributes, "dessert", "probably") || changed;
   }
   if (includesAny(text, [/chocolate|cocoa|cacao|brownie|fudge|mole/])) {
     changed = setIfUnknown(attributes, "chocolate_or_cocoa", "yes") || changed;
@@ -288,7 +364,7 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
   if (includesAny(text, [/burger|barbecue|maryland|clam chowder|jambalaya|cornbread|sandwich/])) {
     changed = setIfUnknown(attributes, "cuisine_american", "probably") || changed;
   }
-  if (includesAny(text, [/harira|abgoosht|beyran|tharida|haneeth|kebab|falafel|tagine|couscous|injera/])) {
+  if (includesAny(text, [/harira|abgoosht|beyran|tharida|haneeth|kebab|falafel|tagine|couscous|injera|mandazi|sellou|gatsby|light soup/])) {
     changed = setIfUnknown(attributes, "cuisine_middle_eastern_or_african", "probably") || changed;
   }
   if (includesAny(text, [/fried|fritter|tempura|fries|donut|doughnut/])) {
@@ -317,6 +393,9 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
   if (includesAny(text, [/cheese|queso|paneer|feta|ricotta|mozzarella|parmesan/])) {
     changed = setIfUnknown(attributes, "cheese_forward", "yes") || changed;
     changed = setIfUnknown(attributes, "dairy_based", "yes") || changed;
+  }
+  if (includesAny(text, [/stuffed|filled|filling|stuffing|turnover|pie|dumpling|ravioli|samosa|empanada/])) {
+    changed = setIfUnknown(attributes, "stuffed_or_filled", "probably") || changed;
   }
   if (includesAny(text, [/breakfast|bagel|pancake|waffle|cereal|omelet|porridge/])) {
     changed = setIfUnknown(attributes, "breakfast_food", "probably") || changed;
@@ -360,6 +439,42 @@ function refineHistoricalAttributes(entity: GameEntity, attributes: MutableAttri
     ])
   ) {
     changed = setIfUnknown(attributes, "from_europe", "probably") || changed;
+  }
+  if (includesAny(text, [/roman|rome|byzantine|constantinople|caesar|augustus|theodosius|constantine|nikephoros|valentinian|romulus|zonaras/])) {
+    changed = setIfUnknown(attributes, "roman_or_byzantine", "yes") || changed;
+    changed = setIfUnknown(attributes, "from_europe", "probably") || changed;
+  }
+  if (includesAny(text, [/greek|roman|egypt|mesopotamia|classical|antiquity|ancient|caesar|cleopatra|aristotle|socrates|alexander/])) {
+    changed = setIfUnknown(attributes, "classical_antiquity", "yes") || changed;
+    changed = setIfUnknown(attributes, "ancient", "probably") || changed;
+  }
+  if (includesAny(text, [/ibn|al-|abu|muhammad|caliph|sultan|ottoman|islamic|baghdad|avicenna|khwarizmi|battuta|suleiman|saladin/])) {
+    changed = setIfUnknown(attributes, "middle_eastern_or_islamic", "yes") || changed;
+    changed = setIfUnknown(attributes, "from_asia", "probably") || changed;
+  }
+  if (includesAny(text, [/confucius|sun tzu|qin|wu zetian|zheng|murasaki|tokugawa|japan|china|chinese|japanese|korean|east asia/])) {
+    changed = setIfUnknown(attributes, "east_asian", "yes") || changed;
+    changed = setIfUnknown(attributes, "from_asia", "yes") || changed;
+  }
+  if (includesAny(text, [/gandhi|tagore|ramanujan|buddha|ashoka|india|indian|south asia|south asian/])) {
+    changed = setIfUnknown(attributes, "south_asian", "yes") || changed;
+    changed = setIfUnknown(attributes, "from_asia", "yes") || changed;
+  }
+  if (includesAny(text, [/washington|lincoln|jefferson|roosevelt|clinton|harding|kennedy|american|united states|u\.s\.|usa/])) {
+    changed = setIfUnknown(attributes, "us_history", "yes") || changed;
+    changed = setIfUnknown(attributes, "from_americas", "yes") || changed;
+  }
+  if (includesAny(text, [/independence|liberation|bolivar|washington|sun yat-sen|revolutionary|anti-colonial|self-rule/])) {
+    changed = setIfUnknown(attributes, "independence_leader", "probably") || changed;
+    changed = setIfUnknown(attributes, "revolutionary", "probably") || changed;
+  }
+  if (includesAny(text, [/king|queen|emperor|empress|pharaoh|czar|tsar|sultan|caliph|dynasty|mansa|khan|caesar|augustus/])) {
+    changed = setIfUnknown(attributes, "dynastic_ruler", "yes") || changed;
+    changed = setIfUnknown(attributes, "ruler_or_emperor", "probably") || changed;
+  }
+  if (includesAny(text, [/enlightenment|scientific revolution|galileo|newton|kepler|copernicus|descartes|francis bacon/])) {
+    changed = setIfUnknown(attributes, "enlightenment_or_scientific_revolution", "yes") || changed;
+    changed = setIfUnknown(attributes, "early_modern", "probably") || changed;
   }
   if (includesAny(text, [/renaissance|reformation|early modern|enlightenment|shakespeare|galileo|newton|da vinci|michelangelo/])) {
     changed = setIfUnknown(attributes, "early_modern", "yes") || changed;
@@ -465,6 +580,1104 @@ function refineHistoricalAttributes(entity: GameEntity, attributes: MutableAttri
   return changed;
 }
 
+type AttributePatch = Partial<Record<AttributeKey, NormalizedAnswer>>;
+
+const curatedAttributePatches: Record<string, AttributePatch> = {
+  "historical-joannes-zonaras": {
+    male: "yes",
+    from_europe: "yes",
+    medieval: "yes",
+    roman_or_byzantine: "yes",
+    writer: "yes",
+    philosopher: "probably",
+    political_leader: "no",
+    military_leader: "no",
+  },
+  "historical-constantine-xi": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    war_or_revolution: "probably",
+    from_europe: "yes",
+  },
+  "historical-zoe-porphyrogenita": {
+    female: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    political_leader: "probably",
+    from_europe: "yes",
+  },
+  "historical-valentinian-iii": {
+    male: "yes",
+    ancient: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    classical_antiquity: "yes",
+    from_europe: "yes",
+  },
+  "historical-tiberius-ii-constantine": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    from_europe: "yes",
+  },
+  "historical-theodosius-i": {
+    male: "yes",
+    ancient: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    religious_figure: "probably",
+    classical_antiquity: "yes",
+  },
+  "historical-romulus-augustulus": {
+    male: "yes",
+    ancient: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    from_europe: "yes",
+  },
+  "historical-pescennius-niger": {
+    male: "yes",
+    ancient: "yes",
+    military_leader: "yes",
+    political_leader: "probably",
+    roman_or_byzantine: "yes",
+    classical_antiquity: "yes",
+  },
+  "historical-nikephoros-iii-botaneiates": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    military_leader: "probably",
+  },
+  "historical-leo-vi-the-wise": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    writer: "probably",
+  },
+  "historical-quintus-aemilius-laetus": {
+    male: "yes",
+    ancient: "yes",
+    military_leader: "yes",
+    roman_or_byzantine: "yes",
+    classical_antiquity: "yes",
+    political_leader: "probably_not",
+  },
+  "historical-philip-grierson": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    writer: "probably",
+    educator: "yes",
+    from_europe: "yes",
+    scientist: "no",
+  },
+  "historical-mason-hammond": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    educator: "yes",
+    writer: "probably",
+    us_history: "yes",
+    from_americas: "yes",
+  },
+  "historical-warren-treadgold": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    writer: "yes",
+    educator: "yes",
+    roman_or_byzantine: "probably",
+    from_americas: "probably",
+  },
+  "historical-alben-w-barkley": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    political_leader: "yes",
+    president_or_prime_minister: "probably",
+    us_history: "yes",
+    from_americas: "yes",
+  },
+  "historical-bill-clinton": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    political_leader: "yes",
+    president_or_prime_minister: "yes",
+    us_history: "yes",
+    from_americas: "yes",
+  },
+  "historical-dan-quayle": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    political_leader: "yes",
+    president_or_prime_minister: "probably",
+    us_history: "yes",
+    from_americas: "yes",
+  },
+  "historical-camillo-golgi": {
+    male: "yes",
+    modern: "yes",
+    scientist: "yes",
+    physician: "yes",
+    medical_figure: "yes",
+    biologist_or_naturalist: "probably",
+    from_europe: "yes",
+  },
+  "historical-emil-artin": {
+    male: "yes",
+    modern: "yes",
+    mathematician: "yes",
+    math_or_computing: "yes",
+    scientist: "probably",
+    from_europe: "yes",
+  },
+  "historical-claude-chappe": {
+    male: "yes",
+    early_modern: "yes",
+    inventor: "yes",
+    technology_innovator: "yes",
+    communication_device: "no",
+    from_europe: "yes",
+  },
+  "historical-mark-antony": {
+    male: "yes",
+    ancient: "yes",
+    classical_antiquity: "yes",
+    roman_or_byzantine: "yes",
+    military_leader: "yes",
+    political_leader: "yes",
+    war_or_revolution: "yes",
+    from_europe: "probably",
+  },
+  "historical-benozzo-gozzoli": {
+    male: "yes",
+    early_modern: "yes",
+    painter_or_sculptor: "yes",
+    artist: "yes",
+    arts_or_literature: "yes",
+    from_europe: "yes",
+  },
+  "historical-timothy-barnes": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    writer: "yes",
+    educator: "yes",
+    roman_or_byzantine: "probably",
+    from_europe: "probably",
+  },
+  "historical-werner-eck": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    writer: "yes",
+    educator: "yes",
+    roman_or_byzantine: "probably",
+    from_europe: "yes",
+  },
+  "historical-shapur-i": {
+    male: "yes",
+    ancient: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    middle_eastern_or_islamic: "probably",
+    from_asia: "yes",
+    war_or_revolution: "yes",
+    empire_builder: "yes",
+  },
+  "historical-pope-leo-iii": {
+    male: "yes",
+    medieval: "yes",
+    religious_figure: "yes",
+    religious_reformer: "probably",
+    political_leader: "probably",
+    from_europe: "yes",
+  },
+  "historical-theodore-ii-laskaris": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    from_europe: "yes",
+  },
+  "historical-maximinus-daza": {
+    male: "yes",
+    ancient: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    classical_antiquity: "yes",
+    military_leader: "probably",
+  },
+  "historical-manuel-ii-palaiologos": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    writer: "probably",
+    from_europe: "yes",
+  },
+  "historical-lucius-verus": {
+    male: "yes",
+    ancient: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    classical_antiquity: "yes",
+    military_leader: "probably",
+  },
+  "historical-leo-v-the-armenian": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    roman_or_byzantine: "yes",
+    military_leader: "probably",
+    from_europe: "yes",
+  },
+  "historical-magnus-maximus": {
+    male: "yes",
+    ancient: "yes",
+    monarch: "yes",
+    military_leader: "yes",
+    roman_or_byzantine: "yes",
+    classical_antiquity: "yes",
+    from_europe: "yes",
+  },
+  "historical-marcus-aemilius-lepidus": {
+    male: "yes",
+    ancient: "yes",
+    classical_antiquity: "yes",
+    roman_or_byzantine: "yes",
+    political_leader: "yes",
+    military_leader: "probably",
+    war_or_revolution: "yes",
+    from_europe: "probably",
+  },
+  "historical-publius-cornelius-tacitus": {
+    male: "yes",
+    ancient: "yes",
+    classical_antiquity: "yes",
+    roman_or_byzantine: "yes",
+    writer: "yes",
+    political_leader: "probably",
+    from_europe: "probably",
+  },
+  "historical-ruth-macrides": {
+    female: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    writer: "yes",
+    educator: "yes",
+    roman_or_byzantine: "probably",
+    from_europe: "yes",
+  },
+  "historical-mehmed-ii": {
+    male: "yes",
+    medieval: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    middle_eastern_or_islamic: "yes",
+    military_leader: "yes",
+    empire_builder: "yes",
+    war_or_revolution: "yes",
+  },
+  "historical-severus-ii": {
+    male: "yes",
+    ancient: "yes",
+    classical_antiquity: "yes",
+    roman_or_byzantine: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+  },
+  "historical-petronius-maximus": {
+    male: "yes",
+    ancient: "yes",
+    classical_antiquity: "yes",
+    roman_or_byzantine: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    political_leader: "yes",
+  },
+  "historical-libius-severus": {
+    male: "yes",
+    ancient: "yes",
+    classical_antiquity: "yes",
+    roman_or_byzantine: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+  },
+  "historical-leo-iv-the-khazar": {
+    male: "yes",
+    medieval: "yes",
+    roman_or_byzantine: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    from_europe: "probably",
+  },
+  "historical-leo-diogenes": {
+    male: "yes",
+    medieval: "yes",
+    roman_or_byzantine: "yes",
+    dynastic_ruler: "yes",
+    military_leader: "probably",
+    from_europe: "probably",
+  },
+  "historical-justinian-i": {
+    male: "yes",
+    medieval: "yes",
+    roman_or_byzantine: "yes",
+    monarch: "yes",
+    dynastic_ruler: "yes",
+    empire_builder: "yes",
+    political_leader: "yes",
+    from_europe: "probably",
+  },
+  "historical-raymond-of-poitiers": {
+    male: "yes",
+    medieval: "yes",
+    from_europe: "yes",
+    military_leader: "probably",
+    monarch: "probably",
+    war_or_revolution: "probably",
+  },
+  "historical-felix-hoffmann": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    chemist: "yes",
+    scientist: "yes",
+    inventor: "probably",
+    from_europe: "yes",
+  },
+  "historical-ernst-abbe": {
+    male: "yes",
+    modern: "yes",
+    physicist: "yes",
+    scientist: "yes",
+    economic_or_industrial: "probably",
+    technology_innovator: "probably",
+    from_europe: "yes",
+  },
+  "historical-emile-berliner": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    inventor: "yes",
+    technology_innovator: "yes",
+    economic_or_industrial: "probably",
+    from_europe: "yes",
+  },
+  "historical-claude-shannon": {
+    male: "yes",
+    modern: "yes",
+    twentieth_century: "yes",
+    mathematician: "yes",
+    math_or_computing: "yes",
+    scientist: "yes",
+    technology_innovator: "probably",
+    us_history: "yes",
+    from_americas: "yes",
+  },
+  "historical-anders-celsius": {
+    male: "yes",
+    early_modern: "yes",
+    astronomer: "yes",
+    space_or_astronomy: "yes",
+    physicist: "probably",
+    scientist: "yes",
+    from_europe: "yes",
+  },
+  "object-wine-rack": {
+    storage_item: "yes",
+    storage_furniture: "yes",
+    kitchen_related: "probably",
+    household: "yes",
+    made_of_wood: "probably",
+    container: "probably",
+  },
+  "object-upholstery": {
+    textile_or_fabric: "yes",
+    furniture: "probably",
+    household: "yes",
+    decorative_item: "probably",
+    made_of_plastic: "probably_not",
+    portable: "no",
+  },
+  "object-tallboy": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    made_of_wood: "probably",
+    large: "yes",
+    portable: "no",
+  },
+  "object-spindle": {
+    tool: "probably",
+    small: "probably",
+    made_of_wood: "probably",
+    made_of_metal: "probably",
+    repair_or_maintenance: "probably",
+  },
+  "object-sling": {
+    textile_or_fabric: "yes",
+    portable: "yes",
+    personal_accessory: "probably",
+    tool: "probably",
+    wearable: "probably_not",
+  },
+  "object-laundry-basket": {
+    container: "yes",
+    storage_item: "yes",
+    cleaning_related: "probably",
+    household: "yes",
+    bathroom_related: "probably",
+    portable: "probably",
+  },
+  "object-hutch": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    made_of_wood: "probably",
+    made_of_glass: "probably",
+    large: "yes",
+  },
+  "object-gueridon": {
+    furniture: "yes",
+    table_or_surface: "yes",
+    decorative_item: "probably",
+    made_of_wood: "probably",
+    large: "probably",
+  },
+  "object-curio-cabinet": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    decorative_item: "probably",
+    made_of_glass: "probably",
+    made_of_wood: "probably",
+  },
+  "object-floating-shelf": {
+    furniture: "probably",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    table_or_surface: "probably",
+    made_of_wood: "probably",
+  },
+  "object-brush": {
+    tool: "yes",
+    personal_care_item: "probably",
+    cleaning_related: "probably",
+    writing_or_drawing_tool: "probably",
+    portable: "yes",
+  },
+  bicycle: {
+    has_wheels: "yes",
+    outdoor_use: "yes",
+    sports_related: "probably",
+    recreation_item: "yes",
+    made_of_metal: "probably",
+    portable: "probably_not",
+  },
+  smartphone: {
+    electronic: "yes",
+    powered: "yes",
+    has_screen: "yes",
+    communication_device: "yes",
+    portable: "yes",
+    used_daily: "yes",
+  },
+  "vacuum-cleaner": {
+    cleaning_related: "yes",
+    household: "yes",
+    powered: "yes",
+    electronic: "probably",
+    indoor_use: "yes",
+    tool: "probably",
+  },
+  "frying-pan": {
+    kitchen_related: "yes",
+    cooking_item: "yes",
+    made_of_metal: "yes",
+    tool: "probably",
+    portable: "probably",
+  },
+  pillow: {
+    textile_or_fabric: "yes",
+    household: "yes",
+    furniture: "probably_not",
+    decorative_item: "probably",
+    portable: "yes",
+  },
+  violin: {
+    musical_item: "yes",
+    audio_item: "yes",
+    made_of_wood: "yes",
+    portable: "yes",
+    recreation_item: "probably",
+  },
+  paintbrush: {
+    tool: "yes",
+    writing_or_drawing_tool: "yes",
+    portable: "yes",
+    made_of_wood: "probably",
+    sharp: "no",
+  },
+  toothbrush: {
+    personal_care_item: "yes",
+    bathroom_related: "yes",
+    used_daily: "yes",
+    portable: "yes",
+    made_of_plastic: "probably",
+  },
+  toaster: {
+    kitchen_related: "yes",
+    cooking_item: "yes",
+    electronic: "yes",
+    powered: "yes",
+    heating_item: "yes",
+  },
+  "object-automatic-document-feeder": {
+    office_related: "yes",
+    paper_based: "probably",
+    electronic: "probably",
+    powered: "probably",
+    desk_item: "probably",
+  },
+  "object-butler-s-desk": {
+    furniture: "yes",
+    desk_item: "yes",
+    office_related: "probably",
+    storage_furniture: "probably",
+    made_of_wood: "probably",
+  },
+  "object-hush-a-phone": {
+    communication_device: "yes",
+    audio_item: "probably",
+    electronic: "probably",
+    portable: "yes",
+    used_daily: "probably_not",
+  },
+  "object-what-not": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    table_or_surface: "probably",
+    decorative_item: "probably",
+    made_of_wood: "probably",
+    large: "probably",
+  },
+  "object-tambour": {
+    furniture: "probably",
+    storage_item: "probably",
+    storage_furniture: "probably",
+    made_of_wood: "probably",
+    decorative_item: "probably",
+  },
+  "object-sideboard": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    table_or_surface: "probably",
+    household: "yes",
+    made_of_wood: "probably",
+    large: "yes",
+  },
+  "object-tansu": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    made_of_wood: "probably",
+    large: "yes",
+    portable: "no",
+  },
+  "object-taboret": {
+    furniture: "yes",
+    seating_item: "probably",
+    table_or_surface: "probably",
+    storage_item: "probably",
+    made_of_wood: "probably",
+    portable: "probably_not",
+  },
+  "object-soban": {
+    furniture: "yes",
+    table_or_surface: "yes",
+    kitchen_related: "probably",
+    household: "yes",
+    made_of_wood: "probably",
+    portable: "probably_not",
+  },
+  "object-shoe-rack": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    household: "yes",
+    made_of_wood: "probably",
+    made_of_metal: "probably",
+  },
+  "object-pie-safe": {
+    furniture: "yes",
+    storage_item: "yes",
+    storage_furniture: "yes",
+    kitchen_related: "probably",
+    household: "yes",
+    made_of_wood: "probably",
+  },
+  "object-modesty-panel": {
+    furniture: "probably",
+    desk_item: "probably",
+    office_related: "probably",
+    made_of_wood: "probably",
+    table_or_surface: "probably_not",
+  },
+  "object-lusterweibchen": {
+    decorative_item: "yes",
+    lighting_item: "probably",
+    household: "probably",
+    indoor_use: "yes",
+    made_of_metal: "probably",
+    made_of_wood: "probably",
+  },
+  "object-umbrella-stand": {
+    container: "yes",
+    storage_item: "yes",
+    storage_furniture: "probably",
+    household: "yes",
+    made_of_metal: "probably",
+    portable: "probably_not",
+  },
+  "food-zuger-kirschtorte": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    baked: "probably",
+    sweet: "yes",
+    cuisine_european: "yes",
+    served_cold: "probably",
+  },
+  "food-wedding-cake": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    baked: "probably",
+    sweet: "yes",
+    dairy_based: "probably",
+    served_cold: "probably",
+  },
+  "food-torte": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    baked: "probably",
+    sweet: "yes",
+    cuisine_european: "probably",
+  },
+  "food-sugee-cake": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    baked: "yes",
+    sweet: "yes",
+    grain_based: "yes",
+  },
+  "food-sfouf": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    baked: "yes",
+    sweet: "yes",
+    cuisine_middle_eastern_or_african: "probably",
+  },
+  "food-rab-cake": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    baked: "probably",
+    sweet: "yes",
+    cuisine_european: "probably",
+  },
+  "food-paski-baskotin": {
+    bread_based: "yes",
+    baked: "yes",
+    grain_based: "yes",
+    cuisine_european: "probably",
+    sweet: "probably_not",
+  },
+  "food-meuseukat": {
+    cake_or_cookie: "probably",
+    dessert_pastry: "yes",
+    sweet: "yes",
+    cuisine_asian: "probably",
+    grain_based: "probably",
+  },
+  "food-pop-tarts": {
+    stuffed_or_filled: "yes",
+    dessert_pastry: "yes",
+    baked: "probably",
+    sweet: "yes",
+    portable: "yes",
+  },
+  "food-straight-dough": {
+    bread_based: "probably",
+    grain_based: "yes",
+    baked: "probably_not",
+    sweet: "probably_not",
+    savory: "probably",
+  },
+  "food-pretzel": {
+    bread_based: "yes",
+    baked: "yes",
+    grain_based: "yes",
+    handheld: "yes",
+    savory: "probably",
+  },
+  "food-maqluba": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    savory: "yes",
+    served_hot: "yes",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-mombar": {
+    meat_based: "yes",
+    stuffed_or_filled: "yes",
+    savory: "yes",
+    served_hot: "probably",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-orez-shu-it": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    legume_based: "yes",
+    savory: "yes",
+    cuisine_middle_eastern_or_african: "probably",
+  },
+  "food-kusksu": {
+    soup_or_stew: "yes",
+    served_hot: "yes",
+    savory: "yes",
+    egg_based: "probably",
+    cuisine_european: "probably",
+  },
+  "food-sciusceddu": {
+    soup_or_stew: "yes",
+    served_hot: "yes",
+    savory: "yes",
+    egg_based: "probably",
+    dairy_based: "probably",
+    cuisine_european: "probably",
+  },
+  "food-soupe-aux-gourganes": {
+    soup_or_stew: "yes",
+    served_hot: "yes",
+    legume_based: "yes",
+    savory: "yes",
+    cuisine_american: "probably",
+  },
+  "food-koliva": {
+    grain_based: "yes",
+    sweet: "probably",
+    served_cold: "probably",
+    cuisine_european: "probably",
+    fruit_forward: "probably",
+  },
+  "food-manjar-blanco": {
+    dairy_based: "yes",
+    sweet: "yes",
+    dessert: "yes",
+    served_cold: "probably",
+    cuisine_american: "probably",
+  },
+  "food-patay": {
+    fruit_forward: "probably",
+    sweet: "probably",
+    grain_based: "probably",
+    cuisine_american: "probably",
+  },
+  "food-gallo-pinto": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    legume_based: "yes",
+    savory: "yes",
+    cuisine_american: "probably",
+    breakfast_food: "probably",
+  },
+  "food-khao-chae": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    served_cold: "yes",
+    cuisine_asian: "yes",
+    savory: "probably",
+  },
+  "food-harira": {
+    soup_or_stew: "yes",
+    legume_based: "yes",
+    served_hot: "yes",
+    savory: "yes",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-bisque": {
+    soup_or_stew: "yes",
+    seafood: "probably",
+    dairy_based: "probably",
+    served_hot: "yes",
+    cuisine_european: "probably",
+  },
+  "food-oxtail-soup": {
+    soup_or_stew: "yes",
+    meat_based: "yes",
+    served_hot: "yes",
+    savory: "yes",
+    cuisine_american: "probably",
+  },
+  "food-wotou": {
+    bread_based: "yes",
+    grain_based: "yes",
+    savory: "probably",
+    served_hot: "probably",
+    cuisine_asian: "yes",
+    handheld: "probably",
+  },
+  "food-ttongppang": {
+    cake_or_cookie: "probably",
+    stuffed_or_filled: "yes",
+    dessert_pastry: "yes",
+    sweet: "yes",
+    baked: "yes",
+    cuisine_asian: "yes",
+    handheld: "yes",
+  },
+  "food-soft-khichuri": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    legume_based: "yes",
+    savory: "yes",
+    served_hot: "yes",
+    cuisine_asian: "yes",
+  },
+  "food-reisfleisch": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    meat_based: "yes",
+    savory: "yes",
+    served_hot: "yes",
+    cuisine_european: "probably",
+  },
+  "food-pundut-nasi": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    savory: "yes",
+    served_hot: "probably",
+    cuisine_asian: "yes",
+    handheld: "probably",
+  },
+  "food-pe-htaw-bhut-htamin": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    legume_based: "yes",
+    savory: "yes",
+    cuisine_asian: "yes",
+    served_hot: "probably",
+  },
+  "food-wuzetka": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    chocolate_or_cocoa: "yes",
+    sweet: "yes",
+    baked: "yes",
+    cuisine_european: "yes",
+  },
+  "food-tart": {
+    dessert_pastry: "yes",
+    stuffed_or_filled: "probably",
+    sweet: "yes",
+    baked: "yes",
+    fruit_forward: "probably",
+    cuisine_european: "probably",
+  },
+  "food-seffa": {
+    noodle_based: "probably",
+    grain_based: "yes",
+    sweet: "probably",
+    served_hot: "probably",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-omo-tuo": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    grain_based: "yes",
+    savory: "yes",
+    served_hot: "yes",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-pa-de-pages": {
+    bread_based: "yes",
+    grain_based: "yes",
+    baked: "yes",
+    savory: "probably",
+    cuisine_european: "yes",
+  },
+  "food-mujaddara": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    legume_based: "yes",
+    savory: "yes",
+    served_hot: "yes",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-mutschel": {
+    bread_based: "yes",
+    grain_based: "yes",
+    baked: "yes",
+    savory: "probably",
+    cuisine_european: "yes",
+  },
+  "food-pate-lorrain": {
+    stuffed_or_filled: "yes",
+    meat_based: "yes",
+    savory: "yes",
+    baked: "yes",
+    cuisine_european: "yes",
+    handheld: "probably",
+  },
+  "food-smorgastarta": {
+    bread_based: "yes",
+    stuffed_or_filled: "probably",
+    savory: "yes",
+    seafood: "probably",
+    dairy_based: "probably",
+    served_cold: "yes",
+    cuisine_european: "yes",
+  },
+  "food-spanakorizo": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    vegetable_forward: "yes",
+    savory: "yes",
+    served_hot: "yes",
+    cuisine_european: "yes",
+  },
+  "food-soldiers": {
+    bread_based: "yes",
+    grain_based: "yes",
+    breakfast_food: "probably",
+    handheld: "yes",
+    savory: "probably",
+    cuisine_european: "probably",
+  },
+  "food-upside-down-cake": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    fruit_forward: "probably",
+    sweet: "yes",
+    baked: "yes",
+    cuisine_american: "probably",
+  },
+  "food-wagafi-bread": {
+    bread_based: "yes",
+    grain_based: "yes",
+    baked: "yes",
+    savory: "probably",
+    cuisine_middle_eastern_or_african: "probably",
+  },
+  "food-pastel": {
+    stuffed_or_filled: "yes",
+    fried: "probably",
+    savory: "probably",
+    handheld: "yes",
+    cuisine_american: "probably",
+  },
+  "food-sellou": {
+    grain_based: "yes",
+    sweet: "yes",
+    dessert: "probably",
+    served_cold: "probably",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-mandazi": {
+    fried_dough: "yes",
+    fried: "yes",
+    bread_based: "probably",
+    sweet: "probably",
+    handheld: "yes",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-ontbijtkoek": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "probably",
+    breakfast_food: "probably",
+    baked: "yes",
+    sweet: "probably",
+    cuisine_european: "yes",
+  },
+  "food-light-soup": {
+    soup_or_stew: "yes",
+    soup_dish: "yes",
+    served_hot: "yes",
+    savory: "yes",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-gatsby": {
+    bread_based: "yes",
+    sandwich_like: "yes",
+    handheld: "yes",
+    savory: "yes",
+    meat_based: "probably",
+    cuisine_middle_eastern_or_african: "yes",
+  },
+  "food-indori-poha": {
+    rice_based: "yes",
+    rice_dish: "yes",
+    breakfast_food: "probably",
+    savory: "yes",
+    cuisine_asian: "yes",
+    served_hot: "probably",
+  },
+  "food-khanom-farang-kudi-chin": {
+    cake_or_cookie: "yes",
+    dessert_pastry: "yes",
+    baked: "yes",
+    sweet: "yes",
+    cuisine_asian: "yes",
+  },
+  "food-bey-s-soup": {
+    soup_or_stew: "yes",
+    soup_dish: "yes",
+    savory: "yes",
+    served_hot: "yes",
+    cuisine_middle_eastern_or_african: "probably",
+  },
+};
+
+function applyCuratedPatch(entity: GameEntity, attributes: MutableAttributes) {
+  const patch = curatedAttributePatches[entity.id];
+  if (!patch) {
+    return false;
+  }
+
+  let changed = false;
+  for (const [key, value] of Object.entries(patch) as [AttributeKey, NormalizedAnswer][]) {
+    changed = setAttribute(attributes, key, value) || changed;
+  }
+
+  changed = setComplement(attributes, "male", "female") || changed;
+  changed = setComplement(attributes, "large", "small") || changed;
+  return changed;
+}
+
 export function refineEntityAttributes(entity: GameEntity): GameEntity {
   const attributes = { ...entity.attributes };
   let changed = false;
@@ -476,6 +1689,8 @@ export function refineEntityAttributes(entity: GameEntity): GameEntity {
   } else if (entity.category === "historical_figures") {
     changed = refineHistoricalAttributes(entity, attributes) || changed;
   }
+
+  changed = applyCuratedPatch(entity, attributes) || changed;
 
   if (!changed) {
     return entity;

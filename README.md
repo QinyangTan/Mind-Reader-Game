@@ -5,7 +5,7 @@ Mind Reader is a cinematic, local-first browser guessing game set inside Mora's 
 - **Psychic Reads You** — think of an entity, answer Mora's questions, and try to survive her guesses.
 - **You Read the Psychic** — Mora secretly picks an entity, you ask structured clue questions, and you try to solve her thought.
 
-Seeded knowledge base: **3,024 entities** across **5 categories** and **428 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
+Seeded knowledge base: **2,970 active entities** across **5 categories**, with **3,024 total seed records**, **54 quarantined repair candidates**, and **471 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
 
 ## Live Project
 
@@ -23,8 +23,9 @@ Play the published web game here:
 - **Historical Figures category.** Historical Figures now fill the fifth playable slot and include era, region, leadership, science, art, writing, philosophy, religion, exploration, invention, reform, royal, and gender question families.
 - **Larger data set.** Supplemental seed files expand Fictional Characters, Animals, Objects, Foods, and Historical Figures while validation prevents malformed entries and duplicate shipped ids.
 - **Massive v4 content pass.** The newest live expansion adds **538 fictional characters**, **514 animals**, **523 objects**, **551 foods**, and **517 historical figures** on top of the prior shipped catalog.
-- **Coverage-aware decision quality.** Mora now demotes questions when likely candidates mostly have unknown values for that trait, uses endgame top-candidate separation, and only relaxes final guesses when leader stability and strong evidence support it.
-- **Denser question bank.** The newest production pass adds 66 targeted specialist and fine-grained discriminators, especially for Historical Figures, Objects, and Foods.
+- **Coverage-aware decision quality.** Mora now demotes questions when likely candidates mostly have unknown values for that trait, uses endgame top-candidate separation, and only relaxes final guesses when leader stability, evidence quality, and contradiction checks support it.
+- **Denser question bank.** Recent production passes add targeted specialist and fine-grained discriminators, especially for Historical Figures, Objects, and Foods.
+- **Content quarantine.** Non-playable seeds such as events, organizations, topic pages, broad style categories, and misplaced records remain in the repo for repair but are excluded from active candidate pools and Mora's secret choices.
 - **Guided Guess My Mind.** Reverse mode now uses layered inquiry: Broad Openers, Identity Split, Profile, Specialist, and Fine Detail. The player sees one active layer, one chosen family, only 2 recommended questions by default, and a short guidance hint explaining why that path is useful.
 - **Worker-backed inference.** Both gameplay modes use the shared inference-worker client for candidate/question ranking where the browser supports workers, with deterministic synchronous fallback and a small request cache so the chamber stays responsive as content grows.
 - **Same-origin public backend.** Profile and leaderboard calls now default to `/api/players`, `/api/scores`, and `/api/leaderboard`, with validation, rate limiting, server-side score recomputation, durable Redis storage when configured, and local fallback.
@@ -185,7 +186,7 @@ npm run eval:accuracy -- --category=foods --limit=100 --markdown
 npm run eval:accuracy -- --all --json
 ```
 
-The default deterministic sample currently reports top-1 accuracy around **0.225**, top-5 accuracy around **0.370**, top-10 accuracy around **0.475**, committed-guess rate around **0.185**, stump rate around **0.815**, and wrong committed guesses at **0**. Those numbers are diagnostic, not marketing claims: the current priority is reducing stump rate while keeping wrong committed guesses very low.
+The default deterministic sample currently reports top-1 accuracy around **0.305**, top-5 accuracy around **0.450**, top-10 accuracy around **0.540**, committed-guess rate around **0.240**, stump rate around **0.760**, and wrong committed guesses at **0**. Those numbers are diagnostic, not marketing claims: the current priority is still reducing stump rate by improving entity profiles and endgame separators while keeping wrong committed guesses very low.
 
 ## Content And Validation
 

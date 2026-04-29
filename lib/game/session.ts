@@ -4,7 +4,9 @@ import { difficultyConfig } from "@/lib/game/game-config";
 import { selectNextQuestion } from "@/lib/game/question-selection";
 import { calculateGameScore } from "@/lib/game/score";
 import {
+  countHighValueAnsweredTraits,
   countStrongAnsweredTraits,
+  countUnknownAnswers,
   getTopCandidateId,
   rankCandidates,
   shouldCommitFinalGuess,
@@ -51,6 +53,8 @@ function guessEvidence(
     questionsAsked: asked.length,
     leaderStreak,
     strongAnswerCount: countStrongAnsweredTraits(asked),
+    unknownAnswerCount: countUnknownAnswers(asked),
+    highValueAnswerCount: countHighValueAnsweredTraits(asked),
   };
 }
 
@@ -213,7 +217,8 @@ function createReadEscapeResult(
     {
       winner: "player",
       title: "Thought Pattern Escaped",
-      message: "The chamber lost the signal before it could lock onto your secret.",
+      message:
+        "The vision stayed too divided. Mora will not lie with a false reading; teach her the path she missed.",
       questionsUsed: session.asked.length,
       guessesUsed,
       teachable: true,

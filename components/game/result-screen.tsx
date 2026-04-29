@@ -108,7 +108,7 @@ export function ResultScreen({
             </div>
           ) : (
             <p className="text-center font-display text-[3rem] leading-[0.92] text-[#f6e7bf] sm:text-[3.6rem]">
-              The answer slipped through the chamber.
+              Mora held back the false reading.
             </p>
           )}
 
