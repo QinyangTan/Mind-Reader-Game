@@ -1,4 +1,5 @@
 import { animals } from "@/lib/data/animals";
+import { refineEntityAttributes } from "@/lib/data/attribute-refinements";
 import {
   animalExpansion,
   fictionalCharactersExpansion,
@@ -71,7 +72,7 @@ function freezeMapMutation<K, V>(map: Map<K, V>): ReadonlyMap<K, V> {
   return map;
 }
 
-export const entities: readonly GameEntity[] = Object.freeze([
+const rawEntities: readonly GameEntity[] = [
   ...appendUniqueEntities(
     appendUniqueEntities(
       appendUniqueEntities(
@@ -119,7 +120,11 @@ export const entities: readonly GameEntity[] = Object.freeze([
     ),
     historicalFiguresExpansionV4,
   ),
-]);
+];
+
+export const entities: readonly GameEntity[] = Object.freeze(
+  rawEntities.map(refineEntityAttributes),
+);
 
 export const entityById: ReadonlyMap<string, GameEntity> = freezeMapMutation(
   new Map(entities.map((entity) => [entity.id, entity])),

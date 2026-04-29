@@ -54,6 +54,16 @@ Look for:
 
 - `backend.storage = "upstash-redis"` and `backend.durableConfigured = true` when Redis is configured.
 - `backend.storage = "server-memory"` and `backend.durableConfigured = false` for local/dev fallback.
+- `backend.redisConfigured = true` only when the Redis REST URL and token are present.
+- `analytics.mode` reports `disabled`, `console`, or `http` without exposing endpoint secrets.
+
+On Vercel, add durable ranking credentials with:
+
+```bash
+npx vercel env add UPSTASH_REDIS_REST_URL production
+npx vercel env add UPSTASH_REDIS_REST_TOKEN production
+npx vercel deploy --prod --yes
+```
 
 ## Hosting
 
@@ -119,7 +129,7 @@ npm run eval:accuracy -- --category=historical_figures --limit=80
 npm run eval:accuracy -- --all
 ```
 
-The default run samples each category so it stays fast enough for local and CI use. The `--all` run is slower and better for dedicated content-tuning passes.
+The default run samples each category so it stays fast enough for local and CI use. It reports top-1 accuracy, premature wrong-guess rate, timing reasons, common wrong-guess pairs, hard entities, and low-coverage entities. The `--all` run is slower and better for dedicated content-tuning passes.
 
 ## Analytics
 
@@ -136,4 +146,4 @@ NEXT_PUBLIC_MIND_READER_ANALYTICS_MODE=http
 NEXT_PUBLIC_MIND_READER_ANALYTICS_ENDPOINT=https://your-endpoint.example/events
 ```
 
-Tracked events are coarse product events only, such as mode selection, category selection, game start, result reached, utility scene opened, and ad closed. The game does not send private answer content by default.
+Tracked events are coarse product events only, such as profile creation, mode selection, category selection, game start, question answered, guess submitted, result reached, teach flow opened, utility scene opened, and ad closed. The analytics service strips answer text, prompts, entity names/ids, notes, and free-text corrections before sending.

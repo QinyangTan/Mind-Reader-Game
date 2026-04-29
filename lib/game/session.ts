@@ -6,6 +6,7 @@ import { calculateGameScore } from "@/lib/game/score";
 import {
   getTopCandidateId,
   rankCandidates,
+  shouldCommitFinalGuess,
   shouldAttemptGuess,
   strongestNarrowingQuestion,
 } from "@/lib/game/scoring";
@@ -209,7 +210,7 @@ function advanceReadMyMindAfterAnswer(
   const forcedGuessId = getTopCandidateId(rankings, session.rejectedGuessIds);
 
   if (remainingQuestions <= 0) {
-    if (!forcedGuessId) {
+    if (!forcedGuessId || !shouldCommitFinalGuess(rankings, session.category)) {
       return {
         result: createReadEscapeResult(
           {
@@ -234,7 +235,16 @@ function advanceReadMyMindAfterAnswer(
     };
   }
 
-  if (shouldAttemptGuess(rankings, session.config, asked.length, remainingQuestions) && forcedGuessId) {
+  if (
+    shouldAttemptGuess(
+      rankings,
+      session.config,
+      asked.length,
+      remainingQuestions,
+      session.category,
+    ) &&
+    forcedGuessId
+  ) {
     return {
       session: {
         ...session,
@@ -422,7 +432,7 @@ export function resolveReadMyMindGuess(
   const fallbackGuessId = getTopCandidateId(rankings, rejectedGuessIds);
 
   if (remainingQuestions <= 0) {
-    if (!fallbackGuessId) {
+    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category)) {
       return {
         result: createReadEscapeResult(
           { ...session, rankings },
@@ -454,7 +464,7 @@ export function resolveReadMyMindGuess(
   );
 
   if (!nextQuestion) {
-    if (!fallbackGuessId) {
+    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category)) {
       return {
         result: createReadEscapeResult(
           { ...session, rankings },

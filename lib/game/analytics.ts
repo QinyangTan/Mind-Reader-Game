@@ -17,6 +17,22 @@ export interface AnalyticsService {
   track(event: AnalyticsEventName, payload?: AnalyticsPayload): void;
 }
 
+const blockedPayloadKeyPatterns = [/answer/i, /entity/i, /prompt/i, /note/i, /free.?text/i];
+
+export function sanitizeAnalyticsPayload(payload: AnalyticsPayload = {}) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(
+      ([key, value]) =>
+        !blockedPayloadKeyPatterns.some((pattern) => pattern.test(key)) &&
+        (typeof value === "string" ||
+          typeof value === "number" ||
+          typeof value === "boolean" ||
+          value === null ||
+          value === undefined),
+    ),
+  ) satisfies AnalyticsPayload;
+}
+
 class NoopAnalyticsService implements AnalyticsService {
   track() {
     return;
@@ -26,7 +42,7 @@ class NoopAnalyticsService implements AnalyticsService {
 class ConsoleAnalyticsService implements AnalyticsService {
   track(event: AnalyticsEventName, payload: AnalyticsPayload = {}) {
     if (process.env.NODE_ENV !== "production") {
-      console.info("[mind-reader analytics]", event, payload);
+      console.info("[mind-reader analytics]", event, sanitizeAnalyticsPayload(payload));
     }
   }
 }
@@ -41,7 +57,7 @@ class HttpAnalyticsService implements AnalyticsService {
 
     const body = JSON.stringify({
       event,
-      payload,
+      payload: sanitizeAnalyticsPayload(payload),
       at: new Date().toISOString(),
     });
 
@@ -82,4 +98,8 @@ export function getAnalyticsService(): AnalyticsService {
 
 export function trackAnalytics(event: AnalyticsEventName, payload?: AnalyticsPayload) {
   getAnalyticsService().track(event, payload);
+}
+
+export function resetAnalyticsServiceForTests() {
+  analytics = null;
 }

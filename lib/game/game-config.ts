@@ -78,11 +78,11 @@ export const difficultyConfig: Record<Difficulty, DifficultyConfig> = {
     accent: "text-emerald-200",
     description: "Generous limits and more time before the pressure rises.",
     readMyMind: {
-      maxQuestions: 12,
+      maxQuestions: 16,
       maxGuesses: 3,
-      minQuestionsBeforeGuess: 5,
-      guessConfidence: 0.36,
-      guessMargin: 0.08,
+      minQuestionsBeforeGuess: 7,
+      guessConfidence: 0.42,
+      guessMargin: 0.12,
     },
     guessMyMind: {
       maxQuestions: 15,
@@ -94,11 +94,11 @@ export const difficultyConfig: Record<Difficulty, DifficultyConfig> = {
     accent: "text-cyan-200",
     description: "Balanced pressure with a healthy amount of suspense.",
     readMyMind: {
-      maxQuestions: 15,
+      maxQuestions: 20,
       maxGuesses: 2,
-      minQuestionsBeforeGuess: 6,
-      guessConfidence: 0.43,
-      guessMargin: 0.1,
+      minQuestionsBeforeGuess: 8,
+      guessConfidence: 0.48,
+      guessMargin: 0.14,
     },
     guessMyMind: {
       maxQuestions: 12,
@@ -110,11 +110,11 @@ export const difficultyConfig: Record<Difficulty, DifficultyConfig> = {
     accent: "text-rose-200",
     description: "Longer scan depth, fewer escapes, sharper intuition required.",
     readMyMind: {
-      maxQuestions: 20,
+      maxQuestions: 24,
       maxGuesses: 2,
-      minQuestionsBeforeGuess: 7,
-      guessConfidence: 0.52,
-      guessMargin: 0.13,
+      minQuestionsBeforeGuess: 10,
+      guessConfidence: 0.56,
+      guessMargin: 0.17,
     },
     guessMyMind: {
       maxQuestions: 10,

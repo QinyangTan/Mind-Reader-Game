@@ -113,12 +113,12 @@ describe("validateSeeds (shipped data)", () => {
       preV4Historical.length + 500,
     );
 
-    expect(allQuestions.length).toBeGreaterThanOrEqual(300);
+    expect(allQuestions.length).toBeGreaterThanOrEqual(350);
     expect(getQuestionsForCategory("fictional_characters").length).toBeGreaterThanOrEqual(55);
     expect(getQuestionsForCategory("animals").length).toBeGreaterThanOrEqual(55);
-    expect(getQuestionsForCategory("objects").length).toBeGreaterThanOrEqual(65);
-    expect(getQuestionsForCategory("foods").length).toBeGreaterThanOrEqual(65);
-    expect(getQuestionsForCategory("historical_figures").length).toBeGreaterThanOrEqual(70);
+    expect(getQuestionsForCategory("objects").length).toBeGreaterThanOrEqual(80);
+    expect(getQuestionsForCategory("foods").length).toBeGreaterThanOrEqual(80);
+    expect(getQuestionsForCategory("historical_figures").length).toBeGreaterThanOrEqual(90);
 
     for (const category of [
       "fictional_characters",

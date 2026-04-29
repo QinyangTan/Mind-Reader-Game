@@ -167,45 +167,64 @@ function topEntries(map, limit = 10) {
     .map(([id, count]) => ({ id, count }));
 }
 
+function averageNumber(values, digits = 3) {
+  return Number(average(values).toFixed(digits));
+}
+
 function simulateEntity({
   entity,
   difficultyConfig,
   questionById,
   rankCandidates,
   selectNextQuestion,
-  shouldAttemptGuess,
+  getGuessTimingDiagnostics,
+  shouldCommitFinalGuess,
 }) {
   const config = difficultyConfig.normal.readMyMind;
   let asked = [];
   let rejectedGuessIds = [];
   let rankings = rankCandidates(entity.category, asked, rejectedGuessIds, []);
-  let wrongEarlyGuesses = 0;
+  let prematureWrongGuesses = 0;
   let repeatedFamilies = 0;
   let previousFamily = null;
   const usedQuestions = [];
+  const timingReasons = new Map();
 
-  for (let turn = 0; turn < config.maxQuestions; turn += 1) {
+  while (asked.length < config.maxQuestions) {
     const remainingQuestions = config.maxQuestions - asked.length;
     const leader = rankings[0];
-    if (
-      leader &&
-      shouldAttemptGuess(rankings, config, asked.length, remainingQuestions)
-    ) {
+    const timing = getGuessTimingDiagnostics(
+      rankings,
+      config,
+      asked.length,
+      remainingQuestions,
+      entity.category,
+    );
+    timingReasons.set(timing.reason, (timingReasons.get(timing.reason) ?? 0) + 1);
+
+    if (leader && timing.shouldGuess) {
       if (leader.entityId === entity.id) {
         return {
           correct: true,
           questions: asked.length,
-          wrongEarlyGuesses,
+          prematureWrongGuesses,
           repeatedFamilies,
           usedQuestions,
+          finalGuessId: leader.entityId,
+          finalCommitted: true,
+          finalConfidence: leader.confidence,
+          finalMargin: leader.confidence - (rankings[1]?.confidence ?? 0),
+          finalEffectiveCandidateCount: timing.effectiveCandidateCount,
+          finalNormalizedEntropy: timing.normalizedEntropy,
+          timingReasons,
         };
       }
 
-      wrongEarlyGuesses += 1;
+      prematureWrongGuesses += 1;
       rejectedGuessIds = [...rejectedGuessIds, leader.entityId];
       rankings = rankCandidates(entity.category, asked, rejectedGuessIds, []);
 
-      if (wrongEarlyGuesses >= config.maxGuesses) {
+      if (prematureWrongGuesses >= config.maxGuesses) {
         break;
       }
     }
@@ -243,12 +262,32 @@ function simulateEntity({
   }
 
   const finalLeader = rankings[0]?.entityId;
+  const finalCommitted = shouldCommitFinalGuess(rankings, entity.category);
+  const finalConfidence = rankings[0]?.confidence ?? 0;
+  const finalMargin = finalConfidence - (rankings[1]?.confidence ?? 0);
+  const finalTiming = getGuessTimingDiagnostics(
+    rankings,
+    config,
+    asked.length,
+    Math.max(0, config.maxQuestions - asked.length),
+    entity.category,
+  );
+  timingReasons.set(finalTiming.reason, (timingReasons.get(finalTiming.reason) ?? 0) + 1);
+
   return {
     correct: finalLeader === entity.id,
     questions: asked.length,
-    wrongEarlyGuesses,
+    prematureWrongGuesses,
     repeatedFamilies,
     usedQuestions,
+    finalGuessId: finalCommitted ? finalLeader ?? null : null,
+    finalCommitted,
+    topCandidateId: finalLeader ?? null,
+    finalConfidence,
+    finalMargin,
+    finalEffectiveCandidateCount: finalTiming.effectiveCandidateCount,
+    finalNormalizedEntropy: finalTiming.normalizedEntropy,
+    timingReasons,
   };
 }
 
@@ -257,14 +296,17 @@ async function main() {
   const { entities } = await loadTsModule(join(ROOT, "lib/data/entities.ts"));
   const { questionById } = await loadTsModule(join(ROOT, "lib/data/questions.ts"));
   const { difficultyConfig } = await loadTsModule(join(ROOT, "lib/game/game-config.ts"));
-  const { rankCandidates, shouldAttemptGuess } = await loadTsModule(join(ROOT, "lib/game/scoring.ts"));
+  const { rankCandidates, getGuessTimingDiagnostics, shouldCommitFinalGuess } = await loadTsModule(join(ROOT, "lib/game/scoring.ts"));
   const { selectNextQuestion } = await loadTsModule(join(ROOT, "lib/game/question-selection.ts"));
   const { attributeKeys, entityCategories } = await loadTsModule(join(ROOT, "types/game.ts"));
 
   const categories = args.category ? [args.category] : entityCategories;
   const questionUse = new Map();
+  const wrongPairs = new Map();
+  const timingReasonUse = new Map();
   const categoryReports = [];
   const hardestEntities = [];
+  const lowCoverageEntities = [];
 
   for (const category of categories) {
     const categoryEntities = entities.filter((entity) => entity.category === category);
@@ -278,19 +320,37 @@ async function main() {
         questionById,
         rankCandidates,
         selectNextQuestion,
-        shouldAttemptGuess,
+        getGuessTimingDiagnostics,
+        shouldCommitFinalGuess,
       });
       for (const questionId of result.usedQuestions) {
         questionUse.set(questionId, (questionUse.get(questionId) ?? 0) + 1);
       }
+      for (const [reason, count] of result.timingReasons) {
+        const key = `${category}:${reason}`;
+        timingReasonUse.set(key, (timingReasonUse.get(key) ?? 0) + count);
+      }
+      if (!result.correct && result.finalGuessId) {
+        const key = `${result.finalGuessId} -> ${entity.id}`;
+        wrongPairs.set(key, (wrongPairs.get(key) ?? 0) + 1);
+      }
+      const knownAttributes = countKnownAttributes(entity, attributeKeys);
       hardestEntities.push({
         id: entity.id,
         name: entity.name,
         category,
         correct: result.correct,
         questions: result.questions,
-        wrongEarlyGuesses: result.wrongEarlyGuesses,
-        knownAttributes: countKnownAttributes(entity, attributeKeys),
+        prematureWrongGuesses: result.prematureWrongGuesses,
+        finalConfidence: Number(result.finalConfidence.toFixed(4)),
+        finalMargin: Number(result.finalMargin.toFixed(4)),
+        knownAttributes,
+      });
+      lowCoverageEntities.push({
+        id: entity.id,
+        name: entity.name,
+        category,
+        knownAttributes,
       });
       return result;
     });
@@ -300,9 +360,29 @@ async function main() {
       sampleSize: sampled.length,
       totalEntities: categoryEntities.length,
       top1Accuracy: Number((results.filter((result) => result.correct).length / results.length).toFixed(3)),
-      averageQuestionsToGuess: Number(average(results.map((result) => result.questions)).toFixed(2)),
-      wrongEarlyGuessRate: Number((average(results.map((result) => result.wrongEarlyGuesses > 0 ? 1 : 0))).toFixed(3)),
+      committedGuessRate: Number(average(results.map((result) => result.finalCommitted ? 1 : 0)).toFixed(3)),
+      committedGuessAccuracy: Number(
+        (
+          results.filter((result) => result.finalCommitted && result.correct).length /
+          Math.max(1, results.filter((result) => result.finalCommitted).length)
+        ).toFixed(3),
+      ),
+      stumpRate: Number(average(results.map((result) => result.finalCommitted ? 0 : 1)).toFixed(3)),
+      wrongCommittedGuessRate: Number(
+        average(results.map((result) => result.finalCommitted && !result.correct ? 1 : 0)).toFixed(3),
+      ),
+      averageQuestionsToGuess: averageNumber(results.map((result) => result.questions), 2),
+      wrongEarlyGuessRate: Number((average(results.map((result) => result.prematureWrongGuesses > 0 ? 1 : 0))).toFixed(3)),
+      averageFinalConfidence: averageNumber(results.map((result) => result.finalConfidence), 3),
+      averageFinalMargin: averageNumber(results.map((result) => result.finalMargin), 3),
+      averageEffectiveCandidateCount: averageNumber(results.map((result) => result.finalEffectiveCandidateCount), 2),
+      averageNormalizedEntropy: averageNumber(results.map((result) => result.finalNormalizedEntropy), 3),
       repeatedFamilyRate: Number((average(results.map((result) => result.repeatedFamilies / Math.max(1, result.questions)))).toFixed(3)),
+      guessTimingReasons: Object.fromEntries(
+        [...timingReasonUse.entries()]
+          .filter(([key]) => key.startsWith(`${category}:`))
+          .map(([key, count]) => [key.slice(category.length + 1), count]),
+      ),
     });
   }
 
@@ -320,6 +400,18 @@ async function main() {
       averageTop1Accuracy: Number(
         average(categoryReports.map((report) => report.top1Accuracy)).toFixed(3),
       ),
+      averageCommittedGuessRate: Number(
+        average(categoryReports.map((report) => report.committedGuessRate)).toFixed(3),
+      ),
+      averageCommittedGuessAccuracy: Number(
+        average(categoryReports.map((report) => report.committedGuessAccuracy)).toFixed(3),
+      ),
+      averageStumpRate: Number(
+        average(categoryReports.map((report) => report.stumpRate)).toFixed(3),
+      ),
+      averageWrongCommittedGuessRate: Number(
+        average(categoryReports.map((report) => report.wrongCommittedGuessRate)).toFixed(3),
+      ),
       averageWrongEarlyGuessRate: Number(
         average(categoryReports.map((report) => report.wrongEarlyGuessRate)).toFixed(3),
       ),
@@ -328,16 +420,20 @@ async function main() {
       ),
     },
     mostUsedQuestions: topEntries(questionUse, 12),
+    commonWrongGuessPairs: topEntries(wrongPairs, 12),
     hardestEntities: hardestEntities
       .toSorted((left, right) => {
         if (left.correct !== right.correct) {
           return left.correct ? 1 : -1;
         }
-        if (right.wrongEarlyGuesses !== left.wrongEarlyGuesses) {
-          return right.wrongEarlyGuesses - left.wrongEarlyGuesses;
+        if (right.prematureWrongGuesses !== left.prematureWrongGuesses) {
+          return right.prematureWrongGuesses - left.prematureWrongGuesses;
         }
         return right.questions - left.questions;
       })
+      .slice(0, 16),
+    lowestCoverageEntities: lowCoverageEntities
+      .toSorted((left, right) => left.knownAttributes - right.knownAttributes)
       .slice(0, 16),
     weakestCategories: categoryReports
       .toSorted((left, right) => {

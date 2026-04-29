@@ -298,27 +298,164 @@ export function strongestNarrowingQuestion(
   return best ? best.answer : null;
 }
 
+const CONSERVATIVE_GUESS_CATEGORIES = new Set<EntityCategory>([
+  "historical_figures",
+  "objects",
+  "foods",
+]);
+
+export interface GuessTimingDiagnostics {
+  shouldGuess: boolean;
+  reason:
+    | "blocked:no_rankings"
+    | "blocked:min_questions"
+    | "blocked:high_uncertainty"
+    | "primary"
+    | "late_confident"
+    | "narrow_pool"
+    | "forced_no_questions";
+  questionsAsked: number;
+  remainingQuestions: number;
+  leaderConfidence: number;
+  runnerUpConfidence: number;
+  margin: number;
+  normalizedEntropy: number;
+  effectiveCandidateCount: number;
+  minimumQuestions: number;
+  requiredConfidence: number;
+  requiredMargin: number;
+}
+
+function getGuessPolicy(config: ReadMyMindConfig, category?: EntityCategory) {
+  const conservative = category ? CONSERVATIVE_GUESS_CATEGORIES.has(category) : false;
+
+  return {
+    minimumQuestions: config.minQuestionsBeforeGuess + (conservative ? 2 : 1),
+    primaryConfidence: config.guessConfidence + (conservative ? 0.08 : 0.04),
+    primaryMargin: config.guessMargin + (conservative ? 0.06 : 0.035),
+    primaryEffectiveCandidateCount: conservative ? 3.2 : 3.8,
+    primaryEntropy: conservative ? 0.36 : 0.42,
+    lateEffectiveCandidateCount: conservative ? 4.2 : 4.8,
+    lateEntropy: conservative ? 0.44 : 0.48,
+    narrowEffectiveCandidateCount: conservative ? 1.9 : 2.15,
+    narrowEntropy: conservative ? 0.46 : 0.5,
+  };
+}
+
 /**
  * Decide whether the chamber should lock in a guess instead of asking another
  * question.
  *
  * Gating (in order):
- *   1. Below `minQuestionsBeforeGuess`: never guess.
- *   2. Primary: leader meets both `guessConfidence` and `guessMargin`.
- *   3. Deep endgame (≤ 1 question left): always guess, take the best shot.
- *   4. Late fallback (≤ 3 questions left): guess with a relaxed
- *      confidence/margin (70% / 60% of primary), so we don't waste the last
- *      probes if the leader is already reasonably ahead.
- *   5. Narrow survivor pool (≤ 3 un-rejected candidates): guess as soon as
- *      there's any real margin — further questions can't prune much.
+ *   1. Below the calibrated minimum: never guess.
+ *   2. Primary: leader meets confidence, margin, and uncertainty gates.
+ *   3. Final exhaustion: only force a guess once no questions remain.
+ *   4. Late fallback: with one or two probes left, only guess if the leader is
+ *      already meaningfully ahead. The previous version guessed with one
+ *      question still available, which showed up as many avoidable misses in
+ *      evaluation.
+ *   5. Narrow survivor pool: guess only when the effective pool is truly tiny.
  */
+export function getGuessTimingDiagnostics(
+  rankings: RankedCandidate[],
+  config: ReadMyMindConfig,
+  questionsAsked: number,
+  remainingQuestions: number,
+  category?: EntityCategory,
+): GuessTimingDiagnostics {
+  const policy = getGuessPolicy(config, category);
+  const leader = rankings[0];
+  const runnerUp = rankings[1];
+  const uncertainty = getUncertaintyMetrics(rankings);
+  const leaderConfidence = leader?.confidence ?? 0;
+  const runnerUpConfidence = runnerUp?.confidence ?? 0;
+  const margin = leaderConfidence - runnerUpConfidence;
+  const base = {
+    questionsAsked,
+    remainingQuestions,
+    leaderConfidence,
+    runnerUpConfidence,
+    margin,
+    normalizedEntropy: uncertainty.normalizedEntropy,
+    effectiveCandidateCount: uncertainty.effectiveCandidateCount,
+    minimumQuestions: policy.minimumQuestions,
+    requiredConfidence: policy.primaryConfidence,
+    requiredMargin: policy.primaryMargin,
+  };
+
+  if (rankings.length === 0) {
+    return { ...base, shouldGuess: false, reason: "blocked:no_rankings" };
+  }
+
+  if (remainingQuestions <= 0) {
+    return { ...base, shouldGuess: true, reason: "forced_no_questions" };
+  }
+
+  if (questionsAsked < policy.minimumQuestions) {
+    return { ...base, shouldGuess: false, reason: "blocked:min_questions" };
+  }
+
+  if (
+    leaderConfidence >= policy.primaryConfidence &&
+    margin >= policy.primaryMargin &&
+    uncertainty.effectiveCandidateCount <= policy.primaryEffectiveCandidateCount &&
+    uncertainty.normalizedEntropy <= policy.primaryEntropy
+  ) {
+    return { ...base, shouldGuess: true, reason: "primary" };
+  }
+
+  const lateConfidence = policy.primaryConfidence * 0.92;
+  const lateMargin = policy.primaryMargin * 0.88;
+
+  if (
+    remainingQuestions <= 2 &&
+    leaderConfidence >= lateConfidence &&
+    margin >= lateMargin &&
+    uncertainty.effectiveCandidateCount <= policy.lateEffectiveCandidateCount &&
+    uncertainty.normalizedEntropy <= policy.lateEntropy
+  ) {
+    return {
+      ...base,
+      shouldGuess: true,
+      reason: "late_confident",
+      requiredConfidence: lateConfidence,
+      requiredMargin: lateMargin,
+    };
+  }
+
+  if (
+    questionsAsked >= policy.minimumQuestions + 2 &&
+    uncertainty.effectiveCandidateCount <= policy.narrowEffectiveCandidateCount &&
+    margin >= Math.max(policy.primaryMargin * 1.05, 0.16) &&
+    uncertainty.normalizedEntropy <= policy.narrowEntropy
+  ) {
+    return { ...base, shouldGuess: true, reason: "narrow_pool" };
+  }
+
+  return { ...base, shouldGuess: false, reason: "blocked:high_uncertainty" };
+}
+
 export function shouldAttemptGuess(
   rankings: RankedCandidate[],
   config: ReadMyMindConfig,
   questionsAsked: number,
   remainingQuestions: number,
+  category?: EntityCategory,
 ) {
-  if (rankings.length === 0 || questionsAsked < config.minQuestionsBeforeGuess) {
+  return getGuessTimingDiagnostics(
+    rankings,
+    config,
+    questionsAsked,
+    remainingQuestions,
+    category,
+  ).shouldGuess;
+}
+
+export function shouldCommitFinalGuess(
+  rankings: RankedCandidate[],
+  category?: EntityCategory,
+) {
+  if (rankings.length === 0) {
     return false;
   }
 
@@ -326,42 +463,16 @@ export function shouldAttemptGuess(
   const runnerUp = rankings[1];
   const margin = leader.confidence - (runnerUp?.confidence ?? 0);
   const uncertainty = getUncertaintyMetrics(rankings);
+  const conservative = category ? CONSERVATIVE_GUESS_CATEGORIES.has(category) : false;
+  const minimumConfidence = conservative ? 0.095 : 0.075;
+  const minimumMargin = conservative ? 0.045 : 0.035;
+  const maximumEffectiveCandidates = conservative ? 180 : 240;
+  const maximumEntropy = conservative ? 0.84 : 0.88;
 
-  if (
-    leader.confidence >= config.guessConfidence &&
-    margin >= config.guessMargin &&
-    uncertainty.effectiveCandidateCount <= 4.8 &&
-    uncertainty.normalizedEntropy <= 0.38
-  ) {
-    return true;
-  }
-
-  if (remainingQuestions <= 1) {
-    return true;
-  }
-
-  const lateWindow = 3;
-  if (remainingQuestions <= lateWindow) {
-    const lateConfidence = config.guessConfidence * 0.7;
-    const lateMargin = config.guessMargin * 0.6;
-
-    if (
-      leader.confidence >= lateConfidence &&
-      margin >= lateMargin &&
-      uncertainty.effectiveCandidateCount <= 6.2 &&
-      uncertainty.normalizedEntropy <= 0.48
-    ) {
-      return true;
-    }
-  }
-
-  if (
-    (rankings.length <= 3 || uncertainty.effectiveCandidateCount <= 2.6) &&
-    margin >= config.guessMargin * 0.38 &&
-    uncertainty.normalizedEntropy <= 0.78
-  ) {
-    return true;
-  }
-
-  return false;
+  return (
+    leader.confidence >= minimumConfidence &&
+    margin >= minimumMargin &&
+    uncertainty.effectiveCandidateCount <= maximumEffectiveCandidates &&
+    uncertainty.normalizedEntropy <= maximumEntropy
+  );
 }

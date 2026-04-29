@@ -46,6 +46,22 @@ MIND_READER_REDIS_PREFIX=mind-reader
 
 Set `MIND_READER_LEADERBOARD_STORAGE=memory` to force the memory adapter for previews. Without Redis env vars, the same-origin API automatically falls back to memory storage.
 
+For the deployed Vercel project, add the durable credentials with:
+
+```bash
+npx vercel env add UPSTASH_REDIS_REST_URL production
+npx vercel env add UPSTASH_REDIS_REST_TOKEN production
+npx vercel deploy --prod --yes
+```
+
+Verify after deploy:
+
+```bash
+curl https://mind-reader-game-theta.vercel.app/api/health
+```
+
+Production durability is active only when the health payload reports `backend.storage: "upstash-redis"`, `backend.durableConfigured: true`, and `backend.redisConfigured: true`.
+
 ## Save Profile
 
 `POST /players`

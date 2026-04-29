@@ -5,7 +5,7 @@ Mind Reader is a cinematic, local-first browser guessing game set inside Mora's 
 - **Psychic Reads You** — think of an entity, answer Mora's questions, and try to survive her guesses.
 - **You Read the Psychic** — Mora secretly picks an entity, you ask structured clue questions, and you try to solve her thought.
 
-Seeded knowledge base: **3,024 entities** across **5 categories** and **213 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
+Seeded knowledge base: **3,024 entities** across **5 categories** and **362 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
 
 ## Live Project
 
@@ -26,10 +26,10 @@ Play the published web game here:
 - **Coverage-aware decision quality.** Mora now demotes questions when likely candidates mostly have unknown values for that trait, so the chamber asks fewer low-evidence prompts.
 - **Denser question bank.** The newest production pass adds stronger specialist and fine-grained discriminators, especially for Historical Figures, Objects, and Foods.
 - **Guided Guess My Mind.** Reverse mode now uses layered inquiry: Broad Openers, Identity Split, Profile, Specialist, and Fine Detail. The player sees one active layer, one chosen family, only 2 recommended questions by default, and a short guidance hint explaining why that path is useful.
-- **Worker-backed inference.** Reverse-mode candidate and question ranking runs through a Web Worker with deterministic synchronous fallback and a small request cache so the chamber stays responsive as content grows.
+- **Worker-backed inference.** Both gameplay modes use the shared inference-worker client for candidate/question ranking where the browser supports workers, with deterministic synchronous fallback and a small request cache so the chamber stays responsive as content grows.
 - **Same-origin public backend.** Profile and leaderboard calls now default to `/api/players`, `/api/scores`, and `/api/leaderboard`, with validation, rate limiting, server-side score recomputation, durable Redis storage when configured, and local fallback.
-- **Production health check.** `/api/health` reports deployment, content totals, backend storage mode, and rate-limit settings for monitoring.
-- **Accuracy and content tooling.** `npm run eval:accuracy` simulates inference quality, while `npm run quality:content` reports coverage, weak profiles, duplicate aliases, and family balance.
+- **Production health check.** `/api/health` reports deployment, content totals, backend storage mode, Redis configuration state, analytics mode, and rate-limit settings for monitoring.
+- **Accuracy and content tooling.** `npm run eval:accuracy` simulates inference quality with per-category top-1 accuracy, premature wrong-guess rate, timing diagnostics, wrong-pair samples, and weak-profile reporting. `npm run quality:content` reports coverage, weak profiles, duplicate aliases, and family balance.
 - **CI-ready gate.** GitHub Actions runs lint, typecheck, tests, validation, content quality, accuracy evaluation, and build checks on the repo.
 - **Category preview fix.** Category hover/focus/tap previews now update the description without advancing. Only the explicit Continue / Begin action moves the setup forward.
 - **Real example ads.** Top, left, and right sponsor slots now render cached real public ad art, stay outside the safe gameplay area, and can be closed after an exact 15-second countdown. No third-party ad code is included.
@@ -81,6 +81,8 @@ NEXT_PUBLIC_MIND_READER_ANALYTICS_ENDPOINT=
 ```
 
 By default, the browser uses this app's same-origin `/api` backend and falls back to browser-local rankings if a request fails. The same-origin backend uses memory storage locally and automatically switches to durable Upstash Redis storage when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are configured. Set `NEXT_PUBLIC_MIND_READER_BACKEND_URL` to point at a separate backend, or set `NEXT_PUBLIC_MIND_READER_BACKEND_MODE=local` to force local-only development. See [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md).
+
+Analytics are privacy-safe by default. Leave `NEXT_PUBLIC_MIND_READER_ANALYTICS_MODE` blank for no-op tracking, set it to `console` for local debugging, or set it to `http` with `NEXT_PUBLIC_MIND_READER_ANALYTICS_ENDPOINT` to send sanitized product events. The client tracks only coarse metadata such as mode, category, difficulty, question count, winner, score bucket, and source screen; it filters answer text, entity names/ids, prompts, notes, and free-text corrections.
 
 ## Quality Gate
 
@@ -164,7 +166,7 @@ Domain logic lives in `lib/game/` with no React dependency:
 - `scoring.ts` ranks candidates with smoothed probabilistic evidence.
 - `inference-model.ts` keeps additive smoothing counts and learned question usefulness.
 - `question-selection.ts` selects decision-tree-style questions using entropy reduction, split balance, known-profile coverage, layer fit, and anti-repetition penalties.
-- `inference-worker-client.ts` moves heavy Guess My Mind candidate/question ranking into a worker when available.
+- `inference-worker-client.ts` moves heavy candidate/question ranking for both modes into a worker when available.
 - `session.ts` owns both gameplay state machines and result creation.
 - `score.ts` computes deterministic public-game scores.
 

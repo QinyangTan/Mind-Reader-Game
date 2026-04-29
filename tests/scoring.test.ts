@@ -4,6 +4,7 @@ import { entityById, getEntitiesForCategory } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
 import { difficultyConfig } from "@/lib/game/game-config";
 import {
+  getGuessTimingDiagnostics,
   rankCandidates,
   shouldAttemptGuess,
   strongestNarrowingQuestion,
@@ -199,16 +200,16 @@ describe("shouldAttemptGuess", () => {
 
   it("fires the primary path when confidence + margin are both met", () => {
     const rankings = [
-      candidate("a", cfg.guessConfidence + 0.2),
+      candidate("a", cfg.guessConfidence + 0.25),
       candidate("b", 0.01),
     ];
-    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess, 10)).toBe(true);
+    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess + 1, 10)).toBe(true);
   });
 
-  it("always guesses when ≤ 1 question remains (deep endgame)", () => {
+  it("does not throw away the final available question on weak evidence", () => {
     const rankings = [candidate("a", 0.12), candidate("b", 0.10)];
-    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess, 1)).toBe(true);
-    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess, 0)).toBe(true);
+    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess + 2, 1)).toBe(false);
+    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess + 2, 0)).toBe(true);
   });
 
   it("isolates the narrow-survivor-pool rule (not primary, not endgame)", () => {
@@ -216,8 +217,52 @@ describe("shouldAttemptGuess", () => {
     // remaining well above the late-fallback window, but ≤ 3 un-rejected
     // candidates, low enough effective count, and enough real margin to
     // justify a narrow-pool guess.
-    const rankings = [candidate("a", 0.38), candidate("b", 0.11), candidate("c", 0.07)];
-    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess, 8)).toBe(true);
+    const rankings = [candidate("a", 0.7), candidate("b", 0.06), candidate("c", 0.01)];
+    expect(shouldAttemptGuess(rankings, cfg, cfg.minQuestionsBeforeGuess + 3, 8)).toBe(true);
+  });
+
+  it("blocks weak-margin guesses even when the leader is slightly ahead", () => {
+    const rankings = [
+      candidate("a", 0.41),
+      candidate("b", 0.34),
+      candidate("c", 0.16),
+      candidate("d", 0.09),
+    ];
+
+    const diagnostics = getGuessTimingDiagnostics(
+      rankings,
+      cfg,
+      cfg.minQuestionsBeforeGuess + 4,
+      4,
+      "objects",
+    );
+
+    expect(diagnostics.shouldGuess).toBe(false);
+    expect(diagnostics.reason).toBe("blocked:high_uncertainty");
+  });
+
+  it("requires stronger evidence for historically weak categories", () => {
+    const rankings = [candidate("a", 0.56), candidate("b", 0.37), candidate("c", 0.05)];
+
+    expect(
+      shouldAttemptGuess(
+        rankings,
+        cfg,
+        cfg.minQuestionsBeforeGuess + 1,
+        6,
+        "historical_figures",
+      ),
+    ).toBe(false);
+
+    expect(
+      shouldAttemptGuess(
+        [candidate("a", 0.72), candidate("b", 0.08), candidate("c", 0.02)],
+        cfg,
+        cfg.minQuestionsBeforeGuess + 4,
+        6,
+        "historical_figures",
+      ),
+    ).toBe(true);
   });
 });
 

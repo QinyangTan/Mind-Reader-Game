@@ -9,8 +9,16 @@ import { entityCategories } from "@/types/game";
 
 export const dynamic = "force-dynamic";
 
+function hasRedisCredentials() {
+  return Boolean(
+    (process.env.MIND_READER_REDIS_REST_URL || process.env.UPSTASH_REDIS_REST_URL) &&
+      (process.env.MIND_READER_REDIS_REST_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN),
+  );
+}
+
 export async function GET() {
   const backendDiagnostics = await getPublicBackendDiagnostics();
+  const analyticsMode = process.env.NEXT_PUBLIC_MIND_READER_ANALYTICS_MODE || "disabled";
 
   return Response.json(
     {
@@ -32,6 +40,7 @@ export async function GET() {
       },
       backend: {
         ...backendDiagnostics,
+        redisConfigured: hasRedisCredentials(),
         rateLimitsPerMinute: {
           profile: publicBackendLimits.profile,
           profilePerPlayer: publicBackendLimits.profilePerPlayer,
@@ -39,6 +48,12 @@ export async function GET() {
           scorePerPlayer: publicBackendLimits.scorePerPlayer,
         },
         rateLimitWindowMs: publicBackendLimits.windowMs,
+      },
+      analytics: {
+        mode: analyticsMode,
+        httpConfigured:
+          analyticsMode === "http" &&
+          Boolean(process.env.NEXT_PUBLIC_MIND_READER_ANALYTICS_ENDPOINT),
       },
     },
     {

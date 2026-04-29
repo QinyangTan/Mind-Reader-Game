@@ -99,6 +99,19 @@ function resolveEntity(extraEntities: GameEntity[], id: string) {
   return entityById.get(id) ?? extraEntities.find((entity) => entity.id === id);
 }
 
+function scoreBucket(score: number) {
+  if (score >= 350) {
+    return "350+";
+  }
+  if (score >= 250) {
+    return "250-349";
+  }
+  if (score >= 150) {
+    return "150-249";
+  }
+  return "0-149";
+}
+
 const sceneTransitionProps = {
   initial: { opacity: 0, y: 22, scale: 0.985, filter: "blur(8px)" },
   animate: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
@@ -135,6 +148,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [isPending, startTransition] = useTransition();
   const publicServices = usePublicServicesController();
   const scoreProofByResultId = useRef<Map<string, ScoreSubmissionProof>>(new Map());
+  const teachFlowOpenedByResultId = useRef<Set<string>>(new Set());
   const resetGuessDialog = useCallback(() => {
     setGuessDialogOpen(false);
     setGuessDialogCandidateId(null);
@@ -167,8 +181,11 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     trackAnalytics("result_reached", {
       mode: nextResult.mode,
       category: nextResult.category,
+      difficulty: nextResult.difficulty,
       winner: nextResult.winner,
-      score: nextResult.score,
+      questionsUsed: nextResult.questionsUsed,
+      guessesUsed: nextResult.guessesUsed,
+      scoreBucket: scoreBucket(nextResult.score),
     });
     const proof =
       scoreProofByResultId.current.get(nextResult.id) ??
@@ -242,6 +259,15 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     }
 
     recordResultReached(result);
+
+    if (result.teachable && !teachFlowOpenedByResultId.current.has(result.id)) {
+      teachFlowOpenedByResultId.current.add(result.id);
+      trackAnalytics("teach_flow_opened", {
+        category: result.category,
+        difficulty: result.difficulty,
+        mode: result.mode,
+      });
+    }
   }, [result]);
 
   useEffect(() => {
@@ -328,6 +354,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     trackAnalytics("question_answered", {
       mode: "read-my-mind",
       category: readSession.category,
+      difficulty: readSession.difficulty,
       questionNumber: readSession.asked.length + 1,
     });
     const currentQuestion = readSession.currentQuestionId ? questionById.get(readSession.currentQuestionId) : null;
@@ -390,6 +417,13 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     if (!readSession || isReadInferencePending) {
       return;
     }
+    trackAnalytics("guess_submitted", {
+      mode: "read-my-mind",
+      category: readSession.category,
+      difficulty: readSession.difficulty,
+      guessNumber: readSession.guessAttemptsUsed + 1,
+      accepted: guessedCorrectly,
+    });
     setGuessDialogOpen(false);
     setGuessDialogCandidateId(null);
 
@@ -471,6 +505,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     trackAnalytics("question_answered", {
       mode: "guess-my-mind",
       category: guessSession.category,
+      difficulty: guessSession.difficulty,
       questionNumber: guessSession.asked.length + 1,
     });
     startTransition(() => {
@@ -485,6 +520,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     trackAnalytics("guess_submitted", {
       mode: "guess-my-mind",
       category: guessSession.category,
+      difficulty: guessSession.difficulty,
       guessNumber: guessSession.guessAttemptsUsed + 1,
     });
     startTransition(() => {
@@ -587,10 +623,6 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         applyTeachCaseLearning(model, memory),
       ),
     );
-    trackAnalytics("teach_flow_opened", {
-      category: settings.category,
-      difficulty: settings.difficulty,
-    });
     setTeachSaved(true);
   }
 
