@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "validate": "vitest run tests/validation.test.ts",
     "quality:content": "node scripts/content-quality-report.mjs",
+    "eval:accuracy": "node scripts/evaluate-accuracy.mjs",
     "check": "npm run lint && npm run typecheck && npm run test",
     "check:full": "npm run check && npm run build"
   },

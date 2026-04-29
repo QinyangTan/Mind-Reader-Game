@@ -104,6 +104,11 @@ export function ReadMyMindBoard({
                   </SurfacePillButton>
                 ))}
               </div>
+              {isPending ? (
+                <p className="text-center text-xs uppercase tracking-[0.18em] text-[#d8b36a]">
+                  Mora is reading the next thread...
+                </p>
+              ) : null}
             </motion.div>
           )}
         </AnimatePresence>

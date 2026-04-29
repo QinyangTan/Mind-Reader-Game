@@ -45,14 +45,19 @@ test.describe("Mind Reader public game smoke flow", () => {
     await page.getByRole("button", { name: /Return/i }).click();
 
     await page.getByRole("button", { name: /World Rank/i }).click();
-    await expect(page.getByRole("button", { name: /Return/i })).toBeVisible();
-    await page.getByRole("button", { name: /Return/i }).click();
+    await expect(page.getByRole("button", { name: /Return/i }).first()).toBeVisible();
+    await page.getByRole("button", { name: /Return/i }).first().click();
 
     await expect(page.getByRole("button", { name: /Read My Mind/i })).toBeVisible();
   });
 
-  test("ads render on refresh and expose their countdown labels", async ({ page }) => {
+  test("ads render on refresh and expose their countdown labels", async ({ page }, testInfo) => {
     await page.goto("/");
+    if (testInfo.project.name.includes("mobile")) {
+      await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(0);
+      return;
+    }
+
     await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(3);
     await page.reload();
     await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(3);

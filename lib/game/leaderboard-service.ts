@@ -1,4 +1,5 @@
 import type {
+  AnsweredQuestion,
   GameMode,
   GameResult,
   LeaderboardEntry,
@@ -17,8 +18,18 @@ export interface PublicGameServices {
   source: "local" | "remote";
   refreshIntervalMs: number;
   saveProfile(profile: PlayerProfile): Promise<void>;
-  submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number): Promise<void>;
+  submitResult(
+    profile: PlayerProfile,
+    result: GameResult,
+    bestStreak: number,
+    proof?: ScoreSubmissionProof,
+  ): Promise<void>;
   getLeaderboard(mode: GameMode): Promise<LeaderboardSnapshot>;
+}
+
+export interface ScoreSubmissionProof {
+  answers?: AnsweredQuestion[];
+  startedAt?: string;
 }
 
 function canUseStorage() {
@@ -73,7 +84,13 @@ class LocalLeaderboardService implements PublicGameServices {
     return;
   }
 
-  async submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number) {
+  async submitResult(
+    profile: PlayerProfile,
+    result: GameResult,
+    bestStreak: number,
+    proof?: ScoreSubmissionProof,
+  ) {
+    void proof;
     const store = readLocalStore();
     const existing = store.entries.find(
       (entry) => entry.playerId === profile.id && entry.mode === result.mode,
@@ -131,11 +148,16 @@ class RemoteLeaderboardService implements PublicGameServices {
     }
   }
 
-  async submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number) {
+  async submitResult(
+    profile: PlayerProfile,
+    result: GameResult,
+    bestStreak: number,
+    proof?: ScoreSubmissionProof,
+  ) {
     const response = await fetch(`${this.baseUrl}/scores`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ profile, result, bestStreak }),
+      body: JSON.stringify({ profile, result, bestStreak, proof }),
     });
 
     if (!response.ok) {
@@ -172,11 +194,16 @@ class HybridLeaderboardService implements PublicGameServices {
     }
   }
 
-  async submitResult(profile: PlayerProfile, result: GameResult, bestStreak: number) {
+  async submitResult(
+    profile: PlayerProfile,
+    result: GameResult,
+    bestStreak: number,
+    proof?: ScoreSubmissionProof,
+  ) {
     try {
-      await this.remote.submitResult(profile, result, bestStreak);
+      await this.remote.submitResult(profile, result, bestStreak, proof);
     } catch {
-      await this.fallback.submitResult(profile, result, bestStreak);
+      await this.fallback.submitResult(profile, result, bestStreak, proof);
     }
   }
 

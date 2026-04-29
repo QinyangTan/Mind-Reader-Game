@@ -9,7 +9,9 @@ import { EncounterScene } from "@/components/game/encounter-scene";
 import { EntityGuessDialog } from "@/components/game/entity-guess-dialog";
 import {
   type ScreenState,
+  usePublicServicesController,
   useRevealController,
+  useResultPersistenceController,
   useUtilitySceneController,
 } from "@/components/game/game-shell-controllers";
 import { GuessMyMindBoard } from "@/components/game/guess-my-mind-board";
@@ -23,6 +25,7 @@ import { WorldRankPanel } from "@/components/game/world-rank-panel";
 import { SiteFooter } from "@/components/site/site-footer";
 import { entityById } from "@/lib/data/entities";
 import { questionById } from "@/lib/data/questions";
+import { trackAnalytics } from "@/lib/game/analytics";
 import {
   applyQuestionEntropyDrops,
   applyCompletedEntityLearning,
@@ -35,7 +38,8 @@ import {
   getQuestionMascotState,
   getResultMascotState,
 } from "@/lib/game/mascot";
-import { createPublicGameServices } from "@/lib/game/leaderboard-service";
+import { computeInferenceRanking } from "@/lib/game/inference-worker-client";
+import type { ScoreSubmissionProof } from "@/lib/game/leaderboard-service";
 import {
   clearPlayerProfile,
   loadPlayerProfile,
@@ -43,11 +47,12 @@ import {
   savePlayerProfile,
 } from "@/lib/game/player-profile";
 import {
-  applyReadMyMindAnswer,
+  applyReadMyMindAnswerWithRankings,
   askGuessMyMindQuestion,
   createGuessMyMindSession,
   createReadMyMindSession,
   resolveReadMyMindGuess,
+  resolveReadMyMindGuessWithRankings,
   submitGuessMyMindGuess,
 } from "@/lib/game/session";
 import {
@@ -57,8 +62,6 @@ import {
   saveLearnedEntities,
 } from "@/lib/game/learned-storage";
 import {
-  applyResultToStats,
-  createHistoryEntry,
   defaultSettings,
   defaultVault,
   loadVault,
@@ -128,9 +131,10 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   const [teachSaved, setTeachSaved] = useState(false);
   const [readTrailSnapshot, setReadTrailSnapshot] = useState<AnsweredQuestion[]>([]);
   const [setupStep, setSetupStep] = useState<SetupStep>("mode");
+  const [isReadInferencePending, setIsReadInferencePending] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const publicServices = useMemo(() => createPublicGameServices(), []);
-  const recordedResults = useRef<Set<string>>(new Set());
+  const publicServices = usePublicServicesController();
+  const scoreProofByResultId = useRef<Map<string, ScoreSubmissionProof>>(new Map());
   const resetGuessDialog = useCallback(() => {
     setGuessDialogOpen(false);
     setGuessDialogCandidateId(null);
@@ -153,6 +157,26 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     closeMemory: handleCloseMemory,
     closeWorldRank: handleCloseWorldRank,
   } = useUtilitySceneController({ setScreen, setSetupStep });
+  const { persistResultOnce } = useResultPersistenceController({
+    vault,
+    setVault,
+    playerProfile,
+    publicServices,
+  });
+  const recordResultReached = useEffectEvent((nextResult: GameResult) => {
+    trackAnalytics("result_reached", {
+      mode: nextResult.mode,
+      category: nextResult.category,
+      winner: nextResult.winner,
+      score: nextResult.score,
+    });
+    const proof =
+      scoreProofByResultId.current.get(nextResult.id) ??
+      (nextResult.mode === "read-my-mind"
+        ? { answers: readTrailSnapshot, startedAt: readSession?.startedAt }
+        : { answers: guessSession?.asked ?? [], startedAt: guessSession?.startedAt });
+    persistResultOnce(nextResult, proof);
+  });
 
   useEffect(() => {
     const stored = loadVault();
@@ -212,26 +236,12 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     saveLearnedEntities(learnedStore);
   }, [hydrated, learnedStore]);
 
-  const persistResult = useEffectEvent((gameResult: GameResult) => {
-    const projectedStats = applyResultToStats(vault.stats, gameResult);
-    setVault((previous) => ({
-      ...previous,
-      stats: applyResultToStats(previous.stats, gameResult),
-      history: [createHistoryEntry(gameResult), ...previous.history].slice(0, 16),
-    }));
-
-    if (playerProfile) {
-      void publicServices.submitResult(playerProfile, gameResult, projectedStats.bestStreak);
-    }
-  });
-
   useEffect(() => {
-    if (!result || recordedResults.current.has(result.id)) {
+    if (!result) {
       return;
     }
 
-    recordedResults.current.add(result.id);
-    persistResult(result);
+    recordResultReached(result);
   }, [result]);
 
   useEffect(() => {
@@ -248,6 +258,12 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   }, [readSession?.queuedGuessId, screen]);
 
   function updateSettings(patch: Partial<StoredSettings>) {
+    if (patch.mode) {
+      trackAnalytics("mode_selected", { mode: patch.mode });
+    }
+    if (patch.category) {
+      trackAnalytics("category_selected", { category: patch.category });
+    }
     startTransition(() => {
       setSettings((current) => ({
         ...current,
@@ -259,6 +275,11 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   function launchSession(nextSettings: StoredSettings = settings) {
     clearRevealTimeout();
     setIsRevealing(false);
+    trackAnalytics("game_started", {
+      mode: nextSettings.mode,
+      category: nextSettings.category,
+      difficulty: nextSettings.difficulty,
+    });
 
     startTransition(() => {
       setTeachSaved(false);
@@ -301,9 +322,14 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
   }
 
   function handleReadAnswer(answer: AnsweredQuestion["answer"]) {
-    if (!readSession) {
+    if (!readSession || isReadInferencePending) {
       return;
     }
+    trackAnalytics("question_answered", {
+      mode: "read-my-mind",
+      category: readSession.category,
+      questionNumber: readSession.asked.length + 1,
+    });
     const currentQuestion = readSession.currentQuestionId ? questionById.get(readSession.currentQuestionId) : null;
     const trailSnapshot = currentQuestion
       ? [
@@ -317,37 +343,98 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
           },
         ]
       : readSession.asked;
+    setIsReadInferencePending(true);
+    void computeInferenceRanking({
+      category: readSession.category,
+      asked: trailSnapshot,
+      rejectedGuessIds: readSession.rejectedGuessIds,
+      askedQuestionIds: trailSnapshot.map((entry) => entry.questionId),
+      remainingQuestions: readSession.config.maxQuestions - trailSnapshot.length,
+      extraEntities: activeTeachEntities,
+      inferenceModel: learnedStore.model,
+    }).then((ranking) => {
+      startTransition(() => {
+        const outcome = applyReadMyMindAnswerWithRankings(
+          readSession,
+          answer,
+          ranking.rankedCandidates,
+          activeTeachEntities,
+          learnedStore.model,
+          ranking.rankedQuestions[0]?.question.id ?? null,
+        );
 
-    startTransition(() => {
-      const outcome = applyReadMyMindAnswer(
-        readSession,
-        answer,
-        activeTeachEntities,
-        learnedStore.model,
-      );
+        if (outcome.result) {
+          applyReadRoundQuestionLearning({
+            ...readSession,
+            asked: trailSnapshot,
+          });
+          scoreProofByResultId.current.set(outcome.result.id, {
+            answers: trailSnapshot,
+            startedAt: readSession.startedAt,
+          });
+          setReadTrailSnapshot(trailSnapshot);
+          finalizeResult(outcome.result);
+          return;
+        }
 
-      if (outcome.result) {
-        applyReadRoundQuestionLearning({
-          ...readSession,
-          asked: trailSnapshot,
-        });
-        setReadTrailSnapshot(trailSnapshot);
-        finalizeResult(outcome.result);
-        return;
-      }
-
-      if (outcome.session) {
-        setReadSession(outcome.session);
-      }
+        if (outcome.session) {
+          setReadSession(outcome.session);
+        }
+      });
+    }).finally(() => {
+      setIsReadInferencePending(false);
     });
   }
 
   function handleResolveGuess(guessedCorrectly: boolean) {
-    if (!readSession) {
+    if (!readSession || isReadInferencePending) {
       return;
     }
     setGuessDialogOpen(false);
     setGuessDialogCandidateId(null);
+
+    if (!guessedCorrectly && readSession.queuedGuessId) {
+      const nextRejectedGuessIds = [...readSession.rejectedGuessIds, readSession.queuedGuessId];
+      setIsReadInferencePending(true);
+      void computeInferenceRanking({
+        category: readSession.category,
+        asked: readSession.asked,
+        rejectedGuessIds: nextRejectedGuessIds,
+        askedQuestionIds: readSession.asked.map((entry) => entry.questionId),
+        remainingQuestions: readSession.config.maxQuestions - readSession.asked.length,
+        extraEntities: activeTeachEntities,
+        inferenceModel: learnedStore.model,
+      }).then((ranking) => {
+        startTransition(() => {
+          const outcome = resolveReadMyMindGuessWithRankings(
+            readSession,
+            false,
+            ranking.rankedCandidates,
+            activeTeachEntities,
+            learnedStore.model,
+            ranking.rankedQuestions[0]?.question.id ?? null,
+          );
+
+          if (outcome.result) {
+            applyReadRoundQuestionLearning(readSession);
+            scoreProofByResultId.current.set(outcome.result.id, {
+              answers: readSession.asked,
+              startedAt: readSession.startedAt,
+            });
+            setReadTrailSnapshot(readSession.asked);
+            finalizeResult(outcome.result);
+            return;
+          }
+
+          if (outcome.session) {
+            setReadSession(outcome.session);
+          }
+        });
+      }).finally(() => {
+        setIsReadInferencePending(false);
+      });
+      return;
+    }
 
     startTransition(() => {
       const outcome = resolveReadMyMindGuess(
@@ -362,6 +449,10 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         if (guessedCorrectly && readSession.queuedGuessId) {
           applyResolvedReadLearning(readSession, readSession.queuedGuessId);
         }
+        scoreProofByResultId.current.set(outcome.result.id, {
+          answers: readSession.asked,
+          startedAt: readSession.startedAt,
+        });
         setReadTrailSnapshot(readSession.asked);
         finalizeResult(outcome.result);
         return;
@@ -377,6 +468,11 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     if (!guessSession) {
       return;
     }
+    trackAnalytics("question_answered", {
+      mode: "guess-my-mind",
+      category: guessSession.category,
+      questionNumber: guessSession.asked.length + 1,
+    });
     startTransition(() => {
       setGuessSession(askGuessMyMindQuestion(guessSession, questionId, activeTeachEntities));
     });
@@ -386,11 +482,20 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     if (!guessSession) {
       return;
     }
+    trackAnalytics("guess_submitted", {
+      mode: "guess-my-mind",
+      category: guessSession.category,
+      guessNumber: guessSession.guessAttemptsUsed + 1,
+    });
     startTransition(() => {
       const outcome = submitGuessMyMindGuess(guessSession, entityId, activeTeachEntities);
 
       if (outcome.result) {
         applyGuessRoundQuestionLearning(guessSession);
+        scoreProofByResultId.current.set(outcome.result.id, {
+          answers: guessSession.asked,
+          startedAt: guessSession.startedAt,
+        });
         finalizeResult(outcome.result);
         return;
       }
@@ -417,6 +522,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
     savePlayerProfile(profile);
     setPlayerProfile(profile);
     void publicServices.saveProfile(profile);
+    trackAnalytics("profile_created");
     setScreen("encounter");
   }
 
@@ -481,6 +587,10 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         applyTeachCaseLearning(model, memory),
       ),
     );
+    trackAnalytics("teach_flow_opened", {
+      category: settings.category,
+      difficulty: settings.difficulty,
+    });
     setTeachSaved(true);
   }
 
@@ -554,7 +664,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
         : screen === "play"
           ? getQuestionMascotState({
               mode: settings.mode,
-              isPending: isPending || isRevealing,
+              isPending: isPending || isRevealing || isReadInferencePending,
               isScanningGuess: isGuessScanning || isRevealing,
             })
           : screen === "encounter"
@@ -596,11 +706,27 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
           <div className="flex flex-col items-start gap-2">
             {showModeUtilities ? (
               <>
-              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-82" onClick={handleOpenMemory}>
+              <SurfacePillButton
+                tone="default"
+                surface="compact"
+                className="px-3 py-1.5 opacity-82"
+                onClick={() => {
+                  trackAnalytics("chamber_memory_opened");
+                  handleOpenMemory();
+                }}
+              >
                 <BookHeart className="h-4 w-4" />
                 Chamber memory
               </SurfacePillButton>
-              <SurfacePillButton tone="default" surface="compact" className="px-3 py-1.5 opacity-82" onClick={handleOpenWorldRank}>
+              <SurfacePillButton
+                tone="default"
+                surface="compact"
+                className="px-3 py-1.5 opacity-82"
+                onClick={() => {
+                  trackAnalytics("world_rank_opened");
+                  handleOpenWorldRank();
+                }}
+              >
                 <BookHeart className="h-4 w-4" />
                 World Rank
               </SurfacePillButton>
@@ -672,7 +798,7 @@ export function GameShell({ initialMode, initialCategory, initialDifficulty }: G
             <ReadMyMindBoard
               session={readSession}
               onAnswer={handleReadAnswer}
-              isPending={isPending || isRevealing}
+              isPending={isPending || isRevealing || isReadInferencePending}
               isScanningGuess={isGuessScanning || isRevealing}
             />
           </motion.div>

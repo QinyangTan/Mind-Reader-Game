@@ -4,6 +4,7 @@ import {
   publicBackendLimits,
   sanitizeIncomingProfile,
   submitScore,
+  type ScoreVerificationProof,
 } from "@/lib/server/public-game-backend";
 import type { GameResult } from "@/types/game";
 
@@ -17,11 +18,15 @@ export async function POST(request: Request) {
       profile?: unknown;
       result?: unknown;
       bestStreak?: unknown;
+      proof?: unknown;
     };
     const profile = sanitizeIncomingProfile(body.profile);
     const bestStreak = Number.isFinite(body.bestStreak) ? Number(body.bestStreak) : 0;
+    if (!checkRateLimit(`score-player:${profile.id}`, publicBackendLimits.scorePerPlayer)) {
+      return Response.json({ error: "Too many score submissions for this player." }, { status: 429 });
+    }
 
-    submitScore(profile, body.result as GameResult, bestStreak);
+    await submitScore(profile, body.result as GameResult, bestStreak, body.proof as ScoreVerificationProof | undefined);
     return Response.json({ ok: true });
   } catch (error) {
     return Response.json(

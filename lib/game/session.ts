@@ -22,6 +22,10 @@ import type {
   SystemAnsweredQuestion,
 } from "@/types/game";
 
+type ReadMyMindOutcome =
+  | { session: ReadMyMindSession; result?: undefined }
+  | { result: GameResult; session?: undefined };
+
 function resolveExtraEntity(extraEntities: GameEntity[], id: string) {
   return entityById.get(id) ?? extraEntities.find((entity) => entity.id === id);
 }
@@ -193,38 +197,14 @@ function createReadEscapeResult(
   );
 }
 
-export function applyReadMyMindAnswer(
+function advanceReadMyMindAfterAnswer(
   session: ReadMyMindSession,
-  answer: NormalizedAnswer,
+  asked: AnsweredQuestion[],
+  rankings: ReturnType<typeof rankCandidates>,
   extraEntities: GameEntity[] = [],
   inferenceModel?: LearnedInferenceModel,
-) {
-  const activeQuestion = session.currentQuestionId ? questionById.get(session.currentQuestionId) : null;
-
-  if (!activeQuestion) {
-    return {
-      result: createReadEscapeResult(session, session.guessAttemptsUsed, extraEntities),
-    };
-  }
-
-  const asked = [
-    ...session.asked,
-    {
-      questionId: activeQuestion.id,
-      attributeKey: activeQuestion.attributeKey,
-      prompt: activeQuestion.question,
-      answer,
-      askedAt: new Date().toISOString(),
-    },
-  ];
-
-  const rankings = rankCandidates(
-    session.category,
-    asked,
-    session.rejectedGuessIds,
-    extraEntities,
-    inferenceModel,
-  );
+  preselectedQuestionId?: string | null,
+): ReadMyMindOutcome {
   const remainingQuestions = session.config.maxQuestions - asked.length;
   const forcedGuessId = getTopCandidateId(rankings, session.rejectedGuessIds);
 
@@ -266,14 +246,15 @@ export function applyReadMyMindAnswer(
     };
   }
 
-  const nextQuestion = selectNextQuestion(
-    session.category,
-    asked.map((entry) => entry.questionId),
-    rankings,
-    extraEntities,
-    remainingQuestions,
-    inferenceModel,
-  );
+  const nextQuestion =
+    preselectedQuestionId ? questionById.get(preselectedQuestionId) ?? null : selectNextQuestion(
+      session.category,
+      asked.map((entry) => entry.questionId),
+      rankings,
+      extraEntities,
+      remainingQuestions,
+      inferenceModel,
+    );
 
   if (!nextQuestion) {
     if (!forcedGuessId) {
@@ -312,12 +293,84 @@ export function applyReadMyMindAnswer(
   };
 }
 
+export function applyReadMyMindAnswer(
+  session: ReadMyMindSession,
+  answer: NormalizedAnswer,
+  extraEntities: GameEntity[] = [],
+  inferenceModel?: LearnedInferenceModel,
+): ReadMyMindOutcome {
+  const activeQuestion = session.currentQuestionId ? questionById.get(session.currentQuestionId) : null;
+
+  if (!activeQuestion) {
+    return {
+      result: createReadEscapeResult(session, session.guessAttemptsUsed, extraEntities),
+    };
+  }
+
+  const asked = [
+    ...session.asked,
+    {
+      questionId: activeQuestion.id,
+      attributeKey: activeQuestion.attributeKey,
+      prompt: activeQuestion.question,
+      answer,
+      askedAt: new Date().toISOString(),
+    },
+  ];
+
+  const rankings = rankCandidates(
+    session.category,
+    asked,
+    session.rejectedGuessIds,
+    extraEntities,
+    inferenceModel,
+  );
+  return advanceReadMyMindAfterAnswer(session, asked, rankings, extraEntities, inferenceModel);
+}
+
+export function applyReadMyMindAnswerWithRankings(
+  session: ReadMyMindSession,
+  answer: NormalizedAnswer,
+  rankings: ReturnType<typeof rankCandidates>,
+  extraEntities: GameEntity[] = [],
+  inferenceModel?: LearnedInferenceModel,
+  preselectedQuestionId?: string | null,
+): ReadMyMindOutcome {
+  const activeQuestion = session.currentQuestionId ? questionById.get(session.currentQuestionId) : null;
+
+  if (!activeQuestion) {
+    return {
+      result: createReadEscapeResult(session, session.guessAttemptsUsed, extraEntities),
+    };
+  }
+
+  const asked = [
+    ...session.asked,
+    {
+      questionId: activeQuestion.id,
+      attributeKey: activeQuestion.attributeKey,
+      prompt: activeQuestion.question,
+      answer,
+      askedAt: new Date().toISOString(),
+    },
+  ];
+
+  return advanceReadMyMindAfterAnswer(
+    session,
+    asked,
+    rankings,
+    extraEntities,
+    inferenceModel,
+    preselectedQuestionId,
+  );
+}
+
 export function resolveReadMyMindGuess(
   session: ReadMyMindSession,
   guessedCorrectly: boolean,
   extraEntities: GameEntity[] = [],
   inferenceModel?: LearnedInferenceModel,
-) {
+): ReadMyMindOutcome {
   const guessId = session.queuedGuessId;
   const guessedEntity = guessId ? resolveExtraEntity(extraEntities, guessId) : undefined;
 
@@ -399,6 +452,107 @@ export function resolveReadMyMindGuess(
     remainingQuestions,
     inferenceModel,
   );
+
+  if (!nextQuestion) {
+    if (!fallbackGuessId) {
+      return {
+        result: createReadEscapeResult(
+          { ...session, rankings },
+          guessAttemptsUsed,
+          extraEntities,
+        ),
+      };
+    }
+
+    return {
+      session: {
+        ...session,
+        rankings,
+        rejectedGuessIds,
+        guessAttemptsUsed,
+        queuedGuessId: fallbackGuessId,
+        currentQuestionId: null,
+      } satisfies ReadMyMindSession,
+    };
+  }
+
+  return {
+    session: {
+      ...session,
+      rankings,
+      rejectedGuessIds,
+      guessAttemptsUsed,
+      queuedGuessId: null,
+      currentQuestionId: nextQuestion.id,
+    } satisfies ReadMyMindSession,
+  };
+}
+
+export function resolveReadMyMindGuessWithRankings(
+  session: ReadMyMindSession,
+  guessedCorrectly: boolean,
+  rankings: ReturnType<typeof rankCandidates>,
+  extraEntities: GameEntity[] = [],
+  inferenceModel?: LearnedInferenceModel,
+  preselectedQuestionId?: string | null,
+): ReadMyMindOutcome {
+  if (guessedCorrectly) {
+    return resolveReadMyMindGuess(session, true, extraEntities, inferenceModel);
+  }
+
+  const guessId = session.queuedGuessId;
+  const guessedEntity = guessId ? resolveExtraEntity(extraEntities, guessId) : undefined;
+
+  if (!guessId || !guessedEntity) {
+    return {
+      result: createReadEscapeResult(session, session.guessAttemptsUsed, extraEntities),
+    };
+  }
+
+  const rejectedGuessIds = [...session.rejectedGuessIds, guessId];
+  const guessAttemptsUsed = session.guessAttemptsUsed + 1;
+
+  if (guessAttemptsUsed >= session.config.maxGuesses) {
+    return {
+      result: createReadEscapeResult(session, guessAttemptsUsed, extraEntities),
+    };
+  }
+
+  const remainingQuestions = session.config.maxQuestions - session.asked.length;
+  const fallbackGuessId = getTopCandidateId(rankings, rejectedGuessIds);
+
+  if (remainingQuestions <= 0) {
+    if (!fallbackGuessId) {
+      return {
+        result: createReadEscapeResult(
+          { ...session, rankings },
+          guessAttemptsUsed,
+          extraEntities,
+        ),
+      };
+    }
+
+    return {
+      session: {
+        ...session,
+        rankings,
+        rejectedGuessIds,
+        guessAttemptsUsed,
+        queuedGuessId: fallbackGuessId,
+        currentQuestionId: null,
+      } satisfies ReadMyMindSession,
+    };
+  }
+
+  const nextQuestion =
+    preselectedQuestionId ? questionById.get(preselectedQuestionId) ?? null : selectNextQuestion(
+      session.category,
+      session.asked.map((entry) => entry.questionId),
+      rankings,
+      extraEntities,
+      remainingQuestions,
+      inferenceModel,
+    );
 
   if (!nextQuestion) {
     if (!fallbackGuessId) {

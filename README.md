@@ -7,6 +7,12 @@ Mind Reader is a cinematic, local-first browser guessing game set inside Mora's 
 
 Seeded knowledge base: **3,024 entities** across **5 categories** and **213 layered questions**. Categories are **Fictional Characters**, **Animals**, **Objects**, **Foods**, and **Historical Figures**.
 
+## Live Project
+
+Play the published web game here:
+
+[https://mind-reader-game-theta.vercel.app](https://mind-reader-game-theta.vercel.app)
+
 ## Version Highlights
 
 - **Clean chamber scenes.** The stage backgrounds use the cleaned button-free, panel-free, text-free scene plates. Center spotlight bloom and floating crest artifacts were removed from CSS overlays; the crest remains only in the real logo position.
@@ -21,8 +27,10 @@ Seeded knowledge base: **3,024 entities** across **5 categories** and **213 laye
 - **Denser question bank.** The newest production pass adds stronger specialist and fine-grained discriminators, especially for Historical Figures, Objects, and Foods.
 - **Guided Guess My Mind.** Reverse mode now uses layered inquiry: Broad Openers, Identity Split, Profile, Specialist, and Fine Detail. The player sees one active layer, one chosen family, only 2 recommended questions by default, and a short guidance hint explaining why that path is useful.
 - **Worker-backed inference.** Reverse-mode candidate and question ranking runs through a Web Worker with deterministic synchronous fallback and a small request cache so the chamber stays responsive as content grows.
-- **Same-origin public backend.** Profile and leaderboard calls now default to `/api/players`, `/api/scores`, and `/api/leaderboard`, with validation, rate limiting, and local fallback.
+- **Same-origin public backend.** Profile and leaderboard calls now default to `/api/players`, `/api/scores`, and `/api/leaderboard`, with validation, rate limiting, server-side score recomputation, durable Redis storage when configured, and local fallback.
 - **Production health check.** `/api/health` reports deployment, content totals, backend storage mode, and rate-limit settings for monitoring.
+- **Accuracy and content tooling.** `npm run eval:accuracy` simulates inference quality, while `npm run quality:content` reports coverage, weak profiles, duplicate aliases, and family balance.
+- **CI-ready gate.** GitHub Actions runs lint, typecheck, tests, validation, content quality, accuracy evaluation, and build checks on the repo.
 - **Category preview fix.** Category hover/focus/tap previews now update the description without advancing. Only the explicit Continue / Begin action moves the setup forward.
 - **Real example ads.** Top, left, and right sponsor slots now render cached real public ad art, stay outside the safe gameplay area, and can be closed after an exact 15-second countdown. No third-party ad code is included.
 
@@ -51,6 +59,8 @@ npm run test         # Vitest domain suite
 npm run test:e2e     # Playwright browser flow suite
 npm run test:watch   # Vitest watch mode
 npm run validate     # Seed integrity gate
+npm run quality:content # Content coverage and duplicate report
+npm run eval:accuracy   # Deterministic inference accuracy simulation
 
 npm run check        # lint + typecheck + test
 npm run check:full   # check + production build
@@ -63,9 +73,33 @@ Copy `env.example` if you want to configure leaderboard/profile behavior:
 ```bash
 NEXT_PUBLIC_MIND_READER_BACKEND_URL=
 NEXT_PUBLIC_MIND_READER_BACKEND_MODE=
+MIND_READER_LEADERBOARD_STORAGE=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
+NEXT_PUBLIC_MIND_READER_ANALYTICS_MODE=
+NEXT_PUBLIC_MIND_READER_ANALYTICS_ENDPOINT=
 ```
 
-By default, the browser uses this app's same-origin `/api` backend and falls back to browser-local rankings if a request fails. Set `NEXT_PUBLIC_MIND_READER_BACKEND_URL` to point at a separate durable backend, or set `NEXT_PUBLIC_MIND_READER_BACKEND_MODE=local` to force local-only development. See [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md).
+By default, the browser uses this app's same-origin `/api` backend and falls back to browser-local rankings if a request fails. The same-origin backend uses memory storage locally and automatically switches to durable Upstash Redis storage when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are configured. Set `NEXT_PUBLIC_MIND_READER_BACKEND_URL` to point at a separate backend, or set `NEXT_PUBLIC_MIND_READER_BACKEND_MODE=local` to force local-only development. See [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md).
+
+## Quality Gate
+
+The full production gate is:
+
+```bash
+npm install
+npm run clean
+npm run lint
+npm run typecheck
+npm run test
+npm run validate
+npm run quality:content
+npm run eval:accuracy
+npm run test:e2e
+npm run build
+```
+
+GitHub Actions runs the same core gate on push and pull request. Playwright e2e runs on pull requests and manual workflow dispatch.
 
 ## Scoring Formulas
 
@@ -177,7 +211,7 @@ Each slot is non-blocking and closes only after a visible 15-second countdown. D
 ## Production Notes
 
 - No account system is required; player profiles are anonymous display-name profiles.
-- The leaderboard service is adapter-based: local fallback for development, remote HTTP adapter for production.
+- The leaderboard service is adapter-based: browser-local fallback, same-origin memory fallback, same-origin Upstash Redis durability when configured, and optional remote HTTP adapter support.
 - `/api/health` is available for uptime checks and basic deployment/content diagnostics.
-- The app has production metadata, social preview metadata, `env.example`, deterministic score tests, profile tests, storage migration tests, domain tests, and seed validation.
-- Deploy as a normal Next.js app. If you enable a real backend, implement the endpoints in [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md), set `NEXT_PUBLIC_MIND_READER_BACKEND_URL`, and follow the production checklist in [docs/PUBLIC_DEPLOYMENT.md](docs/PUBLIC_DEPLOYMENT.md).
+- The app has production metadata, social preview metadata, `env.example`, deterministic score tests, server-side score verification tests, profile tests, storage migration tests, domain tests, Playwright e2e, seed validation, content quality reporting, and accuracy evaluation.
+- Deploy as a normal Next.js app. For durable same-origin rankings, configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`; for a separate backend, implement the endpoints in [docs/LEADERBOARD_BACKEND.md](docs/LEADERBOARD_BACKEND.md), set `NEXT_PUBLIC_MIND_READER_BACKEND_URL`, and follow the production checklist in [docs/PUBLIC_DEPLOYMENT.md](docs/PUBLIC_DEPLOYMENT.md).

@@ -137,7 +137,7 @@ function findDuplicates(values) {
     .map(([value, count]) => ({ value, count }));
 }
 
-function summarizeCoverage(category, entities, questions) {
+function summarizeCoverage(category, entities, questions, attributeKeys) {
   const categoryEntities = entities.filter((entity) => entity.category === category);
   const categoryQuestions = questions.filter((question) =>
     question.supportedCategories.includes(category),
@@ -152,6 +152,17 @@ function summarizeCoverage(category, entities, questions) {
     familyUse.set(question.family, (familyUse.get(question.family) ?? 0) + 1);
   }
 
+  const weakProfiles = categoryEntities
+    .map((entity) => ({
+      id: entity.id,
+      name: entity.name,
+      knownAttributes: attributeKeys.filter((key) => entity.attributes[key] !== "unknown").length,
+    }))
+    .filter((entity) => entity.knownAttributes < 10)
+    .toSorted((left, right) => left.knownAttributes - right.knownAttributes)
+    .slice(0, 10);
+  const largestFamilyCount = Math.max(0, ...familyUse.values());
+
   return {
     category,
     entities: categoryEntities.length,
@@ -164,7 +175,11 @@ function summarizeCoverage(category, entities, questions) {
       .toSorted((left, right) => right[1] - left[1])
       .slice(0, 8)
       .map(([family, count]) => ({ family, count })),
+    largestFamilyShare: categoryQuestions.length
+      ? Number((largestFamilyCount / categoryQuestions.length).toFixed(3))
+      : 0,
     usedAttributes: attributeUse.size,
+    weakProfiles,
   };
 }
 
@@ -175,6 +190,7 @@ function normalizeAlias(value) {
 async function main() {
   const { entities } = await loadTsModule(join(ROOT, "lib/data/entities.ts"));
   const { allQuestions } = await loadTsModule(join(ROOT, "lib/data/questions.ts"));
+  const { attributeKeys } = await loadTsModule(join(ROOT, "types/game.ts"));
   const duplicateAliases = findDuplicates(
     entities.flatMap((entity) => (entity.aliases ?? []).map(normalizeAlias)),
   );
@@ -187,7 +203,7 @@ async function main() {
       categories: CATEGORY_IDS.length,
     },
     categories: CATEGORY_IDS.map((category) =>
-      summarizeCoverage(category, entities, allQuestions),
+      summarizeCoverage(category, entities, allQuestions, attributeKeys),
     ),
     duplicateEntityIds: findDuplicates(entities.map((entity) => entity.id)).slice(0, 25),
     duplicateQuestionIds: findDuplicates(allQuestions.map((question) => question.id)).slice(0, 25),
@@ -204,6 +220,12 @@ async function main() {
 
     if ((summary.stages.fine ?? 0) < 5) {
       report.warnings.push(`${summary.category}: weak fine-detail coverage.`);
+    }
+
+    if (summary.largestFamilyShare > 0.28) {
+      report.warnings.push(
+        `${summary.category}: one question family dominates ${Math.round(summary.largestFamilyShare * 100)}% of prompts.`,
+      );
     }
   }
 

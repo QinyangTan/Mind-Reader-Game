@@ -5,6 +5,7 @@ import Image from "next/image";
 import { X } from "lucide-react";
 
 import { adCreatives, type AdCreativeId } from "@/lib/data/ad-creatives";
+import { trackAnalytics } from "@/lib/game/analytics";
 import { cn } from "@/lib/utils/cn";
 
 type TimedAdPlacement = "top" | "left" | "right";
@@ -89,6 +90,7 @@ export function TimedAdSlot({
           disabled={secondsLeft > 0}
           onClick={() => {
             setClosedAdId(id);
+            trackAnalytics("ad_closed", { placement, creativeId });
           }}
           className="flex h-7 min-w-7 items-center justify-center border border-[rgba(226,192,118,0.24)] bg-[rgba(9,5,13,0.7)] px-2 text-[0.65rem] text-[#eadbb3] disabled:cursor-not-allowed disabled:opacity-70"
           aria-label={secondsLeft > 0 ? `Ad can be closed in ${secondsLeft} seconds` : "Close ad"}

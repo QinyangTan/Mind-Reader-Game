@@ -13,7 +13,12 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json()) as { profile?: unknown };
-    const profile = upsertPlayerProfile(sanitizeIncomingProfile(body.profile));
+    const incoming = sanitizeIncomingProfile(body.profile);
+    if (!checkRateLimit(`profile-player:${incoming.id}`, publicBackendLimits.profilePerPlayer)) {
+      return Response.json({ error: "Too many profile updates for this player." }, { status: 429 });
+    }
+
+    const profile = await upsertPlayerProfile(incoming);
     return Response.json({ profile });
   } catch (error) {
     return Response.json(

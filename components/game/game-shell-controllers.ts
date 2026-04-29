@@ -1,9 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import type { SetupStep } from "@/components/game/play-setup";
-import type { GameResult } from "@/types/game";
+import {
+  createPublicGameServices,
+  type PublicGameServices,
+  type ScoreSubmissionProof,
+} from "@/lib/game/leaderboard-service";
+import {
+  applyResultToStats,
+  createHistoryEntry,
+} from "@/lib/game/storage";
+import type { GameResult, PersistedVault, PlayerProfile } from "@/types/game";
 
 export type ScreenState =
   | "profile"
@@ -113,4 +131,52 @@ export function useUtilitySceneController({
     closeMemory: closeUtilityScene,
     closeWorldRank: closeUtilityScene,
   };
+}
+
+export function usePublicServicesController() {
+  return useMemo(() => createPublicGameServices(), []);
+}
+
+interface ResultPersistenceControllerOptions {
+  vault: PersistedVault;
+  setVault: Dispatch<SetStateAction<PersistedVault>>;
+  playerProfile: PlayerProfile | null;
+  publicServices: PublicGameServices;
+}
+
+export function useResultPersistenceController({
+  vault,
+  setVault,
+  playerProfile,
+  publicServices,
+}: ResultPersistenceControllerOptions) {
+  const recordedResults = useRef<Set<string>>(new Set());
+
+  const persistResultOnce = useCallback(
+    (gameResult: GameResult, proof?: ScoreSubmissionProof) => {
+      if (recordedResults.current.has(gameResult.id)) {
+        return;
+      }
+
+      recordedResults.current.add(gameResult.id);
+      const projectedStats = applyResultToStats(vault.stats, gameResult);
+      setVault((previous) => ({
+        ...previous,
+        stats: applyResultToStats(previous.stats, gameResult),
+        history: [createHistoryEntry(gameResult), ...previous.history].slice(0, 16),
+      }));
+
+      if (playerProfile) {
+        void publicServices.submitResult(
+          playerProfile,
+          gameResult,
+          projectedStats.bestStreak,
+          proof,
+        );
+      }
+    },
+    [playerProfile, publicServices, setVault, vault.stats],
+  );
+
+  return { persistResultOnce };
 }

@@ -91,8 +91,13 @@ test("Chamber Memory and World Rank open and return from mode selection", async 
   await expect(page.getByRole("heading", { name: "Choose your ritual" })).toBeVisible();
 });
 
-test("example ads render, close after the timer, and reappear after refresh", async ({ page }) => {
+test("example ads render, close after the timer, and reappear after refresh", async ({ page }, testInfo) => {
   await page.goto("/");
+  if (testInfo.project.name.includes("mobile")) {
+    await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(0);
+    return;
+  }
+
   await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(3);
   await expect(page.getByRole("region", { name: "top sponsored space" })).toContainText("Example Ad");
   await expect(page.getByRole("region", { name: "left sponsored space" })).toContainText("Example Ad");
