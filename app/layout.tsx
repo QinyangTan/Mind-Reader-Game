@@ -16,7 +16,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://mind-reader.local"),
+  metadataBase: new URL("https://mind-reader-game-theta.vercel.app"),
   title: {
     default: "Mind Reader",
     template: "%s | Mind Reader",
@@ -58,6 +58,13 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${alegreyaSans.variable} ${cormorant.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5423711015893224"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );
