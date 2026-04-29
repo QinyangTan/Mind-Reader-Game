@@ -115,6 +115,16 @@ export const attributeKeys = [
   "audio_item",
   "desk_item",
   "body_worn_object",
+  "decorative_item",
+  "personal_care_item",
+  "fastener_or_closure",
+  "measuring_item",
+  "textile_or_fabric",
+  "bladed_tool",
+  "heating_item",
+  "imaging_item",
+  "timekeeping_item",
+  "repair_or_maintenance",
   "sweet",
   "savory",
   "served_hot",
@@ -148,10 +158,24 @@ export const attributeKeys = [
   "soup_dish",
   "beverage",
   "dessert_pastry",
+  "bread_based",
+  "vegetable_forward",
+  "fruit_forward",
+  "legume_based",
+  "egg_based",
+  "grilled",
+  "raw_or_fresh",
+  "sour_or_tangy",
+  "sauce_or_condiment",
+  "cheese_forward",
+  "fried_dough",
+  "chocolate_or_cocoa",
   "deceased",
   "ancient",
   "medieval",
   "modern",
+  "early_modern",
+  "twentieth_century",
   "from_europe",
   "from_asia",
   "from_africa",
@@ -183,6 +207,18 @@ export const attributeKeys = [
   "empire_builder",
   "civil_rights_leader",
   "arts_or_literature",
+  "president_or_prime_minister",
+  "monarch",
+  "physicist",
+  "biologist_or_naturalist",
+  "chemist",
+  "poet_or_playwright",
+  "painter_or_sculptor",
+  "religious_reformer",
+  "war_or_revolution",
+  "abolition_or_suffrage",
+  "space_or_astronomy",
+  "economic_or_industrial",
 ] as const;
 
 export type AttributeKey = (typeof attributeKeys)[number];
@@ -301,6 +337,16 @@ export const objectAttributeKeys: AttributeKey[] = [
   "audio_item",
   "desk_item",
   "body_worn_object",
+  "decorative_item",
+  "personal_care_item",
+  "fastener_or_closure",
+  "measuring_item",
+  "textile_or_fabric",
+  "bladed_tool",
+  "heating_item",
+  "imaging_item",
+  "timekeeping_item",
+  "repair_or_maintenance",
   "large",
   "small",
 ];
@@ -342,6 +388,18 @@ export const foodAttributeKeys: AttributeKey[] = [
   "soup_dish",
   "beverage",
   "dessert_pastry",
+  "bread_based",
+  "vegetable_forward",
+  "fruit_forward",
+  "legume_based",
+  "egg_based",
+  "grilled",
+  "raw_or_fresh",
+  "sour_or_tangy",
+  "sauce_or_condiment",
+  "cheese_forward",
+  "fried_dough",
+  "chocolate_or_cocoa",
   "used_daily",
 ];
 
@@ -356,6 +414,8 @@ export const historicalFigureAttributeKeys: AttributeKey[] = [
   "ancient",
   "medieval",
   "modern",
+  "early_modern",
+  "twentieth_century",
   "from_europe",
   "from_asia",
   "from_africa",
@@ -387,6 +447,18 @@ export const historicalFigureAttributeKeys: AttributeKey[] = [
   "empire_builder",
   "civil_rights_leader",
   "arts_or_literature",
+  "president_or_prime_minister",
+  "monarch",
+  "physicist",
+  "biologist_or_naturalist",
+  "chemist",
+  "poet_or_playwright",
+  "painter_or_sculptor",
+  "religious_reformer",
+  "war_or_revolution",
+  "abolition_or_suffrage",
+  "space_or_astronomy",
+  "economic_or_industrial",
   "royal",
   "famous_worldwide",
 ];
@@ -494,6 +566,7 @@ export interface RankedCandidate {
   score: number;
   confidence: number;
   matchedAnswers: number;
+  hardContradictions?: number;
 }
 
 export interface CandidateUncertaintyMetrics {
@@ -532,6 +605,8 @@ export interface ReadMyMindSession extends SetupSelection {
   rejectedGuessIds: string[];
   guessAttemptsUsed: number;
   queuedGuessId: string | null;
+  leadingCandidateId: string | null;
+  leaderStreak: number;
   config: ReadMyMindConfig;
 }
 

@@ -4,6 +4,7 @@ import { difficultyConfig } from "@/lib/game/game-config";
 import { selectNextQuestion } from "@/lib/game/question-selection";
 import { calculateGameScore } from "@/lib/game/score";
 import {
+  countStrongAnsweredTraits,
   getTopCandidateId,
   rankCandidates,
   shouldCommitFinalGuess,
@@ -29,6 +30,28 @@ type ReadMyMindOutcome =
 
 function resolveExtraEntity(extraEntities: GameEntity[], id: string) {
   return entityById.get(id) ?? extraEntities.find((entity) => entity.id === id);
+}
+
+function leaderStabilityFor(
+  session: ReadMyMindSession,
+  rankings: ReturnType<typeof rankCandidates>,
+) {
+  const leaderId = rankings[0]?.entityId ?? null;
+  const leaderStreak =
+    leaderId && leaderId === session.leadingCandidateId ? session.leaderStreak + 1 : leaderId ? 1 : 0;
+
+  return { leaderId, leaderStreak };
+}
+
+function guessEvidence(
+  asked: AnsweredQuestion[],
+  leaderStreak: number,
+) {
+  return {
+    questionsAsked: asked.length,
+    leaderStreak,
+    strongAnswerCount: countStrongAnsweredTraits(asked),
+  };
 }
 
 function combineCategoryPool(
@@ -114,6 +137,8 @@ export function createReadMyMindSession(
     rejectedGuessIds: [],
     guessAttemptsUsed: 0,
     queuedGuessId: null,
+    leadingCandidateId: null,
+    leaderStreak: 0,
     config,
   };
 }
@@ -208,15 +233,19 @@ function advanceReadMyMindAfterAnswer(
 ): ReadMyMindOutcome {
   const remainingQuestions = session.config.maxQuestions - asked.length;
   const forcedGuessId = getTopCandidateId(rankings, session.rejectedGuessIds);
+  const stability = leaderStabilityFor(session, rankings);
+  const evidence = guessEvidence(asked, stability.leaderStreak);
 
   if (remainingQuestions <= 0) {
-    if (!forcedGuessId || !shouldCommitFinalGuess(rankings, session.category)) {
+    if (!forcedGuessId || !shouldCommitFinalGuess(rankings, session.category, evidence)) {
       return {
         result: createReadEscapeResult(
           {
             ...session,
             asked,
             rankings,
+            leadingCandidateId: stability.leaderId,
+            leaderStreak: stability.leaderStreak,
           },
           session.guessAttemptsUsed,
           extraEntities,
@@ -231,6 +260,8 @@ function advanceReadMyMindAfterAnswer(
         rankings,
         currentQuestionId: null,
         queuedGuessId: forcedGuessId,
+        leadingCandidateId: stability.leaderId,
+        leaderStreak: stability.leaderStreak,
       } satisfies ReadMyMindSession,
     };
   }
@@ -242,6 +273,7 @@ function advanceReadMyMindAfterAnswer(
       asked.length,
       remainingQuestions,
       session.category,
+      evidence,
     ) &&
     forcedGuessId
   ) {
@@ -252,6 +284,8 @@ function advanceReadMyMindAfterAnswer(
         rankings,
         currentQuestionId: null,
         queuedGuessId: forcedGuessId,
+        leadingCandidateId: stability.leaderId,
+        leaderStreak: stability.leaderStreak,
       } satisfies ReadMyMindSession,
     };
   }
@@ -274,6 +308,8 @@ function advanceReadMyMindAfterAnswer(
             ...session,
             asked,
             rankings,
+            leadingCandidateId: stability.leaderId,
+            leaderStreak: stability.leaderStreak,
           },
           session.guessAttemptsUsed,
           extraEntities,
@@ -299,6 +335,8 @@ function advanceReadMyMindAfterAnswer(
       rankings,
       currentQuestionId: nextQuestion.id,
       queuedGuessId: null,
+      leadingCandidateId: stability.leaderId,
+      leaderStreak: stability.leaderStreak,
     } satisfies ReadMyMindSession,
   };
 }
@@ -430,12 +468,19 @@ export function resolveReadMyMindGuess(
   );
   const remainingQuestions = session.config.maxQuestions - session.asked.length;
   const fallbackGuessId = getTopCandidateId(rankings, rejectedGuessIds);
+  const stability = leaderStabilityFor({ ...session, rejectedGuessIds }, rankings);
+  const evidence = guessEvidence(session.asked, stability.leaderStreak);
 
   if (remainingQuestions <= 0) {
-    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category)) {
+    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category, evidence)) {
       return {
         result: createReadEscapeResult(
-          { ...session, rankings },
+          {
+            ...session,
+            rankings,
+            leadingCandidateId: stability.leaderId,
+            leaderStreak: stability.leaderStreak,
+          },
           guessAttemptsUsed,
           extraEntities,
         ),
@@ -450,6 +495,8 @@ export function resolveReadMyMindGuess(
         guessAttemptsUsed,
         queuedGuessId: fallbackGuessId,
         currentQuestionId: null,
+        leadingCandidateId: stability.leaderId,
+        leaderStreak: stability.leaderStreak,
       } satisfies ReadMyMindSession,
     };
   }
@@ -464,10 +511,15 @@ export function resolveReadMyMindGuess(
   );
 
   if (!nextQuestion) {
-    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category)) {
+    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category, evidence)) {
       return {
         result: createReadEscapeResult(
-          { ...session, rankings },
+          {
+            ...session,
+            rankings,
+            leadingCandidateId: stability.leaderId,
+            leaderStreak: stability.leaderStreak,
+          },
           guessAttemptsUsed,
           extraEntities,
         ),
@@ -482,6 +534,8 @@ export function resolveReadMyMindGuess(
         guessAttemptsUsed,
         queuedGuessId: fallbackGuessId,
         currentQuestionId: null,
+        leadingCandidateId: stability.leaderId,
+        leaderStreak: stability.leaderStreak,
       } satisfies ReadMyMindSession,
     };
   }
@@ -494,6 +548,8 @@ export function resolveReadMyMindGuess(
       guessAttemptsUsed,
       queuedGuessId: null,
       currentQuestionId: nextQuestion.id,
+      leadingCandidateId: stability.leaderId,
+      leaderStreak: stability.leaderStreak,
     } satisfies ReadMyMindSession,
   };
 }
@@ -530,12 +586,19 @@ export function resolveReadMyMindGuessWithRankings(
 
   const remainingQuestions = session.config.maxQuestions - session.asked.length;
   const fallbackGuessId = getTopCandidateId(rankings, rejectedGuessIds);
+  const stability = leaderStabilityFor({ ...session, rejectedGuessIds }, rankings);
+  const evidence = guessEvidence(session.asked, stability.leaderStreak);
 
   if (remainingQuestions <= 0) {
-    if (!fallbackGuessId) {
+    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category, evidence)) {
       return {
         result: createReadEscapeResult(
-          { ...session, rankings },
+          {
+            ...session,
+            rankings,
+            leadingCandidateId: stability.leaderId,
+            leaderStreak: stability.leaderStreak,
+          },
           guessAttemptsUsed,
           extraEntities,
         ),
@@ -550,6 +613,8 @@ export function resolveReadMyMindGuessWithRankings(
         guessAttemptsUsed,
         queuedGuessId: fallbackGuessId,
         currentQuestionId: null,
+        leadingCandidateId: stability.leaderId,
+        leaderStreak: stability.leaderStreak,
       } satisfies ReadMyMindSession,
     };
   }
@@ -565,10 +630,15 @@ export function resolveReadMyMindGuessWithRankings(
     );
 
   if (!nextQuestion) {
-    if (!fallbackGuessId) {
+    if (!fallbackGuessId || !shouldCommitFinalGuess(rankings, session.category, evidence)) {
       return {
         result: createReadEscapeResult(
-          { ...session, rankings },
+          {
+            ...session,
+            rankings,
+            leadingCandidateId: stability.leaderId,
+            leaderStreak: stability.leaderStreak,
+          },
           guessAttemptsUsed,
           extraEntities,
         ),
@@ -583,6 +653,8 @@ export function resolveReadMyMindGuessWithRankings(
         guessAttemptsUsed,
         queuedGuessId: fallbackGuessId,
         currentQuestionId: null,
+        leadingCandidateId: stability.leaderId,
+        leaderStreak: stability.leaderStreak,
       } satisfies ReadMyMindSession,
     };
   }
@@ -595,6 +667,8 @@ export function resolveReadMyMindGuessWithRankings(
       guessAttemptsUsed,
       queuedGuessId: null,
       currentQuestionId: nextQuestion.id,
+      leadingCandidateId: stability.leaderId,
+      leaderStreak: stability.leaderStreak,
     } satisfies ReadMyMindSession,
   };
 }

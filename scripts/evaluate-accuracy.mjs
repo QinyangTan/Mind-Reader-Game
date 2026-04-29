@@ -122,6 +122,7 @@ function parseArgs(argv) {
     all: false,
     category: null,
     limit: DEFAULT_LIMIT_PER_CATEGORY,
+    format: "json",
   };
 
   for (const arg of argv) {
@@ -137,6 +138,17 @@ function parseArgs(argv) {
 
     if (arg.startsWith("--limit=")) {
       args.limit = Math.max(1, Number(arg.slice("--limit=".length)) || DEFAULT_LIMIT_PER_CATEGORY);
+      continue;
+    }
+
+    if (arg === "--json") {
+      args.format = "json";
+      continue;
+    }
+
+    if (arg === "--markdown") {
+      args.format = "markdown";
+      continue;
     }
   }
 
@@ -171,6 +183,65 @@ function averageNumber(values, digits = 3) {
   return Number(average(values).toFixed(digits));
 }
 
+function median(values) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sorted = [...values].toSorted((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+function rankOfEntity(rankings, entityId) {
+  const index = rankings.findIndex((candidate) => candidate.entityId === entityId);
+  return index >= 0 ? index + 1 : rankings.length + 1;
+}
+
+function formatMarkdown(report) {
+  const lines = [
+    "# Mind Reader Accuracy Evaluation",
+    "",
+    `Generated: ${report.generatedAt}`,
+    `Mode: ${report.mode} (${report.difficulty})`,
+    `Sampling: ${report.sampling}`,
+    "",
+    "## Totals",
+    "",
+    `- Simulated entities: ${report.totals.simulatedEntities}`,
+    `- Top-1 accuracy: ${report.totals.averageTop1Accuracy}`,
+    `- Top-5 accuracy: ${report.totals.averageTop5Accuracy}`,
+    `- Top-10 accuracy: ${report.totals.averageTop10Accuracy}`,
+    `- Committed guess rate: ${report.totals.averageCommittedGuessRate}`,
+    `- Committed guess accuracy: ${report.totals.averageCommittedGuessAccuracy}`,
+    `- Wrong committed guess rate: ${report.totals.averageWrongCommittedGuessRate}`,
+    `- Stump rate: ${report.totals.averageStumpRate}`,
+    `- Wrong early guess rate: ${report.totals.averageWrongEarlyGuessRate}`,
+    "",
+    "## Categories",
+    "",
+    "| Category | Top-1 | Top-5 | Top-10 | Commit | Wrong Commit | Stump | Avg Rank | Unknown Asked |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+  ];
+
+  for (const category of report.categories) {
+    lines.push(
+      `| ${category.category} | ${category.top1Accuracy} | ${category.top5Accuracy} | ${category.top10Accuracy} | ${category.committedGuessRate} | ${category.wrongCommittedGuessRate} | ${category.stumpRate} | ${category.averageFinalCorrectRank} | ${category.unknownAskedRate} |`,
+    );
+  }
+
+  lines.push("", "## Hardest Entities", "");
+  for (const entity of report.hardestEntities.slice(0, 10)) {
+    lines.push(
+      `- ${entity.name} (${entity.category}) - final rank ${entity.finalCorrectRank}, confidence ${entity.finalConfidence}, known attrs ${entity.knownAttributes}`,
+    );
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
 function simulateEntity({
   entity,
   difficultyConfig,
@@ -179,6 +250,7 @@ function simulateEntity({
   selectNextQuestion,
   getGuessTimingDiagnostics,
   shouldCommitFinalGuess,
+  countStrongAnsweredTraits,
 }) {
   const config = difficultyConfig.normal.readMyMind;
   let asked = [];
@@ -189,16 +261,24 @@ function simulateEntity({
   let previousFamily = null;
   const usedQuestions = [];
   const timingReasons = new Map();
+  let leadingCandidateId = null;
+  let leaderStreak = 0;
 
   while (asked.length < config.maxQuestions) {
     const remainingQuestions = config.maxQuestions - asked.length;
     const leader = rankings[0];
+    const strongAnswerCount = countStrongAnsweredTraits(asked);
     const timing = getGuessTimingDiagnostics(
       rankings,
       config,
       asked.length,
       remainingQuestions,
       entity.category,
+      {
+        questionsAsked: asked.length,
+        leaderStreak,
+        strongAnswerCount,
+      },
     );
     timingReasons.set(timing.reason, (timingReasons.get(timing.reason) ?? 0) + 1);
 
@@ -216,6 +296,14 @@ function simulateEntity({
           finalMargin: leader.confidence - (rankings[1]?.confidence ?? 0),
           finalEffectiveCandidateCount: timing.effectiveCandidateCount,
           finalNormalizedEntropy: timing.normalizedEntropy,
+          leaderStreak,
+          strongAnswerCount,
+          finalCorrectRank: 1,
+          top5: true,
+          top10: true,
+          unknownAskedRate: average(
+            asked.map((answer) => (entity.attributes[answer.attributeKey] === "unknown" ? 1 : 0)),
+          ),
           timingReasons,
         };
       }
@@ -259,18 +347,33 @@ function simulateEntity({
       },
     ];
     rankings = rankCandidates(entity.category, asked, rejectedGuessIds, []);
+    const nextLeaderId = rankings[0]?.entityId ?? null;
+    leaderStreak =
+      nextLeaderId && nextLeaderId === leadingCandidateId ? leaderStreak + 1 : nextLeaderId ? 1 : 0;
+    leadingCandidateId = nextLeaderId;
   }
 
   const finalLeader = rankings[0]?.entityId;
-  const finalCommitted = shouldCommitFinalGuess(rankings, entity.category);
+  const strongAnswerCount = countStrongAnsweredTraits(asked);
+  const finalCommitted = shouldCommitFinalGuess(rankings, entity.category, {
+    questionsAsked: asked.length,
+    leaderStreak,
+    strongAnswerCount,
+  });
   const finalConfidence = rankings[0]?.confidence ?? 0;
   const finalMargin = finalConfidence - (rankings[1]?.confidence ?? 0);
+  const finalCorrectRank = rankOfEntity(rankings, entity.id);
   const finalTiming = getGuessTimingDiagnostics(
     rankings,
     config,
     asked.length,
     Math.max(0, config.maxQuestions - asked.length),
     entity.category,
+    {
+      questionsAsked: asked.length,
+      leaderStreak,
+      strongAnswerCount,
+    },
   );
   timingReasons.set(finalTiming.reason, (timingReasons.get(finalTiming.reason) ?? 0) + 1);
 
@@ -287,6 +390,14 @@ function simulateEntity({
     finalMargin,
     finalEffectiveCandidateCount: finalTiming.effectiveCandidateCount,
     finalNormalizedEntropy: finalTiming.normalizedEntropy,
+    leaderStreak,
+    strongAnswerCount,
+    finalCorrectRank,
+    top5: finalCorrectRank <= 5,
+    top10: finalCorrectRank <= 10,
+    unknownAskedRate: average(
+      asked.map((answer) => (entity.attributes[answer.attributeKey] === "unknown" ? 1 : 0)),
+    ),
     timingReasons,
   };
 }
@@ -296,12 +407,15 @@ async function main() {
   const { entities } = await loadTsModule(join(ROOT, "lib/data/entities.ts"));
   const { questionById } = await loadTsModule(join(ROOT, "lib/data/questions.ts"));
   const { difficultyConfig } = await loadTsModule(join(ROOT, "lib/game/game-config.ts"));
-  const { rankCandidates, getGuessTimingDiagnostics, shouldCommitFinalGuess } = await loadTsModule(join(ROOT, "lib/game/scoring.ts"));
+  const { rankCandidates, getGuessTimingDiagnostics, shouldCommitFinalGuess, countStrongAnsweredTraits } = await loadTsModule(join(ROOT, "lib/game/scoring.ts"));
   const { selectNextQuestion } = await loadTsModule(join(ROOT, "lib/game/question-selection.ts"));
   const { attributeKeys, entityCategories } = await loadTsModule(join(ROOT, "types/game.ts"));
 
   const categories = args.category ? [args.category] : entityCategories;
   const questionUse = new Map();
+  const questionUtility = new Map();
+  const familyUse = new Map();
+  const familyUtility = new Map();
   const wrongPairs = new Map();
   const timingReasonUse = new Map();
   const categoryReports = [];
@@ -322,9 +436,19 @@ async function main() {
         selectNextQuestion,
         getGuessTimingDiagnostics,
         shouldCommitFinalGuess,
+        countStrongAnsweredTraits,
       });
       for (const questionId of result.usedQuestions) {
         questionUse.set(questionId, (questionUse.get(questionId) ?? 0) + 1);
+        const question = questionById.get(questionId);
+        if (question) {
+          const familyKey = `${question.stage}:${question.family}`;
+          familyUse.set(familyKey, (familyUse.get(familyKey) ?? 0) + 1);
+          if (result.correct || result.top5) {
+            questionUtility.set(questionId, (questionUtility.get(questionId) ?? 0) + 1);
+            familyUtility.set(familyKey, (familyUtility.get(familyKey) ?? 0) + 1);
+          }
+        }
       }
       for (const [reason, count] of result.timingReasons) {
         const key = `${category}:${reason}`;
@@ -344,6 +468,8 @@ async function main() {
         prematureWrongGuesses: result.prematureWrongGuesses,
         finalConfidence: Number(result.finalConfidence.toFixed(4)),
         finalMargin: Number(result.finalMargin.toFixed(4)),
+        finalCorrectRank: result.finalCorrectRank,
+        leaderStreak: result.leaderStreak,
         knownAttributes,
       });
       lowCoverageEntities.push({
@@ -360,6 +486,8 @@ async function main() {
       sampleSize: sampled.length,
       totalEntities: categoryEntities.length,
       top1Accuracy: Number((results.filter((result) => result.correct).length / results.length).toFixed(3)),
+      top5Accuracy: Number(average(results.map((result) => result.top5 ? 1 : 0)).toFixed(3)),
+      top10Accuracy: Number(average(results.map((result) => result.top10 ? 1 : 0)).toFixed(3)),
       committedGuessRate: Number(average(results.map((result) => result.finalCommitted ? 1 : 0)).toFixed(3)),
       committedGuessAccuracy: Number(
         (
@@ -372,11 +500,15 @@ async function main() {
         average(results.map((result) => result.finalCommitted && !result.correct ? 1 : 0)).toFixed(3),
       ),
       averageQuestionsToGuess: averageNumber(results.map((result) => result.questions), 2),
+      averageFinalCorrectRank: averageNumber(results.map((result) => result.finalCorrectRank), 2),
+      medianFinalCorrectRank: Number(median(results.map((result) => result.finalCorrectRank)).toFixed(2)),
       wrongEarlyGuessRate: Number((average(results.map((result) => result.prematureWrongGuesses > 0 ? 1 : 0))).toFixed(3)),
       averageFinalConfidence: averageNumber(results.map((result) => result.finalConfidence), 3),
       averageFinalMargin: averageNumber(results.map((result) => result.finalMargin), 3),
       averageEffectiveCandidateCount: averageNumber(results.map((result) => result.finalEffectiveCandidateCount), 2),
       averageNormalizedEntropy: averageNumber(results.map((result) => result.finalNormalizedEntropy), 3),
+      averageLeaderStreak: averageNumber(results.map((result) => result.leaderStreak), 2),
+      unknownAskedRate: Number(average(results.map((result) => result.unknownAskedRate)).toFixed(3)),
       repeatedFamilyRate: Number((average(results.map((result) => result.repeatedFamilies / Math.max(1, result.questions)))).toFixed(3)),
       guessTimingReasons: Object.fromEntries(
         [...timingReasonUse.entries()]
@@ -400,6 +532,12 @@ async function main() {
       averageTop1Accuracy: Number(
         average(categoryReports.map((report) => report.top1Accuracy)).toFixed(3),
       ),
+      averageTop5Accuracy: Number(
+        average(categoryReports.map((report) => report.top5Accuracy)).toFixed(3),
+      ),
+      averageTop10Accuracy: Number(
+        average(categoryReports.map((report) => report.top10Accuracy)).toFixed(3),
+      ),
       averageCommittedGuessRate: Number(
         average(categoryReports.map((report) => report.committedGuessRate)).toFixed(3),
       ),
@@ -420,6 +558,9 @@ async function main() {
       ),
     },
     mostUsedQuestions: topEntries(questionUse, 12),
+    mostUsefulQuestions: topEntries(questionUtility, 12),
+    questionFamilyUsage: topEntries(familyUse, 14),
+    questionFamilyUtility: topEntries(familyUtility, 14),
     commonWrongGuessPairs: topEntries(wrongPairs, 12),
     hardestEntities: hardestEntities
       .toSorted((left, right) => {
@@ -429,7 +570,7 @@ async function main() {
         if (right.prematureWrongGuesses !== left.prematureWrongGuesses) {
           return right.prematureWrongGuesses - left.prematureWrongGuesses;
         }
-        return right.questions - left.questions;
+        return right.finalCorrectRank - left.finalCorrectRank || right.questions - left.questions;
       })
       .slice(0, 16),
     lowestCoverageEntities: lowCoverageEntities
@@ -446,7 +587,11 @@ async function main() {
       .map((report) => report.category),
   };
 
-  console.log(JSON.stringify(report, null, 2));
+  if (args.format === "markdown") {
+    console.log(formatMarkdown(report));
+  } else {
+    console.log(JSON.stringify(report, null, 2));
+  }
 }
 
 main().catch((error) => {

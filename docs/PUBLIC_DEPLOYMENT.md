@@ -40,6 +40,8 @@ NEXT_PUBLIC_MIND_READER_ANALYTICS_ENDPOINT=
 
 Leave the backend URL empty to use the same-origin `/api` backend with browser-local fallback. Add `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` to make that same-origin backend durable. Set `NEXT_PUBLIC_MIND_READER_BACKEND_MODE=local` only when you want to skip public API calls during development. Set `NEXT_PUBLIC_MIND_READER_BACKEND_URL` when a separate backend implements the contract in `docs/LEADERBOARD_BACKEND.md`.
 
+Current production source of truth is always `/api/health`. The latest verification for `https://mind-reader-game-theta.vercel.app` reports `backend.storage = "server-memory"`, `backend.durableConfigured = false`, and `backend.redisConfigured = false` because the required Upstash Redis env vars are not configured on Vercel yet.
+
 ## Health Check
 
 After deployment, verify the public readiness endpoint:
@@ -126,10 +128,20 @@ Use the deterministic simulator to identify weak categories and overused questio
 ```bash
 npm run eval:accuracy
 npm run eval:accuracy -- --category=historical_figures --limit=80
+npm run eval:accuracy -- --category=objects --limit=100 --markdown
+npm run eval:accuracy -- --category=foods --limit=100 --json
 npm run eval:accuracy -- --all
 ```
 
-The default run samples each category so it stays fast enough for local and CI use. It reports top-1 accuracy, premature wrong-guess rate, timing reasons, common wrong-guess pairs, hard entities, and low-coverage entities. The `--all` run is slower and better for dedicated content-tuning passes.
+The default run samples each category so it stays fast enough for local and CI use. It reports top-1, top-5, and top-10 accuracy, committed-guess rate, stump rate, wrong committed guesses, timing reasons, question-family usage and utility, common wrong-guess pairs, hard entities, low-coverage entities, and leader-stability diagnostics. The `--all` run is slower and better for dedicated content-tuning passes.
+
+Interpret the trust metrics together:
+
+- A high stump rate means Mora is too hesitant.
+- A high wrong committed-guess rate means Mora is guessing without enough evidence.
+- A healthy tuning pass should reduce stumps by improving endgame evidence and leader stability, not by blindly lowering early thresholds.
+
+Run `npm run quality:content` after content changes. It includes profile-uniqueness diagnostics that report highly similar entity clusters, indistinguishable pairs, and unknown-heavy entities by category.
 
 ## Analytics
 

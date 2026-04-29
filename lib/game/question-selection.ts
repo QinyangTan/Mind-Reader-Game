@@ -43,6 +43,7 @@ const normalizedAnswers: readonly NormalizedAnswer[] = [
 
 const TOP_POOL_SIZE = 64;
 const ENDGAME_TOP_K = 5;
+const ENDGAME_WIDE_TOP_K = 10;
 const RECENT_GROUP_WINDOW = 2;
 const RECENT_FAMILY_WINDOW = 3;
 const HIGH_VALUE_IG_FLOOR = 0.035;
@@ -88,8 +89,9 @@ function topKSplit(
   question: QuestionDefinition,
   rankedCandidates: RankedCandidate[],
   resolveEntity: EntityResolver,
+  topK = ENDGAME_TOP_K,
 ) {
-  const top = rankedCandidates.slice(0, ENDGAME_TOP_K);
+  const top = rankedCandidates.slice(0, topK);
   const resolved = top
     .map((candidate) => {
       const entity = resolveEntity(candidate.entityId);
@@ -119,6 +121,25 @@ function topKSplit(
   }
 
   return weightSum > 0 ? weightedDistance / weightSum : 0;
+}
+
+function topKnownCoverage(
+  question: QuestionDefinition,
+  rankedCandidates: RankedCandidate[],
+  resolveEntity: EntityResolver,
+  topK = ENDGAME_WIDE_TOP_K,
+) {
+  const top = rankedCandidates.slice(0, topK);
+  const total = top.reduce((sum, candidate) => sum + candidate.confidence, 0) || 1;
+  return (
+    top.reduce((sum, candidate) => {
+      const entity = resolveEntity(candidate.entityId);
+      if (!entity || entity.attributes[question.attributeKey] === "unknown") {
+        return sum;
+      }
+      return sum + candidate.confidence;
+    }, 0) / total
+  );
 }
 
 export function determineTargetQuestionStage(
@@ -469,30 +490,64 @@ export function rankAvailableQuestions(
         inferenceModel,
       );
       const split = topKSplit(question, rankedCandidates, resolve);
+      const wideSplit = topKSplit(question, rankedCandidates, resolve, ENDGAME_WIDE_TOP_K);
+      const endgameMode = remainingQuestions !== undefined && remainingQuestions <= 3;
+      const leaderCoverage = topKnownCoverage(question, rankedCandidates, resolve);
       const weightBonus = ((question.weight ?? 1) - 1) * 0.07;
       const layerMultiplier = stageMultiplier(question.stage, targetStage);
       const repeatMultiplier = repetitionMultiplier(question, askedQuestionIds);
-      const endgameFocus = uncertainty.effectiveCandidateCount <= 8.2 || uncertainty.normalizedEntropy <= 0.42;
-      const informationWeight = endgameFocus ? 0.46 : 0.62;
-      const splitWeight = endgameFocus ? 0.23 : 0.13;
-      const convergenceWeight = endgameFocus ? 0.21 : 0.08;
-      const balanceWeight = endgameFocus ? 0.1 : 0.15;
-      const certaintyWeight = endgameFocus ? 0.04 : 0.07;
-      const coverageWeight = endgameFocus ? 0.08 : 0.06;
+      const endgameFocus =
+        endgameMode ||
+        uncertainty.effectiveCandidateCount <= 8.2 ||
+        uncertainty.normalizedEntropy <= 0.42;
+      const informationWeight = endgameMode ? 0.24 : endgameFocus ? 0.46 : 0.62;
+      const splitWeight = endgameMode ? 0.36 : endgameFocus ? 0.23 : 0.13;
+      const convergenceWeight = endgameMode ? 0.28 : endgameFocus ? 0.21 : 0.08;
+      const balanceWeight = endgameMode ? 0.04 : endgameFocus ? 0.1 : 0.15;
+      const certaintyWeight = endgameMode ? 0.02 : endgameFocus ? 0.04 : 0.07;
+      const coverageWeight = endgameMode ? 0.12 : endgameFocus ? 0.08 : 0.06;
       const convergenceScore =
         metrics.expectedMargin * 0.58 +
         metrics.expectedLeaderConfidence * 0.26 +
         (metrics.expectedEffectiveCandidateCount > 0
           ? (1 / metrics.expectedEffectiveCandidateCount) * 0.16
           : 0);
+      const leaderSeparationScore =
+        wideSplit * 0.62 +
+        split * 0.28 +
+        leaderCoverage * 0.1;
       const baseScore =
         metrics.informationGain * informationWeight +
         metrics.predictedAnswerEntropy * balanceWeight +
-        split * splitWeight +
+        (endgameMode ? leaderSeparationScore : split) * splitWeight +
         convergenceScore * convergenceWeight +
         metrics.certainty * certaintyWeight +
-        metrics.profileCoverage * coverageWeight +
+        (endgameMode ? leaderCoverage : metrics.profileCoverage) * coverageWeight +
         weightBonus;
+      const endgameStageMultiplier = !endgameMode
+        ? 1
+        : question.stage === "fine"
+          ? 1.42
+          : question.stage === "specialist"
+            ? 1.34
+            : question.stage === "profile"
+              ? 0.96
+              : question.stage === "category"
+                ? leaderSeparationScore >= 0.22
+                  ? 0.92
+                  : 0.66
+                : leaderSeparationScore >= 0.26
+                  ? 0.78
+                  : 0.5;
+      const endgameCoverageMultiplier = !endgameMode
+        ? 1
+        : leaderCoverage >= 0.82
+          ? 1.12
+          : leaderCoverage >= 0.58
+            ? 0.92
+            : leaderCoverage >= 0.35
+              ? 0.62
+              : 0.36;
       const structural =
         layerMultiplier *
         repeatMultiplier *
@@ -500,7 +555,9 @@ export function rankAvailableQuestions(
         evidenceCoverageMultiplier(metrics.profileCoverage) *
         discriminatorMultiplier(question, rankedCandidates, resolve) *
         getQuestionUsefulnessMultiplier(inferenceModel, question.id) *
-        highValueMultiplier(metrics, split, targetStage);
+        highValueMultiplier(metrics, endgameMode ? Math.max(split, wideSplit) : split, targetStage) *
+        endgameStageMultiplier *
+        endgameCoverageMultiplier;
       const earlyNarrowPenalty =
         uncertainty.normalizedEntropy > 0.7 &&
         stageIndex[question.stage] > stageIndex[targetStage] + 1

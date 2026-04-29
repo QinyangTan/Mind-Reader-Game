@@ -142,6 +142,7 @@ function summarizeCoverage(category, entities, questions, attributeKeys) {
   const categoryQuestions = questions.filter((question) =>
     question.supportedCategories.includes(category),
   );
+  const questionAttributeKeys = [...new Set(categoryQuestions.map((question) => question.attributeKey))];
   const attributeUse = new Map();
   const stageUse = new Map();
   const familyUse = new Map();
@@ -162,6 +163,10 @@ function summarizeCoverage(category, entities, questions, attributeKeys) {
     .toSorted((left, right) => left.knownAttributes - right.knownAttributes)
     .slice(0, 10);
   const largestFamilyCount = Math.max(0, ...familyUse.values());
+  const profileDiagnostics = summarizeProfileUniqueness(
+    categoryEntities,
+    questionAttributeKeys,
+  );
 
   return {
     category,
@@ -180,6 +185,98 @@ function summarizeCoverage(category, entities, questions, attributeKeys) {
       : 0,
     usedAttributes: attributeUse.size,
     weakProfiles,
+    profileDiagnostics,
+  };
+}
+
+function compareProfiles(left, right, keys) {
+  let comparable = 0;
+  let same = 0;
+  let different = 0;
+  let sharedUnknown = 0;
+
+  for (const key of keys) {
+    const leftValue = left.attributes[key];
+    const rightValue = right.attributes[key];
+    if (leftValue === "unknown" && rightValue === "unknown") {
+      sharedUnknown += 1;
+      continue;
+    }
+    if (leftValue === "unknown" || rightValue === "unknown") {
+      continue;
+    }
+    comparable += 1;
+    if (leftValue === rightValue) {
+      same += 1;
+    } else {
+      different += 1;
+    }
+  }
+
+  return {
+    comparable,
+    different,
+    sharedUnknown,
+    similarity: comparable > 0 ? same / comparable : 1,
+  };
+}
+
+function summarizeProfileUniqueness(entities, questionAttributeKeys) {
+  const nearestPairs = [];
+  const indistinguishablePairs = [];
+
+  for (let leftIndex = 0; leftIndex < entities.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < entities.length; rightIndex += 1) {
+      const left = entities[leftIndex];
+      const right = entities[rightIndex];
+      const comparison = compareProfiles(left, right, questionAttributeKeys);
+      const entry = {
+        leftId: left.id,
+        leftName: left.name,
+        rightId: right.id,
+        rightName: right.name,
+        similarity: Number(comparison.similarity.toFixed(3)),
+        comparableAttributes: comparison.comparable,
+        differentKnownAttributes: comparison.different,
+        sharedUnknownAttributes: comparison.sharedUnknown,
+      };
+
+      if (comparison.comparable >= 8 && comparison.similarity >= 0.92) {
+        nearestPairs.push(entry);
+      }
+
+      if (comparison.different === 0 && comparison.comparable >= 8) {
+        indistinguishablePairs.push(entry);
+      }
+    }
+  }
+
+  const unknownHeavyEntities = entities
+    .map((entity) => {
+      const unknownCount = questionAttributeKeys.filter(
+        (key) => entity.attributes[key] === "unknown",
+      ).length;
+      return {
+        id: entity.id,
+        name: entity.name,
+        unknownQuestionAttributes: unknownCount,
+        unknownRate: questionAttributeKeys.length
+          ? Number((unknownCount / questionAttributeKeys.length).toFixed(3))
+          : 0,
+      };
+    })
+    .toSorted((left, right) => right.unknownRate - left.unknownRate)
+    .slice(0, 8);
+
+  return {
+    questionAttributeCount: questionAttributeKeys.length,
+    nearestPairs: nearestPairs
+      .toSorted((left, right) => right.similarity - left.similarity)
+      .slice(0, 8),
+    indistinguishablePairs: indistinguishablePairs
+      .toSorted((left, right) => right.comparableAttributes - left.comparableAttributes)
+      .slice(0, 8),
+    unknownHeavyEntities,
   };
 }
 

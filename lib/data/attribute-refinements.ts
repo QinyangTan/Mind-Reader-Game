@@ -60,6 +60,16 @@ function refineObjectAttributes(entity: GameEntity, attributes: MutableAttribute
   const display = [/phone|computer|tablet|monitor|screen|television|tv|laptop|display|watch/];
   const furniture = [/chair|table|desk|bed|sofa|couch|shelf|cabinet|dresser|stool|bench|wardrobe/];
   const wearable = [/glove|hat|helmet|shoe|boot|watch|mask|belt|coat|jacket|shirt|dress|ring|necklace|bracelet|wearable/];
+  const personalCare = [/comb|razor|toothbrush|soap|shampoo|towel|mirror|cosmetic|perfume|makeup|hairbrush/];
+  const decorative = [/decor|ornament|vase|statue|figurine|frame|poster|painting|artwork|sculpture|tapestry|wall hanging/];
+  const fastener = [/button|zipper|clip|pin|nail|screw|bolt|hook|lock|latch|buckle|clasp|staple/];
+  const measuring = [/ruler|scale|thermometer|meter|gauge|measuring|compass|protractor|tape measure|caliper/];
+  const textile = [/cloth|fabric|textile|towel|blanket|curtain|rug|carpet|shirt|dress|coat|jacket|scarf|linen/];
+  const bladed = [/knife|blade|scissors|saw|axe|razor|cutter|scalpel|chisel|slicer/];
+  const heating = [/oven|toaster|heater|stove|kettle|iron|candle|torch|fireplace|radiator|grill/];
+  const imaging = [/camera|photo|lens|telescope|microscope|binocular|mirror|scanner|projector|printer/];
+  const timekeeping = [/clock|watch|timer|calendar|sundial|hourglass|stopwatch/];
+  const repair = [/hammer|screwdriver|wrench|drill|nail|screw|bolt|tape|glue|pliers|spanner|saw/];
 
   if (includesAny(text, kitchen)) {
     changed = setIfUnknown(attributes, "household", "yes") || changed;
@@ -109,6 +119,59 @@ function refineObjectAttributes(entity: GameEntity, attributes: MutableAttribute
     changed = setIfUnknown(attributes, "wearable", "yes") || changed;
     changed = setIfUnknown(attributes, "body_worn_object", "yes") || changed;
     changed = setIfUnknown(attributes, "portable", "yes") || changed;
+  }
+
+  if (includesAny(text, personalCare)) {
+    changed = setIfUnknown(attributes, "personal_care_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "bathroom_related", "probably") || changed;
+    changed = setIfUnknown(attributes, "household", "yes") || changed;
+  }
+
+  if (includesAny(text, decorative)) {
+    changed = setIfUnknown(attributes, "decorative_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "indoor_use", "probably") || changed;
+  }
+
+  if (includesAny(text, fastener)) {
+    changed = setIfUnknown(attributes, "fastener_or_closure", "yes") || changed;
+    changed = setIfUnknown(attributes, "made_of_metal", "probably") || changed;
+    changed = setIfUnknown(attributes, "small", "probably") || changed;
+  }
+
+  if (includesAny(text, measuring)) {
+    changed = setIfUnknown(attributes, "measuring_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "tool", "probably") || changed;
+  }
+
+  if (includesAny(text, textile)) {
+    changed = setIfUnknown(attributes, "textile_or_fabric", "yes") || changed;
+    changed = setIfUnknown(attributes, "made_of_plastic", "probably_not") || changed;
+  }
+
+  if (includesAny(text, bladed)) {
+    changed = setIfUnknown(attributes, "bladed_tool", "yes") || changed;
+    changed = setIfUnknown(attributes, "sharp", "yes") || changed;
+    changed = setIfUnknown(attributes, "tool", "yes") || changed;
+  }
+
+  if (includesAny(text, heating)) {
+    changed = setIfUnknown(attributes, "heating_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "kitchen_related", "probably") || changed;
+  }
+
+  if (includesAny(text, imaging)) {
+    changed = setIfUnknown(attributes, "imaging_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "tool", "probably") || changed;
+  }
+
+  if (includesAny(text, timekeeping)) {
+    changed = setIfUnknown(attributes, "timekeeping_item", "yes") || changed;
+    changed = setIfUnknown(attributes, "used_daily", "probably") || changed;
+  }
+
+  if (includesAny(text, repair)) {
+    changed = setIfUnknown(attributes, "repair_or_maintenance", "yes") || changed;
+    changed = setIfUnknown(attributes, "tool", "yes") || changed;
   }
 
   if (includesAny(text, [/clean|soap|sponge|brush|broom|mop|vacuum|duster|laundry/])) {
@@ -164,6 +227,7 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
     changed = setIfUnknown(attributes, "handheld", "probably") || changed;
     changed = setIfUnknown(attributes, "portable", "probably") || changed;
     changed = setIfUnknown(attributes, "sandwich_like", "probably") || changed;
+    changed = setIfUnknown(attributes, "bread_based", "probably") || changed;
   }
   if (includesAny(text, [/soup|stew|broth|bisque|bouillon|pottage|harira|avgolemono/])) {
     changed = setIfUnknown(attributes, "soup_or_stew", "yes") || changed;
@@ -175,6 +239,25 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
     changed = setIfUnknown(attributes, "sweet", "yes") || changed;
     changed = setIfUnknown(attributes, "dessert", "probably") || changed;
     changed = setIfUnknown(attributes, "dessert_pastry", "probably") || changed;
+  }
+  if (includesAny(text, [/chocolate|cocoa|cacao|brownie|fudge|mole/])) {
+    changed = setIfUnknown(attributes, "chocolate_or_cocoa", "yes") || changed;
+    changed = setIfUnknown(attributes, "sweet", "probably") || changed;
+  }
+  if (includesAny(text, [/tomato|potato|pepper|onion|carrot|cabbage|spinach|vegetable|eggplant|okra|greens|mushroom/])) {
+    changed = setIfUnknown(attributes, "vegetable_forward", "probably") || changed;
+    changed = setIfUnknown(attributes, "vegetable", "probably") || changed;
+  }
+  if (includesAny(text, [/apple|banana|orange|berry|mango|fruit|lemon|lime|peach|pear|plum|cherry|melon/])) {
+    changed = setIfUnknown(attributes, "fruit_forward", "probably") || changed;
+    changed = setIfUnknown(attributes, "fruit", "probably") || changed;
+  }
+  if (includesAny(text, [/bean|lentil|pea|chickpea|falafel|hummus|dal|legume|soy/])) {
+    changed = setIfUnknown(attributes, "legume_based", "yes") || changed;
+    changed = setIfUnknown(attributes, "vegetable_forward", "probably") || changed;
+  }
+  if (includesAny(text, [/egg|omelet|omelette|custard|quiche|frittata/])) {
+    changed = setIfUnknown(attributes, "egg_based", "yes") || changed;
   }
   if (includesAny(text, [/coffee|tea|juice|beer|wine|milkshake|smoothie|soda|cocoa|drink/])) {
     changed = setIfUnknown(attributes, "drinkable", "yes") || changed;
@@ -211,8 +294,29 @@ function refineFoodAttributes(entity: GameEntity, attributes: MutableAttributes)
   if (includesAny(text, [/fried|fritter|tempura|fries|donut|doughnut/])) {
     changed = setIfUnknown(attributes, "fried", "yes") || changed;
   }
+  if (includesAny(text, [/donut|doughnut|fritter|churro|beignet|funnel cake/])) {
+    changed = setIfUnknown(attributes, "fried_dough", "yes") || changed;
+    changed = setIfUnknown(attributes, "sweet", "probably") || changed;
+  }
   if (includesAny(text, [/baked|bread|cake|pie|cookie|pastry|pizza|bagel/])) {
     changed = setIfUnknown(attributes, "baked", "probably") || changed;
+  }
+  if (includesAny(text, [/grill|grilled|barbecue|bbq|kebab|satay|yakitori|broil|roast/])) {
+    changed = setIfUnknown(attributes, "grilled", "yes") || changed;
+  }
+  if (includesAny(text, [/salad|sushi|sashimi|ceviche|raw|fresh|poke|tartare/])) {
+    changed = setIfUnknown(attributes, "raw_or_fresh", "probably") || changed;
+    changed = setIfUnknown(attributes, "served_cold", "probably") || changed;
+  }
+  if (includesAny(text, [/pickle|pickled|vinegar|lemon|lime|sour|tamarind|sauerkraut|kimchi/])) {
+    changed = setIfUnknown(attributes, "sour_or_tangy", "probably") || changed;
+  }
+  if (includesAny(text, [/sauce|salsa|chutney|dip|condiment|mole|pesto|gravy|ketchup|mustard/])) {
+    changed = setIfUnknown(attributes, "sauce_or_condiment", "yes") || changed;
+  }
+  if (includesAny(text, [/cheese|queso|paneer|feta|ricotta|mozzarella|parmesan/])) {
+    changed = setIfUnknown(attributes, "cheese_forward", "yes") || changed;
+    changed = setIfUnknown(attributes, "dairy_based", "yes") || changed;
   }
   if (includesAny(text, [/breakfast|bagel|pancake|waffle|cereal|omelet|porridge/])) {
     changed = setIfUnknown(attributes, "breakfast_food", "probably") || changed;
@@ -257,6 +361,14 @@ function refineHistoricalAttributes(entity: GameEntity, attributes: MutableAttri
   ) {
     changed = setIfUnknown(attributes, "from_europe", "probably") || changed;
   }
+  if (includesAny(text, [/renaissance|reformation|early modern|enlightenment|shakespeare|galileo|newton|da vinci|michelangelo/])) {
+    changed = setIfUnknown(attributes, "early_modern", "yes") || changed;
+    changed = setIfUnknown(attributes, "modern", "probably_not") || changed;
+  }
+  if (includesAny(text, [/20th century|twentieth|world war|civil rights|computing|telephone|radio|nuclear|space race|cold war/])) {
+    changed = setIfUnknown(attributes, "twentieth_century", "probably") || changed;
+    changed = setIfUnknown(attributes, "modern", "yes") || changed;
+  }
 
   if (includesAny(text, [/architect|architecture|building|dushkin/])) {
     changed = setIfUnknown(attributes, "architect", "yes") || changed;
@@ -274,6 +386,7 @@ function refineHistoricalAttributes(entity: GameEntity, attributes: MutableAttri
   }
   if (includesAny(text, [/astronomer|astronomy|space|cosmos|telescope|gabor|galileo|kepler|copernicus/])) {
     changed = setIfUnknown(attributes, "astronomer", "probably") || changed;
+    changed = setIfUnknown(attributes, "space_or_astronomy", "yes") || changed;
   }
   if (includesAny(text, [/composer|musician|music|symphony|song/])) {
     changed = setIfUnknown(attributes, "composer_or_musician", "yes") || changed;
@@ -284,11 +397,16 @@ function refineHistoricalAttributes(entity: GameEntity, attributes: MutableAttri
   }
   if (includesAny(text, [/revolution|revolutionary|independence|resistance/])) {
     changed = setIfUnknown(attributes, "revolutionary", "yes") || changed;
+    changed = setIfUnknown(attributes, "war_or_revolution", "probably") || changed;
   }
   if (includesAny(text, [/rights|abolition|suffrage|activist|civil rights/])) {
     changed = setIfUnknown(attributes, "rights_activist", "yes") || changed;
     changed = setIfUnknown(attributes, "civil_rights_leader", "yes") || changed;
     changed = setIfUnknown(attributes, "reformer", "probably") || changed;
+  }
+  if (includesAny(text, [/abolition|suffrage|suffragist|emancipation|anti-slavery/])) {
+    changed = setIfUnknown(attributes, "abolition_or_suffrage", "yes") || changed;
+    changed = setIfUnknown(attributes, "civil_rights_leader", "probably") || changed;
   }
   if (includesAny(text, [/invent|engineer|technology|technical|computer|telephone|electric|patent|breakthrough/])) {
     changed = setIfUnknown(attributes, "technology_innovator", "yes") || changed;
@@ -297,6 +415,47 @@ function refineHistoricalAttributes(entity: GameEntity, attributes: MutableAttri
   if (includesAny(text, [/empire|emperor|king|queen|pharaoh|conqueror|khan|mansa|caesar|napoleon/])) {
     changed = setIfUnknown(attributes, "empire_builder", "probably") || changed;
     changed = setIfUnknown(attributes, "ruler_or_emperor", "probably") || changed;
+  }
+  if (includesAny(text, [/king|queen|monarch|emperor|empress|pharaoh|czar|tsar|sultan|caliph|mansa/])) {
+    changed = setIfUnknown(attributes, "monarch", "yes") || changed;
+    changed = setIfUnknown(attributes, "royal", "probably") || changed;
+  }
+  if (includesAny(text, [/president|prime minister|chancellor|premier|governor/])) {
+    changed = setIfUnknown(attributes, "president_or_prime_minister", "yes") || changed;
+    changed = setIfUnknown(attributes, "political_leader", "yes") || changed;
+  }
+  if (includesAny(text, [/physicist|physics|relativity|quantum|radioactivity|nuclear|fission/])) {
+    changed = setIfUnknown(attributes, "physicist", "yes") || changed;
+    changed = setIfUnknown(attributes, "scientist", "yes") || changed;
+  }
+  if (includesAny(text, [/biology|biologist|naturalist|evolution|botanist|zoologist|genetics|microbiology/])) {
+    changed = setIfUnknown(attributes, "biologist_or_naturalist", "yes") || changed;
+    changed = setIfUnknown(attributes, "scientist", "yes") || changed;
+  }
+  if (includesAny(text, [/chemist|chemistry|chemical|periodic table|radium|polonium|laboratory/])) {
+    changed = setIfUnknown(attributes, "chemist", "yes") || changed;
+    changed = setIfUnknown(attributes, "scientist", "yes") || changed;
+  }
+  if (includesAny(text, [/poet|poetry|playwright|dramatist|theatre|theater|shakespeare/])) {
+    changed = setIfUnknown(attributes, "poet_or_playwright", "yes") || changed;
+    changed = setIfUnknown(attributes, "writer", "probably") || changed;
+    changed = setIfUnknown(attributes, "arts_or_literature", "yes") || changed;
+  }
+  if (includesAny(text, [/painter|painting|sculptor|sculpture|renaissance artist|artist/])) {
+    changed = setIfUnknown(attributes, "painter_or_sculptor", "yes") || changed;
+    changed = setIfUnknown(attributes, "artist", "probably") || changed;
+    changed = setIfUnknown(attributes, "arts_or_literature", "yes") || changed;
+  }
+  if (includesAny(text, [/religious reform|reformation|protestant|theologian|religion|spiritual|buddha|confucius|guru/])) {
+    changed = setIfUnknown(attributes, "religious_reformer", "probably") || changed;
+    changed = setIfUnknown(attributes, "religious_figure", "probably") || changed;
+  }
+  if (includesAny(text, [/war|battle|general|commander|conquest|conqueror|military|army|navy|admiral/])) {
+    changed = setIfUnknown(attributes, "war_or_revolution", "yes") || changed;
+    changed = setIfUnknown(attributes, "military_leader", "probably") || changed;
+  }
+  if (includesAny(text, [/industry|industrial|business|economist|economic|factory|railroad|steel|oil|finance/])) {
+    changed = setIfUnknown(attributes, "economic_or_industrial", "yes") || changed;
   }
   if (includesAny(text, [/artist|writer|poet|novel|playwright|literature|painting|sculptor|philosopher/])) {
     changed = setIfUnknown(attributes, "arts_or_literature", "yes") || changed;

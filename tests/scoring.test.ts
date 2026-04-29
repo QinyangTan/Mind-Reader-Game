@@ -6,6 +6,7 @@ import { difficultyConfig } from "@/lib/game/game-config";
 import {
   getGuessTimingDiagnostics,
   rankCandidates,
+  shouldCommitFinalGuess,
   shouldAttemptGuess,
   strongestNarrowingQuestion,
   toProbability,
@@ -262,6 +263,58 @@ describe("shouldAttemptGuess", () => {
         6,
         "historical_figures",
       ),
+    ).toBe(true);
+  });
+
+  it("allows a late stable leader with strong evidence even when absolute confidence is modest", () => {
+    const rankings = [
+      { ...candidate("a", 0.07), matchedAnswers: 9, hardContradictions: 0 },
+      { ...candidate("b", 0.04), matchedAnswers: 7, hardContradictions: 0 },
+      { ...candidate("c", 0.02), matchedAnswers: 5, hardContradictions: 0 },
+    ];
+
+    const diagnostics = getGuessTimingDiagnostics(
+      rankings,
+      cfg,
+      cfg.minQuestionsBeforeGuess + 8,
+      1,
+      "objects",
+      { leaderStreak: 5, strongAnswerCount: 9 },
+    );
+
+    expect(diagnostics.shouldGuess).toBe(true);
+    expect(diagnostics.reason).toBe("late_stable");
+  });
+
+  it("keeps final commitment blocked when a stable leader has contradictions", () => {
+    const rankings = [
+      { ...candidate("a", 0.08), matchedAnswers: 9, hardContradictions: 1 },
+      { ...candidate("b", 0.04), matchedAnswers: 7, hardContradictions: 0 },
+      { ...candidate("c", 0.02), matchedAnswers: 5, hardContradictions: 0 },
+    ];
+
+    expect(
+      shouldCommitFinalGuess(rankings, "objects", {
+        questionsAsked: 20,
+        leaderStreak: 6,
+        strongAnswerCount: 9,
+      }),
+    ).toBe(false);
+  });
+
+  it("allows final commitment for a stable clean leader after enough strong answers", () => {
+    const rankings = [
+      { ...candidate("a", 0.08), matchedAnswers: 9, hardContradictions: 0 },
+      { ...candidate("b", 0.04), matchedAnswers: 7, hardContradictions: 0 },
+      { ...candidate("c", 0.02), matchedAnswers: 5, hardContradictions: 0 },
+    ];
+
+    expect(
+      shouldCommitFinalGuess(rankings, "objects", {
+        questionsAsked: 20,
+        leaderStreak: 6,
+        strongAnswerCount: 9,
+      }),
     ).toBe(true);
   });
 });

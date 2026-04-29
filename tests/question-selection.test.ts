@@ -253,4 +253,87 @@ describe("selectNextQuestion", () => {
     expect(officeQuestion!.profileCoverage).toBeGreaterThan(screenQuestion!.profileCoverage);
     expect(officeQuestion!.score).toBeGreaterThan(screenQuestion!.score);
   });
+
+  it("uses endgame mode to prefer a fine discriminator over a broad opener", () => {
+    const extraEntities: GameEntity[] = [
+      makeEntity("chef-knife", "objects", {
+        real: "yes",
+        object: "yes",
+        household: "yes",
+        bladed_tool: "yes",
+        sharp: "yes",
+        tool: "yes",
+      }),
+      makeEntity("mixing-bowl", "objects", {
+        real: "yes",
+        object: "yes",
+        household: "yes",
+        bladed_tool: "no",
+        sharp: "no",
+        tool: "no",
+      }),
+      makeEntity("desk-lamp", "objects", {
+        real: "yes",
+        object: "yes",
+        household: "yes",
+        bladed_tool: "no",
+        sharp: "no",
+        tool: "no",
+      }),
+    ];
+    const rankings = [
+      ranked("chef-knife", 0.36),
+      ranked("mixing-bowl", 0.34),
+      ranked("desk-lamp", 0.3),
+    ];
+
+    const rankedQuestions = rankAvailableQuestions(
+      "objects",
+      ["object-electronic", "object-portable", "object-kitchen"],
+      rankings,
+      extraEntities,
+      2,
+    );
+
+    const bladeQuestion = rankedQuestions.find((entry) => entry.question.id === "v7-object-bladed-edge");
+    const householdQuestion = rankedQuestions.find((entry) => entry.question.id === "object-household");
+
+    expect(bladeQuestion).toBeDefined();
+    expect(householdQuestion).toBeDefined();
+    expect(bladeQuestion!.question.stage).toBe("fine");
+    expect(bladeQuestion!.score).toBeGreaterThan(householdQuestion!.score);
+  });
+
+  it("does not let a low-coverage endgame discriminator outrank a known split", () => {
+    const extraEntities: GameEntity[] = [
+      makeEntity("office-tool", "objects", {
+        real: "yes",
+        object: "yes",
+        office_related: "yes",
+        imaging_item: "unknown",
+      }),
+      makeEntity("kitchen-tool", "objects", {
+        real: "yes",
+        object: "yes",
+        office_related: "no",
+        imaging_item: "unknown",
+      }),
+    ];
+    const rankings = [ranked("office-tool", 0.52), ranked("kitchen-tool", 0.48)];
+
+    const rankedQuestions = rankAvailableQuestions(
+      "objects",
+      ["object-electronic", "object-powered", "object-portable"],
+      rankings,
+      extraEntities,
+      2,
+    );
+
+    const officeQuestion = rankedQuestions.find((entry) => entry.question.id === "object-office");
+    const imagingQuestion = rankedQuestions.find((entry) => entry.question.id === "v7-object-imaging");
+
+    expect(officeQuestion).toBeDefined();
+    expect(imagingQuestion).toBeDefined();
+    expect(officeQuestion!.score).toBeGreaterThan(imagingQuestion!.score);
+  });
 });
