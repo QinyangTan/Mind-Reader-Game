@@ -58,13 +58,6 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={`${alegreyaSans.variable} ${cormorant.variable} h-full antialiased`}
     >
-      <head>
-        <script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5423711015893224"
-          crossOrigin="anonymous"
-        />
-      </head>
       <body className="min-h-full">{children}</body>
     </html>
   );

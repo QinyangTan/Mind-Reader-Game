@@ -10,6 +10,14 @@ function source(path: string) {
 }
 
 describe("public-game UX source guards", () => {
+  it("keeps Google AdSense off the global layout and gameplay route", () => {
+    expect(source("app/layout.tsx")).not.toContain("googlesyndication");
+    expect(source("app/play/page.tsx")).not.toContain("AdSenseLoader");
+    expect(source("app/play/page.tsx")).not.toContain("googlesyndication");
+    expect(source("components/site/adsense-loader.tsx")).toContain("ADSENSE_ALLOWED_ROUTES");
+    expect(source("components/site/adsense-loader.tsx")).toContain("/play*");
+  });
+
   it("keeps ad dismissal page-lifecycle only so ads reappear after refresh", () => {
     const slot = source("components/brand/timed-ad-slot.tsx");
 

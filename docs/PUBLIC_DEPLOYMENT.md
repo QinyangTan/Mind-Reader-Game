@@ -109,6 +109,7 @@ Before release, manually check:
 - Top, left, and right ads render outside the safe gameplay area.
 - Ads can close only after 15 seconds and reappear after a full page refresh.
 - Mobile hides side ads and preserves the main ritual surface.
+- Google AdSense is route-limited to publisher-content pages only. Do not load it on `/play`; configure Auto ads to exclude `/play*` in the AdSense dashboard.
 
 ## Backend Adapter Notes
 

@@ -1,6 +1,6 @@
 # Ad Media Sources
 
-Mind Reader keeps its logo, mascot, and UI art original to this repo. The ad slots now use real public-domain promo creatives cached locally for reliability and labeled in-product as `Example Ad`.
+Mind Reader keeps its logo, mascot, and UI art original to this repo. The in-game ad slots use real public-domain promo creatives cached locally for reliability and labeled in-product as `Non-Google Example Ad`.
 
 ## Imported ad media
 
@@ -14,5 +14,6 @@ Mind Reader keeps its logo, mascot, and UI art original to this repo. The ad slo
 ## Notes
 
 - All ad copy, labels, timing behavior, layout, styling, and fallback house creatives remain original to this repo.
-- No third-party ad network code, trackers, or embeds are included by default.
+- No third-party ad network code, trackers, or embeds are included in the in-game example sponsor slots.
+- Google AdSense, when enabled, is loaded only by the controlled public-content loader documented in [ADSENSE_POLICY.md](ADSENSE_POLICY.md).
 - The real example creatives are downloaded into the repo instead of hotlinked so the deployed site stays stable.
