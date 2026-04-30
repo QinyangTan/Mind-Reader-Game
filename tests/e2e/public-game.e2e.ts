@@ -53,11 +53,13 @@ test.describe("Mind Reader public game smoke flow", () => {
 
   test("ads render on refresh and expose their countdown labels", async ({ page }, testInfo) => {
     await page.goto("/");
+    await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(0);
+
     if (testInfo.project.name.includes("mobile")) {
-      await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(0);
       return;
     }
 
+    await createProfile(page, "Ad Tester");
     await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(3);
     await page.reload();
     await expect(page.getByRole("region", { name: /sponsored space/i })).toHaveCount(3);

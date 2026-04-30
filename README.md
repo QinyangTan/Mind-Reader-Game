@@ -33,7 +33,7 @@ Play the published web game here:
 - **Accuracy and content tooling.** `npm run eval:accuracy` simulates inference quality with per-category top-1, top-5, and top-10 accuracy, stump rate, committed-guess rate, timing diagnostics, wrong-pair samples, and weak-profile reporting. `npm run quality:content` reports coverage, weak profiles, duplicate aliases, family balance, and profile-uniqueness clusters.
 - **CI-ready gate.** GitHub Actions runs lint, typecheck, tests, validation, content quality, accuracy evaluation, and build checks on the repo.
 - **Category preview fix.** Category hover/focus/tap previews now update the description without advancing. Only the explicit Continue / Begin action moves the setup forward.
-- **AdSense-safe public ads.** Google AdSense is loaded only on content-rich public pages, never globally and never inside `/play`. Top, left, and right in-game sponsor slots remain cached non-Google example creatives outside the safe gameplay area.
+- **AdSense-safe public ads.** Google AdSense is loaded only on content-rich public pages, never globally and never inside `/play`. The homepage hero has no simulated ad boxes; top, left, and right in-game sponsor slots remain cached non-Google example creatives outside the safe gameplay area.
 
 ## Run Locally
 
@@ -227,7 +227,7 @@ Run `npm run validate` to check:
 
 Each slot is non-blocking and closes only after a visible 15-second countdown. Dismissal is page-lifecycle only, so sponsor slots reappear on a full page refresh as expected for a public web game. Side ads are desktop-only; smaller screens preserve the gameplay area. Sample media sources are documented in [docs/AD_SOURCES.md](docs/AD_SOURCES.md).
 
-Google AdSense is intentionally not loaded in `app/layout.tsx`. The controlled `AdSenseLoader` component is mounted only on publisher-content routes: `/`, `/about`, `/faq`, `/press`, `/privacy`, `/terms`, `/legal`, and `/contact`. It is excluded from `/play`, profile gates, Chamber Memory, World Rank, gameplay, reveal/result screens, modals, and other ritual-only surfaces. Auto ads should also exclude `/play*` in the AdSense dashboard. See [docs/ADSENSE_POLICY.md](docs/ADSENSE_POLICY.md).
+Google AdSense is intentionally not loaded in `app/layout.tsx`. The controlled `AdSenseLoader` component is mounted only on publisher-content routes: `/`, `/about`, `/faq`, `/press`, `/privacy`, `/terms`, `/legal`, and `/contact`. The homepage keeps the cinematic hero clean and places publisher content in editorial sections below it. It is excluded from `/play`, profile gates, Chamber Memory, World Rank, gameplay, reveal/result screens, modals, and other ritual-only surfaces. Auto ads should also exclude `/play*` in the AdSense dashboard. See [docs/ADSENSE_POLICY.md](docs/ADSENSE_POLICY.md).
 
 ## Production Notes
 

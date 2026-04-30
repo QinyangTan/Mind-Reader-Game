@@ -56,6 +56,7 @@ export function SiteInfoPage({
       <ChamberSceneShell
         scene="archive"
         mood="observing"
+        showExampleAds={false}
         header={
           <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-4 pt-1 sm:flex-row sm:items-start sm:justify-between">
             <Link href="/" className="max-w-max">

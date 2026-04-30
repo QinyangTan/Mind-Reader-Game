@@ -18,6 +18,16 @@ describe("public-game UX source guards", () => {
     expect(source("components/site/adsense-loader.tsx")).toContain("/play*");
   });
 
+  it("keeps homepage publisher content below a clean ad-free hero", () => {
+    const landing = source("components/game/landing-page.tsx");
+
+    expect(landing).toContain("showExampleAds={false}");
+    expect(landing).toContain("AdSense publisher-content compliance");
+    expect(landing).toContain("What Mind Reader is");
+    expect(landing).toContain("How Mora's inference works");
+    expect(landing).not.toContain("TimedAdSlot");
+  });
+
   it("keeps ad dismissal page-lifecycle only so ads reappear after refresh", () => {
     const slot = source("components/brand/timed-ad-slot.tsx");
 

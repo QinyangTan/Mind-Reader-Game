@@ -17,6 +17,8 @@ The controlled `AdSenseLoader` component may load the Google AdSense script only
 
 These routes contain public-site information about the project, gameplay modes, scoring, privacy, leaderboard behavior, press context, and legal/FAQ material.
 
+On `/`, the cinematic hero intentionally stays clean and game-like. The publisher content required for review lives in scrollable editorial sections below the hero, including what the game is, how each mode works, scoring/fairness, privacy, inference, and content scope.
+
 ## Where Google AdSense Must Not Load
 
 Google-served ads are intentionally disabled on:
@@ -46,3 +48,5 @@ This route-level exclusion is required because the browser game uses client-side
 ## In-Game Example Ads
 
 The top, left, and right in-game sponsor placements are local, cached, non-Google example creatives. They are labeled `Non-Google Example Ad`, do not use `adsbygoogle`, do not load ad-network scripts, and remain outside the safe gameplay area.
+
+These simulated sponsor placements are not rendered on the public homepage.

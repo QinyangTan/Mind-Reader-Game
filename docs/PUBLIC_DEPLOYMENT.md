@@ -110,6 +110,7 @@ Before release, manually check:
 - Ads can close only after 15 seconds and reappear after a full page refresh.
 - Mobile hides side ads and preserves the main ritual surface.
 - Google AdSense is route-limited to publisher-content pages only. Do not load it on `/play`; configure Auto ads to exclude `/play*` in the AdSense dashboard.
+- The homepage hero should stay free of simulated ad boxes; publisher-content sections live below the hero for review-safe context.
 
 ## Backend Adapter Notes
 
